@@ -1,1163 +1,268 @@
+import { useEffect, useState } from "react";
 import {
-  Car,
-  Layers3,
+  Layers,
   LocateFixed,
   Minus,
+  Navigation,
   Plus,
   Radio,
   Search,
+  ShieldAlert,
   TrafficCone,
-  X,
+  Car,
+  Box,
 } from "lucide-react";
 
-import {
-  MapContainer,
-  Marker,
-  Popup,
-  TileLayer,
-  useMap,
-} from "react-leaflet";
-
-import L from "leaflet";
-
-import { useState } from "react";
-
-import {
-  useVehicleSimulation,
-} from "../hooks/useVehicleSimulation";
-
-import type {
-  Vehicle,
-} from "../data/vehicles";
-
-
-/* =========================================
-   VEHICLE COLORS
-   ========================================= */
-
-const vehicleColors: Record<string, string> = {
-  Car: "#22d3ee",
-  Bus: "#a78bfa",
-  Bike: "#f472b6",
-  Truck: "#fbbf24",
+type Vehicle = {
+  id: string;
+  plate: string;
+  type: string;
+  speed: number;
+  x: number;
+  y: number;
 };
 
-
-/* =========================================
-   VEHICLE ICON
-   ========================================= */
-
-function createVehicleIcon(
-  type: string,
-  selected: boolean,
-) {
-  const color =
-    vehicleColors[type] || "#22d3ee";
-
-  const emoji =
-    type === "Bus"
-      ? "🚌"
-      : type === "Bike"
-        ? "🏍️"
-        : type === "Truck"
-          ? "🚚"
-          : "🚗";
-
-  return L.divIcon({
-    className: "vehicle-marker",
-
-    html: `
-      <div
-        style="
-          position: relative;
-          width: 42px;
-          height: 42px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        "
-      >
-
-        ${
-          selected
-            ? `
-              <div
-                style="
-                  position: absolute;
-                  width: 42px;
-                  height: 42px;
-                  border-radius: 50%;
-                  border: 2px solid ${color};
-                  animation: vehiclePulse 1.5s infinite;
-                  opacity: 0.7;
-                "
-              ></div>
-            `
-            : ""
-        }
-
-        <div
-          style="
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: ${color};
-            color: #04111d;
-            border: 2px solid rgba(255,255,255,0.9);
-            box-shadow: 0 0 18px ${color};
-            font-size: 14px;
-            position: relative;
-            z-index: 2;
-          "
-        >
-          ${emoji}
-        </div>
-
-      </div>
-    `,
-
-    iconSize: [42, 42],
-
-    iconAnchor: [21, 21],
-  });
-}
-
-
-/* =========================================
-   RECENTER MAP
-   ========================================= */
-
-function MapRecenter({
-  vehicle,
-}: {
-  vehicle: Vehicle | null;
-}) {
-  const map = useMap();
-
-  if (vehicle) {
-    map.flyTo(
-      [
-        vehicle.latitude,
-        vehicle.longitude,
-      ],
-      16,
-      {
-        duration: 1.2,
-      },
-    );
-  }
-
-  return null;
-}
-
-
-/* =========================================
-   LIVE MAP
-   ========================================= */
+const initialVehicles: Vehicle[] = [
+  { id: "V001", plate: "KA-01-AB-1234", type: "Car", speed: 32, x: 28, y: 37 },
+  { id: "V002", plate: "KA-01-CD-5621", type: "Bus", speed: 18, x: 52, y: 55 },
+  { id: "V003", plate: "KA-01-EF-8934", type: "SUV", speed: 41, x: 67, y: 32 },
+  { id: "V004", plate: "KA-05-GH-1245", type: "Bike", speed: 22, x: 76, y: 69 },
+  { id: "V005", plate: "KA-03-JK-7412", type: "Car", speed: 28, x: 39, y: 72 },
+  { id: "V006", plate: "KA-02-LM-4128", type: "Truck", speed: 21, x: 58, y: 26 },
+];
 
 export default function LiveMap() {
-  const vehicles =
-    useVehicleSimulation();
+  const [vehicles, setVehicles] = useState(initialVehicles);
+  const [activeLayer, setActiveLayer] = useState("Vehicles");
+  const [search, setSearch] = useState("");
 
-  const [
-    selectedVehicle,
-    setSelectedVehicle,
-  ] = useState<Vehicle | null>(null);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setVehicles((current) =>
+        current.map((vehicle) => ({
+          ...vehicle,
+          x: vehicle.x > 88 ? 15 : vehicle.x + 0.35,
+          speed: Math.max(12, Math.min(55, vehicle.speed + (Math.random() - 0.5) * 3)),
+        }))
+      );
+    }, 900);
 
-  const [
-    search,
-    setSearch,
-  ] = useState("");
+    return () => clearInterval(timer);
+  }, []);
 
-
-  /* =======================================
-     SEARCH FILTER
-     ======================================= */
-
-  const filteredVehicles =
-    vehicles.filter((vehicle) =>
-      `${vehicle.numberPlate}
-       ${vehicle.id}
-       ${vehicle.road}
-       ${vehicle.zone}
-       ${vehicle.type}`
-        .toLowerCase()
-        .includes(search.toLowerCase()),
-    );
-
+  const filteredVehicles = vehicles.filter((vehicle) =>
+    vehicle.plate.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div
-      className="
-        relative
-        h-[calc(100vh-76px)]
-        min-h-[650px]
-        overflow-hidden
-        bg-[#050b14]
-      "
-    >
+    <div className="metropolis-page">
+      <div className="page-header">
+        <div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <h1 className="page-title">Live City View</h1>
+            <span className="live-pill">
+              <span className="live-dot" />
+              LIVE
+            </span>
+          </div>
+          <p className="page-subtitle">
+            Real-time digital twin simulation and city activity monitoring
+          </p>
+        </div>
 
-      {/* =====================================
-          MAP
-          ===================================== */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <div className="search-box" style={{ width: 230 }}>
+            <Search size={15} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search vehicle..."
+            />
+          </div>
 
-      <MapContainer
-        center={[
-          12.972,
-          77.596,
-        ]}
-        zoom={14}
-        zoomControl={false}
-        className="h-full w-full"
-      >
+          <button className="btn btn-primary">
+            <Radio size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+            Simulation Active
+          </button>
+        </div>
+      </div>
 
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <div className="grid-2">
+        <div className="panel map-shell">
+          <div className="map-grid" />
 
+          <div className="road horizontal" style={{ top: "34%" }} />
+          <div className="road horizontal" style={{ top: "67%" }} />
+          <div className="road vertical" style={{ left: "44%" }} />
+          <div className="road vertical" style={{ left: "72%" }} />
+          <div className="road diagonal" />
 
-        {/* VEHICLES */}
+          <div className="building" style={{ left: "12%", top: "18%", height: 65 }} />
+          <div className="building" style={{ left: "24%", top: "52%", height: 100 }} />
+          <div className="building" style={{ left: "56%", top: "12%", height: 115 }} />
+          <div className="building" style={{ left: "80%", top: "44%", height: 90 }} />
+          <div className="building" style={{ left: "62%", top: "73%", height: 65 }} />
 
-        {filteredVehicles.map(
-          (vehicle) => (
-            <Marker
-              key={vehicle.id}
+          <div className="zone-label" style={{ left: "17%", top: "25%" }}>
+            <strong>ZONE A</strong>
+            <div className="muted">Central District</div>
+          </div>
 
-              position={[
-                vehicle.latitude,
-                vehicle.longitude,
-              ]}
+          <div className="zone-label" style={{ left: "71%", top: "19%" }}>
+            <strong>ZONE B</strong>
+            <div className="muted">Business Hub</div>
+          </div>
 
-              icon={createVehicleIcon(
-                vehicle.type,
-                selectedVehicle?.id ===
-                  vehicle.id,
-              )}
+          <div className="zone-label" style={{ left: "75%", top: "72%" }}>
+            <strong>ZONE C</strong>
+            <div className="muted">Residential Area</div>
+          </div>
 
-              eventHandlers={{
-                click: () => {
-                  setSelectedVehicle(
-                    vehicle,
-                  );
-                },
-              }}
-            >
+          {activeLayer === "Vehicles" &&
+            filteredVehicles.map((vehicle) => (
+              <div
+                key={vehicle.id}
+                className="vehicle-marker"
+                title={`${vehicle.plate} • ${vehicle.speed.toFixed(0)} km/h`}
+                style={{
+                  left: `${vehicle.x}%`,
+                  top: `${vehicle.y}%`,
+                }}
+              />
+            ))}
 
-              <Popup>
+          {activeLayer === "Incidents" && (
+            <>
+              <div
+                style={{
+                  position: "absolute",
+                  left: "39%",
+                  top: "30%",
+                  color: "#ff5c67",
+                  zIndex: 8,
+                }}
+              >
+                <ShieldAlert size={30} />
+              </div>
 
-                <div
-                  style={{
-                    minWidth: "190px",
-                  }}
+              <div
+                style={{
+                  position: "absolute",
+                  left: "65%",
+                  top: "63%",
+                  color: "#ffca5a",
+                  zIndex: 8,
+                }}
+              >
+                <TrafficCone size={30} />
+              </div>
+            </>
+          )}
+
+          <div className="map-controls">
+            <button className="map-control">
+              <Plus size={16} />
+            </button>
+            <button className="map-control">
+              <Minus size={16} />
+            </button>
+            <button className="map-control">
+              <Box size={16} />
+            </button>
+            <button className="map-control">
+              <LocateFixed size={16} />
+            </button>
+            <button className="map-control">
+              <Layers size={16} />
+            </button>
+          </div>
+
+          <div className="map-bottom-controls">
+            {["Map Style", "Heatmap", "Traffic", "Incidents", "Vehicles"].map(
+              (layer) => (
+                <button
+                  key={layer}
+                  className={activeLayer === layer ? "active" : ""}
+                  onClick={() => setActiveLayer(layer)}
                 >
+                  {layer}
+                </button>
+              )
+            )}
+          </div>
+        </div>
 
-                  <strong>
-                    {vehicle.numberPlate}
-                  </strong>
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Live Vehicles</h3>
+              <span className="muted">Updated now</span>
+            </div>
 
-                  <br />
-
-                  Vehicle ID:{" "}
-                  {vehicle.id}
-
-                  <br />
-
-                  Type:{" "}
-                  {vehicle.type}
-
-                  <br />
-
-                  Model:{" "}
-                  {vehicle.model}
-
-                  <br />
-
-                  Road:{" "}
-                  {vehicle.road}
-
-                  <br />
-
-                  Zone:{" "}
-                  {vehicle.zone}
-
-                  <br />
-
-                  Speed:{" "}
-                  {vehicle.speed} km/h
-
-                  <br />
-
-                  Direction:{" "}
-                  {vehicle.direction}
-
+            <div style={{ padding: 20 }}>
+              <div className="grid-2">
+                <div>
+                  <div className="kpi-label">Active Vehicles</div>
+                  <div className="kpi-value">128</div>
+                  <div className="kpi-change">↑ 12% from previous hour</div>
                 </div>
 
-              </Popup>
-
-            </Marker>
-          ),
-        )}
-
-
-        <MapRecenter
-          vehicle={selectedVehicle}
-        />
-
-      </MapContainer>
-
-
-      {/* =====================================
-          MAP HEADER
-          ===================================== */}
-
-      <div
-        className="
-          absolute
-          left-5
-          top-5
-          z-[1000]
-        "
-      >
-
-        <div
-          className="
-            rounded-2xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/90
-            p-4
-            shadow-2xl
-            backdrop-blur-xl
-          "
-        >
-
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-            "
-          >
-
-            <div
-              className="
-                rounded-xl
-                bg-cyan-400/10
-                p-2.5
-              "
-            >
-
-              <Radio
-                size={20}
-                className="
-                  animate-pulse
-                  text-cyan-400
-                "
-              />
-
+                <div>
+                  <div className="kpi-label">Average Speed</div>
+                  <div className="kpi-value">32</div>
+                  <div className="kpi-change">km/h</div>
+                </div>
+              </div>
             </div>
-
-
-            <div>
-
-              <h2
-                className="
-                  text-sm
-                  font-semibold
-                  text-white
-                "
-              >
-                Live City Map
-              </h2>
-
-              <p
-                className="
-                  text-[10px]
-                  text-slate-500
-                "
-              >
-                Real-time digital twin
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                ml-2
-                flex
-                items-center
-                gap-1.5
-                rounded-full
-                border
-                border-emerald-400/20
-                bg-emerald-400/10
-                px-2
-                py-1
-              "
-            >
-
-              <span
-                className="
-                  h-1.5
-                  w-1.5
-                  animate-pulse
-                  rounded-full
-                  bg-emerald-400
-                "
-              />
-
-              <span
-                className="
-                  text-[9px]
-                  font-semibold
-                  text-emerald-400
-                "
-              >
-                LIVE
-              </span>
-
-            </div>
-
           </div>
 
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Vehicle Activity</h3>
+              <Car size={17} className="muted" />
+            </div>
+
+            {filteredVehicles.map((vehicle) => (
+              <div className="incident-item" key={vehicle.id}>
+                <div className="incident-icon">
+                  <Car size={17} />
+                </div>
+
+                <div className="incident-main">
+                  <div className="incident-title">{vehicle.plate}</div>
+                  <div className="incident-meta">
+                    {vehicle.type} • {vehicle.speed.toFixed(0)} km/h
+                  </div>
+                </div>
+
+                <span className="status status-moving">Moving</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">City Status</h3>
+              <Navigation size={16} className="muted" />
+            </div>
+
+            <div style={{ padding: "5px 20px 18px" }}>
+              <div className="metric-row">
+                <span className="muted">Traffic Flow</span>
+                <strong>78%</strong>
+              </div>
+              <div className="metric-row">
+                <span className="muted">Network Coverage</span>
+                <strong>94%</strong>
+              </div>
+              <div className="metric-row">
+                <span className="muted">Simulation Status</span>
+                <span className="status status-moving">Operational</span>
+              </div>
+            </div>
+          </div>
         </div>
-
       </div>
-
-
-      {/* =====================================
-          SEARCH
-          ===================================== */}
-
-      <div
-        className="
-          absolute
-          right-5
-          top-5
-          z-[1000]
-          w-[310px]
-        "
-      >
-
-        <div
-          className="relative"
-        >
-
-          <Search
-            size={17}
-            className="
-              absolute
-              left-3
-              top-1/2
-              -translate-y-1/2
-              text-slate-500
-            "
-          />
-
-          <input
-            value={search}
-
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
-
-            placeholder="
-              Search vehicle, plate, road...
-            "
-
-            className="
-              w-full
-              rounded-xl
-              border
-              border-white/[0.08]
-              bg-[#07111e]/95
-              py-3
-              pl-10
-              pr-4
-              text-xs
-              text-white
-              outline-none
-              backdrop-blur-xl
-              placeholder:text-slate-600
-              focus:border-cyan-400/40
-            "
-          />
-
-        </div>
-
-
-        {/* SEARCH RESULTS */}
-
-        {search && (
-          <div
-            className="
-              mt-2
-              max-h-[260px]
-              overflow-auto
-              rounded-xl
-              border
-              border-white/[0.08]
-              bg-[#07111e]/95
-              p-2
-              backdrop-blur-xl
-            "
-          >
-
-            {filteredVehicles.length ===
-            0 ? (
-
-              <p
-                className="
-                  p-3
-                  text-xs
-                  text-slate-500
-                "
-              >
-                No vehicles found.
-              </p>
-
-            ) : (
-
-              filteredVehicles.map(
-                (vehicle) => (
-
-                  <button
-                    key={vehicle.id}
-
-                    onClick={() => {
-                      setSelectedVehicle(
-                        vehicle,
-                      );
-
-                      setSearch(
-                        vehicle.numberPlate,
-                      );
-                    }}
-
-                    className="
-                      flex
-                      w-full
-                      items-center
-                      gap-3
-                      rounded-lg
-                      p-2
-                      text-left
-                      transition
-                      hover:bg-cyan-400/10
-                    "
-                  >
-
-                    <Car
-                      size={15}
-                      className="
-                        text-cyan-400
-                      "
-                    />
-
-                    <div>
-
-                      <p
-                        className="
-                          text-xs
-                          text-white
-                        "
-                      >
-                        {vehicle.numberPlate}
-                      </p>
-
-                      <p
-                        className="
-                          text-[10px]
-                          text-slate-500
-                        "
-                      >
-                        {vehicle.road}
-                        {" · "}
-                        {vehicle.zone}
-                      </p>
-
-                    </div>
-
-                  </button>
-
-                ),
-              )
-
-            )}
-
-          </div>
-        )}
-
-      </div>
-
-
-      {/* =====================================
-          VEHICLE COUNT
-          ===================================== */}
-
-      <div
-        className="
-          absolute
-          bottom-5
-          left-5
-          z-[1000]
-        "
-      >
-
-        <div
-          className="
-            flex
-            items-center
-            gap-4
-            rounded-xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/90
-            px-4
-            py-3
-            backdrop-blur-xl
-          "
-        >
-
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-            "
-          >
-
-            <Car
-              size={16}
-              className="
-                text-cyan-400
-              "
-            />
-
-            <span
-              className="
-                text-xs
-                text-slate-400
-              "
-            >
-              Vehicles
-            </span>
-
-            <span
-              className="
-                text-sm
-                font-bold
-                text-white
-              "
-            >
-              {vehicles.length}
-            </span>
-
-          </div>
-
-
-          <div
-            className="
-              h-4
-              w-px
-              bg-white/10
-            "
-          />
-
-
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-            "
-          >
-
-            <TrafficCone
-              size={16}
-              className="
-                text-amber-400
-              "
-            />
-
-            <span
-              className="
-                text-xs
-                text-slate-400
-              "
-            >
-              Traffic
-            </span>
-
-            <span
-              className="
-                text-xs
-                font-medium
-                text-amber-400
-              "
-            >
-              Moderate
-            </span>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      {/* =====================================
-          MAP CONTROLS
-          ===================================== */}
-
-      <div
-        className="
-          absolute
-          bottom-5
-          right-5
-          z-[1000]
-          flex
-          flex-col
-          gap-2
-        "
-      >
-
-        <button
-          className="
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/95
-            text-slate-300
-            backdrop-blur-xl
-            transition
-            hover:border-cyan-400/30
-            hover:text-cyan-400
-          "
-          title="Layers"
-        >
-
-          <Layers3 size={17} />
-
-        </button>
-
-
-        <button
-          className="
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/95
-            text-slate-300
-            backdrop-blur-xl
-            transition
-            hover:border-cyan-400/30
-            hover:text-cyan-400
-          "
-          title="Locate"
-        >
-
-          <LocateFixed size={17} />
-
-        </button>
-
-
-        <button
-          className="
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/95
-            text-slate-300
-            backdrop-blur-xl
-            transition
-            hover:border-cyan-400/30
-            hover:text-cyan-400
-          "
-          title="Zoom in"
-        >
-
-          <Plus size={17} />
-
-        </button>
-
-
-        <button
-          className="
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-white/[0.08]
-            bg-[#07111e]/95
-            text-slate-300
-            backdrop-blur-xl
-            transition
-            hover:border-cyan-400/30
-            hover:text-cyan-400
-          "
-          title="Zoom out"
-        >
-
-          <Minus size={17} />
-
-        </button>
-
-      </div>
-
-
-      {/* =====================================
-          SELECTED VEHICLE PANEL
-          ===================================== */}
-
-      {selectedVehicle && (
-
-        <div
-          className="
-            absolute
-            bottom-5
-            right-[75px]
-            z-[1000]
-            w-[310px]
-            rounded-2xl
-            border
-            border-cyan-400/20
-            bg-[#07111e]/95
-            p-4
-            shadow-2xl
-            backdrop-blur-xl
-          "
-        >
-
-          <div
-            className="
-              mb-4
-              flex
-              items-start
-              justify-between
-            "
-          >
-
-            <div>
-
-              <p
-                className="
-                  text-[10px]
-                  uppercase
-                  tracking-wider
-                  text-cyan-400
-                "
-              >
-                Vehicle Selected
-              </p>
-
-              <h3
-                className="
-                  mt-1
-                  text-lg
-                  font-bold
-                  text-white
-                "
-              >
-                {selectedVehicle.numberPlate}
-              </h3>
-
-            </div>
-
-
-            <button
-              onClick={() =>
-                setSelectedVehicle(null)
-              }
-
-              className="
-                rounded-lg
-                p-1.5
-                text-slate-500
-                transition
-                hover:bg-white/5
-                hover:text-white
-              "
-            >
-
-              <X size={16} />
-
-            </button>
-
-          </div>
-
-
-          <div
-            className="
-              grid
-              grid-cols-2
-              gap-2
-            "
-          >
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Vehicle ID
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.id}
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Vehicle Type
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.type}
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Speed
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.speed}
-                {" km/h"}
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Direction
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.direction}
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Road
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.road}
-              </p>
-
-            </div>
-
-
-            <div
-              className="
-                rounded-lg
-                bg-white/[0.03]
-                p-2.5
-              "
-            >
-
-              <p
-                className="
-                  text-[9px]
-                  text-slate-600
-                "
-              >
-                Zone
-              </p>
-
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  text-slate-300
-                "
-              >
-                {selectedVehicle.zone}
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div
-            className="
-              mt-3
-              flex
-              items-center
-              justify-between
-              rounded-lg
-              border
-              border-emerald-400/10
-              bg-emerald-400/5
-              px-3
-              py-2
-            "
-          >
-
-            <span
-              className="
-                text-[10px]
-                text-slate-500
-              "
-            >
-              Status
-            </span>
-
-            <span
-              className="
-                flex
-                items-center
-                gap-1.5
-                text-[10px]
-                font-medium
-                text-emerald-400
-              "
-            >
-
-              <span
-                className="
-                  h-1.5
-                  w-1.5
-                  animate-pulse
-                  rounded-full
-                  bg-emerald-400
-                "
-              />
-
-              {selectedVehicle.status}
-
-            </span>
-
-          </div>
-
-        </div>
-
-      )}
-
     </div>
   );
 }
