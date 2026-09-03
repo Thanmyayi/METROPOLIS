@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -6,486 +7,525 @@ import {
   Polygon,
   Circle,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
-import { renderToStaticMarkup } from "react-dom/server";
 import {
   Car,
   Bus,
   Bike,
-  AlertTriangle,
+  Navigation,
+  Gauge,
   MapPin,
   Radio,
+  Activity,
 } from "lucide-react";
+import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactNode } from "react";
+
+import { useVehicleSimulation } from "../../hooks/useVehicleSimulation";
+
 import "leaflet/dist/leaflet.css";
 
-// ===============================
-// TYPES
-// ===============================
-
-type VehicleType = "car" | "bus" | "bike";
-
-interface Vehicle {
-  id: string;
-  type: VehicleType;
-  plate: string;
-  position: [number, number];
-  speed: number;
-  status: "Moving" | "Stopped";
+interface DigitalTwinMapProps {
+  className?: string;
 }
 
-// ===============================
-// SIMULATED VEHICLES
-// ===============================
+const center: [number, number] = [12.9725, 77.5945];
 
-const vehicles: Vehicle[] = [
-  {
-    id: "VH-001",
-    type: "car",
-    plate: "KA-01-AB-1234",
-    position: [12.9718, 77.5945],
-    speed: 42,
-    status: "Moving",
-  },
-  {
-    id: "VH-002",
-    type: "bus",
-    plate: "KA-01-BX-4589",
-    position: [12.9731, 77.5928],
-    speed: 28,
-    status: "Moving",
-  },
-  {
-    id: "VH-003",
-    type: "bike",
-    plate: "KA-05-MN-7788",
-    position: [12.9698, 77.5962],
-    speed: 36,
-    status: "Moving",
-  },
-  {
-    id: "VH-004",
-    type: "car",
-    plate: "KA-03-CD-9021",
-    position: [12.9687, 77.5917],
-    speed: 12,
-    status: "Stopped",
-  },
-  {
-    id: "VH-005",
-    type: "car",
-    plate: "KA-02-EF-3456",
-    position: [12.9742, 77.5971],
-    speed: 51,
-    status: "Moving",
-  },
-  {
-    id: "VH-006",
-    type: "bus",
-    plate: "KA-04-GH-2211",
-    position: [12.9679, 77.5942],
-    speed: 22,
-    status: "Moving",
-  },
-];
+function createVehicleIcon(
+  type: "car" | "bus" | "bike",
+  selected: boolean,
+) {
+  const Icon =
+    type === "bus"
+      ? Bus
+      : type === "bike"
+        ? Bike
+        : Car;
 
-// ===============================
-// ICON CREATOR
-// ===============================
-
-const createVehicleIcon = (type: VehicleType) => {
-  let Icon = Car;
-
-  if (type === "bus") {
-    Icon = Bus;
-  }
-
-  if (type === "bike") {
-    Icon = Bike;
-  }
-
-  const html = renderToStaticMarkup(
-    <div
-      style={{
-        width: "38px",
-        height: "38px",
-        borderRadius: "50%",
-        background: "#07111f",
-        border: "2px solid #22d3ee",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 0 15px rgba(34,211,238,0.8)",
-      }}
-    >
-      <Icon size={20} color="#22d3ee" strokeWidth={2.5} />
-    </div>
+  const iconMarkup = renderToStaticMarkup(
+    <Icon size={18} strokeWidth={2.2} />,
   );
 
+  const selectedStyle = selected
+    ? `
+      border: 2px solid #67e8f9;
+      box-shadow:
+        0 0 0 5px rgba(34,211,238,0.15),
+        0 0 18px rgba(34,211,238,0.9);
+    `
+    : `
+      border: 1px solid rgba(34,211,238,0.45);
+      box-shadow: 0 0 12px rgba(34,211,238,0.45);
+    `;
+
   return L.divIcon({
-    html,
-    className: "",
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
+    className: "metropolis-vehicle-marker",
+
+    html: `
+      <div
+        style="
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          background: rgba(2, 6, 23, 0.96);
+          color: #67e8f9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          transition: all 0.3s ease;
+          ${selectedStyle}
+        "
+      >
+        ${iconMarkup}
+
+        ${
+          selected
+            ? `
+              <span
+                style="
+                  position: absolute;
+                  inset: -9px;
+                  border: 1px solid rgba(103,232,249,0.45);
+                  border-radius: 50%;
+                  animation: metropolisPulse 1.5s infinite;
+                "
+              ></span>
+            `
+            : ""
+        }
+      </div>
+    `,
+
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -18],
   });
-};
+}
 
-// ===============================
-// INCIDENT ICON
-// ===============================
+function MapVehicleFocus() {
+  const map = useMap();
 
-const incidentIcon = L.divIcon({
-  html: renderToStaticMarkup(
-    <div
-      style={{
-        width: "42px",
-        height: "42px",
-        borderRadius: "50%",
-        background: "#30100f",
-        border: "2px solid #ef4444",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 0 20px rgba(239,68,68,0.8)",
-      }}
-    >
-      <AlertTriangle
-        size={22}
-        color="#ef4444"
-        strokeWidth={2.5}
-      />
-    </div>
-  ),
-  className: "",
-  iconSize: [42, 42],
-  iconAnchor: [21, 21],
-});
+  const {
+    vehicles,
+    selectedVehicleId,
+  } = useVehicleSimulation();
 
-// ===============================
-// MAP COMPONENT
-// ===============================
+  useEffect(() => {
+    if (!selectedVehicleId) return;
 
-export default function DigitalTwinMap() {
-  const center: [number, number] = [12.9716, 77.5946];
+    const vehicle = vehicles.find(
+      (item) => item.id === selectedVehicleId,
+    );
 
-  // Simulated zones
-  const zoneA: [number, number][] = [
-    [12.975, 77.589],
-    [12.975, 77.596],
-    [12.970, 77.598],
-    [12.968, 77.591],
-  ];
+    if (!vehicle) return;
 
-  const zoneB: [number, number][] = [
-    [12.969, 77.599],
-    [12.969, 77.605],
-    [12.964, 77.604],
-    [12.963, 77.598],
-  ];
+    map.flyTo(vehicle.position, 17, {
+      duration: 1.2,
+    });
+  }, [selectedVehicleId, map]);
 
+  useEffect(() => {
+    if (!selectedVehicleId) return;
+
+    const vehicle = vehicles.find(
+      (item) => item.id === selectedVehicleId,
+    );
+
+    if (!vehicle) return;
+
+    map.panTo(vehicle.position, {
+      animate: true,
+      duration: 0.6,
+    });
+  }, [vehicles, selectedVehicleId, map]);
+
+  return null;
+}
+
+function VehiclePopup({
+  vehicle,
+}: {
+  vehicle: ReturnType<
+    typeof useVehicleSimulation
+  >["vehicles"][number];
+}) {
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-cyan-500/20 bg-slate-950 shadow-2xl">
+    <div className="min-w-[220px] bg-slate-950 text-white">
+      <div className="mb-3 flex items-center justify-between border-b border-slate-700 pb-3">
+        <div>
+          <p className="font-mono text-sm font-bold">
+            {vehicle.id}
+          </p>
 
-      {/* ========================= */}
-      {/* MAP HEADER */}
-      {/* ========================= */}
-
-      <div className="absolute left-4 right-4 top-4 z-[1000] flex items-center justify-between">
-
-        <div className="rounded-xl border border-cyan-400/20 bg-slate-950/90 px-4 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex items-center gap-3">
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/10">
-              <MapPin
-                size={19}
-                className="text-cyan-400"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-sm font-semibold text-white">
-                METROPOLIS DIGITAL TWIN
-              </h2>
-
-              <p className="text-[11px] text-slate-400">
-                Live urban environment simulation
-              </p>
-            </div>
-
-          </div>
+          <p className="mt-1 font-mono text-xs text-cyan-400">
+            {vehicle.plate}
+          </p>
         </div>
 
-        {/* LIVE STATUS */}
-
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-slate-950/90 px-4 py-3 backdrop-blur-md">
-
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-          </span>
-
-          <span className="text-xs font-semibold tracking-wide text-emerald-400">
-            SIMULATION LIVE
-          </span>
-
-        </div>
-
+        <span
+          className={`rounded-full px-2 py-1 text-[9px] font-semibold ${
+            vehicle.status === "Moving"
+              ? "bg-emerald-400/10 text-emerald-300"
+              : "bg-amber-400/10 text-amber-300"
+          }`}
+        >
+          {vehicle.status}
+        </span>
       </div>
 
-      {/* ========================= */}
-      {/* MAP */}
-      {/* ========================= */}
+      <div className="grid grid-cols-2 gap-3">
+        <PopupItem
+          icon={<Gauge size={13} />}
+          label="Speed"
+          value={`${vehicle.speed} km/h`}
+        />
+
+        <PopupItem
+          icon={<Navigation size={13} />}
+          label="Direction"
+          value={vehicle.direction}
+        />
+
+        <PopupItem
+          icon={<MapPin size={13} />}
+          label="Road"
+          value={vehicle.road}
+        />
+
+        <PopupItem
+          icon={<Activity size={13} />}
+          label="Zone"
+          value={vehicle.zone}
+        />
+      </div>
+
+      <div className="mt-3 border-t border-slate-800 pt-3">
+        <p className="text-[9px] uppercase tracking-wider text-slate-600">
+          Last Updated
+        </p>
+
+        <p className="mt-1 font-mono text-[11px] text-slate-400">
+          {vehicle.lastUpdated}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PopupItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-1 text-cyan-400">
+        {icon}
+
+        <span className="text-[9px] uppercase text-slate-500">
+          {label}
+        </span>
+      </div>
+
+      <p className="truncate text-[11px] text-white">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+export default function DigitalTwinMap({
+  className = "",
+}: DigitalTwinMapProps) {
+  const {
+    vehicles,
+    selectedVehicleId,
+    selectVehicle,
+  } = useVehicleSimulation();
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950 shadow-[0_0_35px_rgba(6,182,212,0.08)] ${className}`}
+    >
+      <style>
+        {`
+          @keyframes metropolisPulse {
+            0% {
+              transform: scale(0.8);
+              opacity: 0.9;
+            }
+
+            70% {
+              transform: scale(1.2);
+              opacity: 0;
+            }
+
+            100% {
+              transform: scale(1.2);
+              opacity: 0;
+            }
+          }
+
+          .metropolis-vehicle-marker {
+            background: transparent !important;
+            border: none !important;
+          }
+
+          .incident-marker {
+            background: transparent !important;
+            border: none !important;
+          }
+
+          .leaflet-popup-content-wrapper,
+          .leaflet-popup-tip {
+            background: #020617;
+            color: white;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+          }
+
+          .leaflet-popup-content {
+            margin: 14px;
+          }
+
+          .leaflet-control-zoom a {
+            background: rgba(2, 6, 23, 0.9) !important;
+            color: #67e8f9 !important;
+            border-color: rgba(34, 211, 238, 0.2) !important;
+          }
+
+          .leaflet-control-zoom a:hover {
+            background: rgba(8, 47, 73, 0.95) !important;
+          }
+
+          .leaflet-control-attribution {
+            background: rgba(2, 6, 23, 0.75) !important;
+            color: #64748b !important;
+          }
+
+          .leaflet-control-attribution a {
+            color: #38bdf8 !important;
+          }
+        `}
+      </style>
 
       <MapContainer
         center={center}
         zoom={15}
-        scrollWheelZoom={true}
-        className="h-full w-full"
+        scrollWheelZoom
+        className="h-full min-h-[520px] w-full"
       >
-
-        {/* OPEN STREET MAP */}
-
         <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
+          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {/* ========================= */}
-        {/* ZONE A */}
-        {/* ========================= */}
+        <MapVehicleFocus />
 
+        {/* Zone A */}
         <Polygon
-          positions={zoneA}
+          positions={[
+            [12.9745, 77.5915],
+            [12.9765, 77.5915],
+            [12.9765, 77.5975],
+            [12.9745, 77.5975],
+          ]}
           pathOptions={{
-            color: "#06b6d4",
-            fillColor: "#06b6d4",
-            fillOpacity: 0.08,
+            color: "#22d3ee",
             weight: 1,
+            fillOpacity: 0.05,
           }}
         >
-          <Tooltip sticky>
-            Zone A — Central Business District
-          </Tooltip>
+          <Tooltip>METROPOLIS ZONE A</Tooltip>
         </Polygon>
 
-        {/* ========================= */}
-        {/* ZONE B */}
-        {/* ========================= */}
-
+        {/* Zone B */}
         <Polygon
-          positions={zoneB}
+          positions={[
+            [12.9670, 77.5905],
+            [12.9720, 77.5905],
+            [12.9720, 77.5955],
+            [12.9670, 77.5955],
+          ]}
           pathOptions={{
-            color: "#8b5cf6",
-            fillColor: "#8b5cf6",
-            fillOpacity: 0.08,
+            color: "#38bdf8",
             weight: 1,
+            fillOpacity: 0.04,
           }}
         >
-          <Tooltip sticky>
-            Zone B — Residential District
-          </Tooltip>
+          <Tooltip>METROPOLIS ZONE B</Tooltip>
         </Polygon>
 
-        {/* ========================= */}
-        {/* SIMULATION AREA */}
-        {/* ========================= */}
-
+        {/* Digital Twin monitoring radius */}
         <Circle
           center={center}
           radius={650}
           pathOptions={{
-            color: "#22d3ee",
-            fillColor: "#22d3ee",
-            fillOpacity: 0.02,
+            color: "#06b6d4",
             weight: 1,
-            dashArray: "6 8",
+            opacity: 0.25,
+            fillOpacity: 0.015,
           }}
         />
 
-        {/* ========================= */}
-        {/* VEHICLES */}
-        {/* ========================= */}
+        {/* Simulated vehicles */}
+        {vehicles.map((vehicle) => {
+          const selected =
+            selectedVehicleId === vehicle.id;
 
-        {vehicles.map((vehicle) => (
-          <Marker
-            key={vehicle.id}
-            position={vehicle.position}
-            icon={createVehicleIcon(vehicle.type)}
-          >
+          return (
+            <Marker
+              key={vehicle.id}
+              position={vehicle.position}
+              icon={createVehicleIcon(
+                vehicle.type,
+                selected,
+              )}
+              eventHandlers={{
+                click: () => {
+                  selectVehicle(vehicle.id);
+                },
+              }}
+            >
+              <Tooltip
+                direction="top"
+                offset={[0, -18]}
+              >
+                <div>
+                  <p className="font-mono text-xs font-bold">
+                    {vehicle.id}
+                  </p>
 
-            <Popup>
-
-              <div className="min-w-[190px] text-sm">
-
-                <div className="mb-3 flex items-center gap-2">
-                  {vehicle.type === "car" && <Car size={18} />}
-                  {vehicle.type === "bus" && <Bus size={18} />}
-                  {vehicle.type === "bike" && <Bike size={18} />}
-
-                  <strong>{vehicle.id}</strong>
-                </div>
-
-                <div className="space-y-1 text-xs">
-
-                  <p>
-                    <strong>Number Plate:</strong>{" "}
+                  <p className="font-mono text-[10px] text-cyan-400">
                     {vehicle.plate}
                   </p>
-
-                  <p>
-                    <strong>Type:</strong>{" "}
-                    {vehicle.type.toUpperCase()}
-                  </p>
-
-                  <p>
-                    <strong>Speed:</strong>{" "}
-                    {vehicle.speed} km/h
-                  </p>
-
-                  <p>
-                    <strong>Status:</strong>{" "}
-                    {vehicle.status}
-                  </p>
-
-                  <p>
-                    <strong>Location:</strong>{" "}
-                    {vehicle.position[0].toFixed(4)},{" "}
-                    {vehicle.position[1].toFixed(4)}
-                  </p>
-
                 </div>
+              </Tooltip>
 
-              </div>
+              <Popup>
+                <VehiclePopup vehicle={vehicle} />
+              </Popup>
+            </Marker>
+          );
+        })}
 
-            </Popup>
-
-            <Tooltip direction="top">
-              {vehicle.id} • {vehicle.plate}
-            </Tooltip>
-
-          </Marker>
-        ))}
-
-        {/* ========================= */}
-        {/* INCIDENT */}
-        {/* ========================= */}
-
+        {/* Simulated incident */}
         <Marker
-          position={[12.9728, 77.5968]}
-          icon={incidentIcon}
-        >
+          position={[12.9712, 77.5962]}
+          icon={L.divIcon({
+            className: "incident-marker",
 
-          <Popup>
-
-            <div className="min-w-[180px]">
-
-              <div className="mb-2 flex items-center gap-2 text-red-500">
-                <AlertTriangle size={18} />
-
-                <strong>
-                  Traffic Incident
-                </strong>
+            html: `
+              <div
+                style="
+                  width: 28px;
+                  height: 28px;
+                  border-radius: 50%;
+                  background: rgba(239,68,68,0.15);
+                  border: 2px solid rgba(248,113,113,0.9);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  box-shadow: 0 0 18px rgba(239,68,68,0.6);
+                  color: #f87171;
+                  font-size: 15px;
+                  font-weight: 700;
+                "
+              >
+                !
               </div>
+            `,
 
-              <p className="text-xs">
-                Accident detected near Central Junction.
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+          })}
+        >
+          <Popup>
+            <div className="min-w-[180px]">
+              <p className="font-semibold text-red-400">
+                Traffic Incident
               </p>
 
-              <p className="mt-2 text-xs">
-                Severity: <strong>High</strong>
+              <p className="mt-1 text-xs text-slate-400">
+                Simulated congestion event detected.
               </p>
-
             </div>
-
           </Popup>
-
-          <Tooltip>
-            High Severity Incident
-          </Tooltip>
-
         </Marker>
-
       </MapContainer>
 
-      {/* ========================= */}
-      {/* MAP LEGEND */}
-      {/* ========================= */}
+      {/* Digital Twin header */}
+      <div className="pointer-events-none absolute left-4 top-4 z-[1000]">
+        <div className="rounded-xl border border-cyan-400/20 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="rounded-lg bg-cyan-400/10 p-2">
+              <Radio className="h-4 w-4 text-cyan-400" />
+            </div>
 
-      <div className="absolute bottom-4 left-4 z-[1000] rounded-xl border border-slate-700/60 bg-slate-950/90 p-3 shadow-xl backdrop-blur-md">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-bold tracking-wider text-white">
+                  DIGITAL TWIN
+                </p>
 
-        <div className="mb-2 flex items-center gap-2">
-          <Radio
-            size={14}
-            className="text-cyan-400"
-          />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              </div>
 
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-300">
-            Live Objects
-          </span>
+              <p className="mt-1 text-[9px] text-slate-500">
+                LIVE CITY SIMULATION
+              </p>
+            </div>
+          </div>
         </div>
-
-        <div className="space-y-2">
-
-          <div className="flex items-center gap-2">
-            <Car
-              size={14}
-              className="text-cyan-400"
-            />
-            <span className="text-xs text-slate-400">
-              Cars
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Bus
-              size={14}
-              className="text-cyan-400"
-            />
-            <span className="text-xs text-slate-400">
-              Buses
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Bike
-              size={14}
-              className="text-cyan-400"
-            />
-            <span className="text-xs text-slate-400">
-              Bikes
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <AlertTriangle
-              size={14}
-              className="text-red-400"
-            />
-            <span className="text-xs text-slate-400">
-              Incidents
-            </span>
-          </div>
-
-        </div>
-
       </div>
 
-      {/* ========================= */}
-      {/* VEHICLE COUNTER */}
-      {/* ========================= */}
+      {/* Vehicle counter */}
+      <div className="absolute bottom-5 right-5 z-[1000]">
+        <div className="rounded-xl border border-cyan-400/20 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Car className="h-5 w-5 text-cyan-400" />
 
-      <div className="absolute bottom-4 right-4 z-[1000] rounded-xl border border-cyan-500/20 bg-slate-950/90 px-4 py-3 shadow-xl backdrop-blur-md">
+              <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+            </div>
 
-        <div className="text-[10px] uppercase tracking-widest text-slate-500">
-          Active Vehicles
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                Active Vehicles
+              </p>
+
+              <p className="font-mono text-lg font-bold text-white">
+                {vehicles.length}
+              </p>
+            </div>
+          </div>
         </div>
-
-        <div className="mt-1 text-xl font-bold text-cyan-400">
-          {vehicles.length}
-        </div>
-
       </div>
 
+      {/* Selected vehicle indicator */}
+      {selectedVehicleId && (
+        <div className="absolute bottom-5 left-5 z-[1000]">
+          <div className="flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-slate-950/90 px-4 py-3 shadow-[0_0_25px_rgba(6,182,212,0.12)] backdrop-blur-xl">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+
+            <div>
+              <p className="text-[9px] uppercase tracking-wider text-slate-500">
+                Tracking
+              </p>
+
+              <p className="font-mono text-xs font-bold text-cyan-300">
+                {selectedVehicleId}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
