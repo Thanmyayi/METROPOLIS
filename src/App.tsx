@@ -1,8 +1,10 @@
 import LiveMap from "./pages/LiveMap";
+import "./index.css";
+import "./styles/metropolis.css";
 
 function App() {
   return (
-    <div className="min-h-screen bg-[#050b14]">
+    <div className="metropolis-app">
       <LiveMap />
     </div>
   );
