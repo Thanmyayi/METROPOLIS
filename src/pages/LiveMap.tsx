@@ -1,41 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Bell,
   Bike,
   Box,
-  Building2,
   Car,
   ChevronDown,
-  CircleGauge,
-  Clock3,
+  CircleAlert,
+  CircleDot,
   Crosshair,
   Gauge,
-  Grid3X3,
   Layers,
   LocateFixed,
-  Map as MapIcon,
+  Map,
   MapPin,
   Menu,
   Minus,
   Navigation,
-  Play,
   Plus,
   Radio,
-  Route,
   Search,
   Settings,
   ShieldAlert,
+  SlidersHorizontal,
   Sparkles,
-  Sun,
   TrafficCone,
-  TrendingUp,
   Truck,
-  UserRound,
   Users,
-  X,
   Zap,
 } from "lucide-react";
 
@@ -97,166 +89,48 @@ const initialVehicles: Vehicle[] = [
     x: 58,
     y: 26,
   },
-  {
-    id: "V007",
-    plate: "KA-04-NP-6832",
-    type: "Car",
-    speed: 36,
-    x: 46,
-    y: 45,
-  },
-  {
-    id: "V008",
-    plate: "KA-01-QS-9137",
-    type: "Bike",
-    speed: 29,
-    x: 83,
-    y: 39,
-  },
 ];
 
-const sidebarItems = [
-  { label: "Dashboard", icon: Grid3X3 },
-  { label: "Live Map", icon: MapIcon, active: true },
+const menuItems = [
+  { label: "Dashboard", icon: BarChart3 },
+  { label: "Live Map", icon: Map },
   { label: "Vehicles", icon: Car },
-  { label: "Traffic", icon: Route },
-  { label: "Incidents", icon: AlertTriangle },
-  { label: "Zones", icon: Building2 },
-  { label: "Analytics", icon: BarChart3 },
+  { label: "Traffic", icon: Activity },
+  { label: "Incidents", icon: ShieldAlert },
+  { label: "Zones", icon: Layers },
+  { label: "Analytics", icon: Gauge },
   { label: "Scenarios", icon: Sparkles },
-  { label: "Reports", icon: Activity },
+  { label: "Reports", icon: BarChart3 },
   { label: "Settings", icon: Settings },
 ];
 
-const vehicleDistribution = [
-  { label: "Cars", value: 72, className: "chart-car" },
-  { label: "Buses", value: 18, className: "chart-bus" },
-  { label: "Bikes", value: 28, className: "chart-bike" },
-  { label: "Trucks", value: 10, className: "chart-truck" },
+const vehicleTypes = [
+  { label: "Cars", value: 72, className: "chart-blue" },
+  { label: "Buses", value: 18, className: "chart-purple" },
+  { label: "Bikes", value: 28, className: "chart-pink" },
+  { label: "Trucks", value: 10, className: "chart-yellow" },
 ];
-
-function VehicleIcon({ type }: { type: string }) {
-  if (type === "Bus") return <Truck size={12} />;
-  if (type === "Bike") return <Bike size={12} />;
-  if (type === "Truck") return <Truck size={12} />;
-  return <Car size={12} />;
-}
-
-function MiniTrafficChart() {
-  return (
-    <svg
-      viewBox="0 0 320 100"
-      preserveAspectRatio="none"
-      className="traffic-chart-svg"
-    >
-      <defs>
-        <linearGradient id="trafficFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#17d7df" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#17d7df" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      <path
-        d="M0 83 C22 78 27 75 42 80 S70 68 83 72 S103 63 119 68 S143 51 157 58 S177 70 192 45 S213 51 228 31 S249 62 267 40 S288 49 320 34 L320 100 L0 100 Z"
-        fill="url(#trafficFill)"
-      />
-
-      <path
-        d="M0 83 C22 78 27 75 42 80 S70 68 83 72 S103 63 119 68 S143 51 157 58 S177 70 192 45 S213 51 228 31 S249 62 267 40 S288 49 320 34"
-        fill="none"
-        stroke="#21d7dd"
-        strokeWidth="2"
-      />
-
-      <circle cx="192" cy="45" r="3" fill="#f3bf4f" />
-      <circle cx="228" cy="31" r="3" fill="#21d7dd" />
-    </svg>
-  );
-}
-
-function MiniBars() {
-  const values = [32, 46, 38, 61, 48, 73, 54, 67, 44, 78, 58, 84];
-
-  return (
-    <div className="mini-bars">
-      {values.map((value, index) => (
-        <span
-          key={index}
-          className="mini-bar"
-          style={{ height: `${value}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DonutChart() {
-  return (
-    <div className="donut-chart">
-      <div className="donut-hole">
-        <strong>128</strong>
-        <span>ACTIVE</span>
-      </div>
-    </div>
-  );
-}
-
-function CityBuilding({
-  left,
-  top,
-  width,
-  height,
-  tall = false,
-}: {
-  left: string;
-  top: string;
-  width: number;
-  height: number;
-  tall?: boolean;
-}) {
-  return (
-    <div
-      className={`city-building ${tall ? "city-building-tall" : ""}`}
-      style={{
-        left,
-        top,
-        width,
-        height,
-      }}
-    >
-      <div className="building-top" />
-      <div className="building-body">
-        <div className="building-window-grid">
-          {Array.from({ length: tall ? 24 : 12 }).map((_, index) => (
-            <span key={index} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function LiveMap() {
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [activeLayer, setActiveLayer] = useState("Vehicles");
   const [search, setSearch] = useState("");
-  const [selectedVehicle, setSelectedVehicle] = useState<string | null>(
-    "V001",
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
+    initialVehicles[0],
   );
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scenarioValue, setScenarioValue] = useState(20);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setVehicles((current) =>
         current.map((vehicle) => ({
           ...vehicle,
-          x: vehicle.x > 91 ? 10 : vehicle.x + 0.25,
+          x: vehicle.x > 91 ? 10 : vehicle.x + 0.28,
           speed: Math.max(
             12,
             Math.min(
               55,
-              vehicle.speed + (Math.random() - 0.5) * 2,
+              vehicle.speed + (Math.random() - 0.5) * 2.5,
             ),
           ),
         })),
@@ -266,128 +140,155 @@ export default function LiveMap() {
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (!selectedVehicle) return;
+
+    const updated = vehicles.find(
+      (vehicle) => vehicle.id === selectedVehicle.id,
+    );
+
+    if (updated) {
+      setSelectedVehicle(updated);
+    }
+  }, [vehicles]);
+
   const filteredVehicles = useMemo(() => {
     const query = search.toLowerCase().trim();
 
-    if (!query) return vehicles;
+    if (!query) {
+      return vehicles;
+    }
 
     return vehicles.filter(
       (vehicle) =>
-        vehicle.plate.toLowerCase().includes(query) ||
         vehicle.id.toLowerCase().includes(query) ||
+        vehicle.plate.toLowerCase().includes(query) ||
         vehicle.type.toLowerCase().includes(query),
     );
   }, [vehicles, search]);
 
-  const selected =
-    vehicles.find((vehicle) => vehicle.id === selectedVehicle) ??
-    vehicles[0];
+  const averageSpeed =
+    vehicles.length > 0
+      ? Math.round(
+          vehicles.reduce((total, vehicle) => total + vehicle.speed, 0) /
+            vehicles.length,
+        )
+      : 0;
 
   return (
-    <div className="metro-command-center">
-      {/* SIDEBAR */}
-      <aside className={`metro-sidebar ${menuOpen ? "mobile-open" : ""}`}>
+    <div className="metropolis-dashboard">
+      {/* =====================================================
+          SIDEBAR
+      ====================================================== */}
+
+      <aside
+        className={`metro-sidebar ${
+          sidebarOpen ? "sidebar-open" : "sidebar-closed"
+        }`}
+      >
         <div className="metro-brand">
-          <div className="metro-brand-icon">
-            <Building2 size={23} />
+          <div className="brand-logo">
+            <span className="brand-building brand-building-1" />
+            <span className="brand-building brand-building-2" />
+            <span className="brand-building brand-building-3" />
+            <span className="brand-building brand-building-4" />
           </div>
 
-          <div>
-            <div className="metro-brand-name">METROPOLIS</div>
-            <div className="metro-brand-sub">AI-Enabled Digital Twin</div>
-          </div>
+          {sidebarOpen && (
+            <div className="brand-copy">
+              <strong>METROPOLIS</strong>
+              <span>AI-Enabled Digital Twin</span>
+            </div>
+          )}
         </div>
 
-        <button
-          className="sidebar-mobile-close"
-          onClick={() => setMenuOpen(false)}
-        >
-          <X size={18} />
-        </button>
-
         <nav className="metro-nav">
-          {sidebarItems.map((item) => {
+          {menuItems.map((item) => {
             const Icon = item.icon;
+            const active = item.label === "Live Map";
 
             return (
               <button
                 key={item.label}
                 className={`metro-nav-item ${
-                  item.active ? "active" : ""
+                  active ? "metro-nav-active" : ""
                 }`}
+                title={item.label}
               >
                 <Icon size={16} />
-                <span>{item.label}</span>
+                {sidebarOpen && <span>{item.label}</span>}
               </button>
             );
           })}
         </nav>
 
-        <div className="sidebar-status">
-          <div className="sidebar-status-title">System Status</div>
+        {sidebarOpen && (
+          <div className="system-status">
+            <div className="system-status-title">System Status</div>
 
-          <div className="system-online">
-            <span />
-            <div>
-              <strong>All Systems</strong>
-              <small>Operational</small>
+            <div className="system-status-row">
+              <span className="system-online-dot" />
+              <span>All Systems</span>
+            </div>
+
+            <strong>Operational</strong>
+
+            <div className="status-bars">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
             </div>
           </div>
-
-          <div className="sidebar-city-icon">
-            <Building2 size={35} />
-          </div>
-        </div>
+        )}
       </aside>
 
-      {/* MAIN AREA */}
+      {/* =====================================================
+          MAIN AREA
+      ====================================================== */}
+
       <main className="metro-main">
-        {/* TOP BAR */}
+        {/* TOP HEADER */}
+
         <header className="metro-topbar">
           <div className="topbar-left">
             <button
-              className="mobile-menu-button"
-              onClick={() => setMenuOpen(true)}
+              className="topbar-menu"
+              onClick={() => setSidebarOpen((value) => !value)}
+              aria-label="Toggle sidebar"
             >
-              <Menu size={20} />
+              <Menu size={19} />
             </button>
 
-            <div>
-              <div className="topbar-title-row">
-                <h1>Live City View</h1>
+            <div className="topbar-title">
+              <h1>Live City View</h1>
 
-                <span className="top-live">
-                  <span />
-                  LIVE
-                </span>
-              </div>
-
-              <p>
-                AI-powered real-time digital twin and city activity
-                monitoring
-              </p>
+              <span className="live-pill">
+                <span className="live-dot" />
+                LIVE
+              </span>
             </div>
           </div>
 
           <div className="topbar-right">
             <div className="topbar-time">
-              <strong>10:24:35 AM</strong>
+              <strong>{new Date().toLocaleTimeString()}</strong>
               <span>May 18, 2026</span>
             </div>
 
-            <button className="top-icon-button">
+            <button className="topbar-icon">
               <Bell size={17} />
               <span className="notification-dot" />
             </button>
 
-            <button className="top-icon-button">
-              <Sun size={17} />
+            <button className="topbar-icon">
+              <Sparkles size={17} />
             </button>
 
             <div className="admin-profile">
-              <div className="admin-avatar">
-                <UserRound size={18} />
-              </div>
+              <div className="admin-avatar">A</div>
 
               <div>
                 <strong>Admin</strong>
@@ -399,767 +300,902 @@ export default function LiveMap() {
           </div>
         </header>
 
-        {/* HERO ROW */}
-        <section className="hero-dashboard-grid">
-          {/* DIGITAL TWIN MAP */}
-          <div className="digital-twin-card">
-            <div className="digital-map">
-              <div className="map-atmosphere" />
-              <div className="map-stars" />
+        {/* ===================================================
+            MAIN CONTENT
+        ==================================================== */}
 
-              {/* CITY GRID */}
-              <div className="city-grid" />
+        <section className="metro-content">
+          {/* =================================================
+              TOP ROW
+          ================================================== */}
 
-              {/* ROADS */}
-              <div
-                className="city-road city-road-horizontal"
-                style={{ top: "39%" }}
-              />
+          <div className="metro-top-grid">
+            {/* MAP */}
 
-              <div
-                className="city-road city-road-horizontal"
-                style={{ top: "70%" }}
-              />
+            <section className="metro-map-card">
+              <div className="city-map">
+                <div className="map-atmosphere" />
+                <div className="map-grid" />
 
-              <div
-                className="city-road city-road-vertical"
-                style={{ left: "42%" }}
-              />
+                {/* roads */}
 
-              <div
-                className="city-road city-road-vertical"
-                style={{ left: "73%" }}
-              />
+                <div
+                  className="city-road city-road-horizontal"
+                  style={{ top: "35%" }}
+                />
 
-              <div className="city-road city-road-diagonal" />
+                <div
+                  className="city-road city-road-horizontal"
+                  style={{ top: "68%" }}
+                />
 
-              <div className="city-road city-road-diagonal second" />
+                <div
+                  className="city-road city-road-vertical"
+                  style={{ left: "43%" }}
+                />
 
-              {/* BUILDINGS */}
-              <CityBuilding
-                left="8%"
-                top="16%"
-                width={50}
-                height={62}
-              />
+                <div
+                  className="city-road city-road-vertical"
+                  style={{ left: "73%" }}
+                />
 
-              <CityBuilding
-                left="17%"
-                top="28%"
-                width={70}
-                height={85}
-              />
+                <div className="city-road city-road-diagonal" />
 
-              <CityBuilding
-                left="27%"
-                top="18%"
-                width={42}
-                height={62}
-              />
+                <div className="city-road city-road-diagonal-2" />
 
-              <CityBuilding
-                left="34%"
-                top="8%"
-                width={45}
-                height={116}
-                tall
-              />
+                {/* buildings */}
 
-              <CityBuilding
-                left="47%"
-                top="17%"
-                width={45}
-                height={70}
-              />
+                <div
+                  className="city-building city-building-tall"
+                  style={{ left: "27%", top: "25%" }}
+                />
 
-              <CityBuilding
-                left="53%"
-                top="7%"
-                width={65}
-                height={115}
-                tall
-              />
+                <div
+                  className="city-building"
+                  style={{ left: "17%", top: "55%" }}
+                />
 
-              <CityBuilding
-                left="63%"
-                top="23%"
-                width={46}
-                height={65}
-              />
+                <div
+                  className="city-building city-building-tall-2"
+                  style={{ left: "51%", top: "8%" }}
+                />
 
-              <CityBuilding
-                left="78%"
-                top="15%"
-                width={45}
-                height={76}
-              />
+                <div
+                  className="city-building"
+                  style={{ left: "67%", top: "22%" }}
+                />
 
-              <CityBuilding
-                left="12%"
-                top="59%"
-                width={46}
-                height={62}
-              />
+                <div
+                  className="city-building"
+                  style={{ left: "79%", top: "48%" }}
+                />
 
-              <CityBuilding
-                left="23%"
-                top="73%"
-                width={48}
-                height={70}
-              />
+                <div
+                  className="city-building"
+                  style={{ left: "58%", top: "67%" }}
+                />
 
-              <CityBuilding
-                left="57%"
-                top="59%"
-                width={48}
-                height={72}
-              />
+                <div
+                  className="city-building-small"
+                  style={{ left: "8%", top: "25%" }}
+                />
 
-              <CityBuilding
-                left="68%"
-                top="76%"
-                width={42}
-                height={60}
-              />
+                <div
+                  className="city-building-small"
+                  style={{ left: "37%", top: "62%" }}
+                />
 
-              <CityBuilding
-                left="83%"
-                top="52%"
-                width={48}
-                height={80}
-              />
+                {/* parks */}
 
-              {/* ZONES */}
-              <div
-                className="city-zone zone-a"
-                style={{ left: "13%", top: "21%" }}
-              >
-                <strong>ZONE A</strong>
-                <span>Central District</span>
-              </div>
+                <div
+                  className="city-park"
+                  style={{ left: "77%", top: "7%" }}
+                />
 
-              <div
-                className="city-zone"
-                style={{ left: "70%", top: "18%" }}
-              >
-                <strong>ZONE B</strong>
-                <span>Business Hub</span>
-              </div>
+                <div
+                  className="city-park city-park-large"
+                  style={{ left: "50%", top: "72%" }}
+                />
 
-              <div
-                className="city-zone"
-                style={{ left: "74%", top: "66%" }}
-              >
-                <strong>ZONE C</strong>
-                <span>Residential Area</span>
-              </div>
+                <div
+                  className="city-park"
+                  style={{ left: "5%", top: "72%" }}
+                />
 
-              <div
-                className="city-zone"
-                style={{ left: "46%", top: "63%" }}
-              >
-                <strong>ZONE D</strong>
-                <span>Tech Park</span>
-              </div>
+                {/* zone labels */}
 
-              {/* VEHICLES */}
-              {activeLayer === "Vehicles" &&
-                filteredVehicles.map((vehicle) => (
-                  <button
-                    key={vehicle.id}
-                    className={`city-vehicle ${
-                      selectedVehicle === vehicle.id ? "selected" : ""
-                    }`}
-                    style={{
-                      left: `${vehicle.x}%`,
-                      top: `${vehicle.y}%`,
-                    }}
-                    onClick={() => setSelectedVehicle(vehicle.id)}
-                    title={vehicle.plate}
-                  >
-                    <span className="vehicle-ring" />
-                    <span className="vehicle-light" />
-                    <VehicleIcon type={vehicle.type} />
-                  </button>
-                ))}
+                <div
+                  className="reference-zone-label"
+                  style={{ left: "11%", top: "15%" }}
+                >
+                  <strong>ZONE A</strong>
+                  <span>Central District</span>
+                </div>
 
-              {/* INCIDENTS */}
-              {activeLayer === "Incidents" && (
-                <>
-                  <div className="map-incident incident-danger">
-                    <ShieldAlert size={19} />
-                  </div>
+                <div
+                  className="reference-zone-label"
+                  style={{ left: "65%", top: "12%" }}
+                >
+                  <strong>ZONE B</strong>
+                  <span>Business Hub</span>
+                </div>
 
-                  <div className="map-incident incident-warning">
-                    <TrafficCone size={19} />
-                  </div>
-                </>
-              )}
+                <div
+                  className="reference-zone-label"
+                  style={{ left: "73%", top: "40%" }}
+                >
+                  <strong>ZONE C</strong>
+                  <span>Residential Area</span>
+                </div>
 
-              {/* MAP CONTROLS */}
-              <div className="digital-map-controls">
-                <button>
-                  <Plus size={16} />
-                </button>
+                <div
+                  className="reference-zone-label"
+                  style={{ left: "48%", top: "67%" }}
+                >
+                  <strong>ZONE D</strong>
+                  <span>Tech Park</span>
+                </div>
 
-                <button>
-                  <Minus size={16} />
-                </button>
+                {/* vehicle markers */}
 
-                <button>
-                  <span className="control-3d">3D</span>
-                </button>
+                {activeLayer === "Vehicles" &&
+                  filteredVehicles.map((vehicle) => {
+                    const isSelected =
+                      selectedVehicle?.id === vehicle.id;
 
-                <button>
-                  <Crosshair size={15} />
-                </button>
+                    return (
+                      <button
+                        key={vehicle.id}
+                        className={`reference-vehicle ${
+                          isSelected ? "reference-vehicle-selected" : ""
+                        }`}
+                        style={{
+                          left: `${vehicle.x}%`,
+                          top: `${vehicle.y}%`,
+                        }}
+                        onClick={() => setSelectedVehicle(vehicle)}
+                        title={vehicle.plate}
+                      >
+                        <span className="vehicle-ring" />
+                        <span className="vehicle-body">
+                          {vehicle.type === "Bus" ? (
+                            <Truck size={11} />
+                          ) : vehicle.type === "Bike" ? (
+                            <Bike size={11} />
+                          ) : (
+                            <Car size={11} />
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
 
-                <button>
-                  <Layers size={15} />
-                </button>
+                {/* incidents */}
 
-                <button>
-                  <LocateFixed size={15} />
-                </button>
-              </div>
-
-              {/* MAP LEGEND */}
-              <div className="map-bottom-tabs">
-                {[
-                  { label: "Map Style", icon: MapIcon },
-                  { label: "Heatmap", icon: Activity },
-                  { label: "Traffic", icon: Route },
-                  { label: "Incidents", icon: AlertTriangle },
-                  { label: "Vehicles", icon: Car },
-                ].map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <button
-                      key={item.label}
-                      className={
-                        activeLayer === item.label ? "active" : ""
-                      }
-                      onClick={() => {
-                        if (
-                          item.label === "Vehicles" ||
-                          item.label === "Incidents"
-                        ) {
-                          setActiveLayer(item.label);
-                        }
-                      }}
+                {activeLayer === "Incidents" && (
+                  <>
+                    <div
+                      className="map-incident map-incident-red"
+                      style={{ left: "39%", top: "29%" }}
                     >
-                      <Icon size={11} />
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT STATISTICS */}
-          <div className="hero-side-column">
-            {/* LIVE VEHICLES */}
-            <div className="metro-card">
-              <div className="card-header">
-                <div>
-                  <h3>Live Vehicles</h3>
-                  <span>Real-time fleet monitoring</span>
-                </div>
-
-                <button className="view-all-button">
-                  View All
-                </button>
-              </div>
-
-              <div className="vehicle-summary">
-                <div className="summary-number">
-                  <span>Total Vehicles</span>
-                  <strong>128</strong>
-
-                  <small>
-                    <TrendingUp size={10} />
-                    12%
-                  </small>
-
-                  <label>Active Now</label>
-                </div>
-
-                <DonutChart />
-
-                <div className="vehicle-legend">
-                  {vehicleDistribution.map((item) => (
-                    <div key={item.label}>
-                      <span className={`legend-dot ${item.className}`} />
-                      <span>{item.label}</span>
-                      <strong>{item.value}</strong>
+                      <ShieldAlert size={21} />
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
 
-            {/* TRAFFIC */}
-            <div className="metro-card traffic-card">
-              <div className="card-header">
-                <div>
-                  <h3>Traffic Status</h3>
-                  <span>City-wide traffic conditions</span>
-                </div>
+                    <div
+                      className="map-incident map-incident-yellow"
+                      style={{ left: "66%", top: "62%" }}
+                    >
+                      <TrafficCone size={21} />
+                    </div>
+                  </>
+                )}
 
-                <span className="traffic-badge">
-                  <Gauge size={10} />
-                  Moderate
-                </span>
-              </div>
+                {/* selected vehicle marker */}
 
-              <div className="traffic-number">
-                <strong>32</strong>
-                <span>km/h</span>
-                <small>
-                  <TrendingUp size={10} />
-                  5%
-                </small>
-              </div>
+                {selectedVehicle && activeLayer === "Vehicles" && (
+                  <div
+                    className="selected-map-card"
+                    style={{
+                      left: `${Math.min(
+                        Math.max(selectedVehicle.x - 8, 5),
+                        72,
+                      )}%`,
+                      top: `${Math.min(
+                        Math.max(selectedVehicle.y - 17, 5),
+                        67,
+                      )}%`,
+                    }}
+                  >
+                    <div className="selected-map-card-close">×</div>
+                    <strong>{selectedVehicle.plate}</strong>
+                    <span>
+                      {selectedVehicle.type} •{" "}
+                      {selectedVehicle.speed.toFixed(0)} km/h
+                    </span>
+                    <span>North-East</span>
+                    <b>Moving</b>
+                  </div>
+                )}
 
-              <MiniTrafficChart />
+                {/* map controls */}
 
-              <div className="chart-labels">
-                <span>08 AM</span>
-                <span>10 AM</span>
-                <span>12 PM</span>
-                <span>02 PM</span>
-                <span>04 PM</span>
-              </div>
-            </div>
+                <div className="reference-map-controls">
+                  <button>
+                    <Plus size={15} />
+                  </button>
 
-            {/* INCIDENTS */}
-            <div className="metro-card incidents-card">
-              <div className="card-header">
-                <div>
-                  <h3>Active Incidents</h3>
-                  <span>Current city alerts</span>
-                </div>
+                  <button>
+                    <Minus size={15} />
+                  </button>
 
-                <button className="view-all-button danger">
-                  View All
-                </button>
-              </div>
+                  <button>
+                    <span className="three-d">3D</span>
+                  </button>
 
-              <div className="incident-row">
-                <div className="incident-symbol danger">
-                  <AlertTriangle size={16} />
-                </div>
+                  <button>
+                    <Crosshair size={15} />
+                  </button>
 
-                <div>
-                  <strong>Road Closure</strong>
-                  <span>Main Street, Zone A</span>
-                </div>
+                  <button>
+                    <Layers size={15} />
+                  </button>
 
-                <label className="incident-level high">High</label>
-              </div>
-
-              <div className="incident-row">
-                <div className="incident-symbol warning">
-                  <TrafficCone size={16} />
+                  <button>
+                    <LocateFixed size={15} />
+                  </button>
                 </div>
 
-                <div>
-                  <strong>Accident</strong>
-                  <span>5th Cross, Zone C</span>
-                </div>
+                {/* layer bar */}
 
-                <label className="incident-level medium">
-                  Medium
-                </label>
-              </div>
-            </div>
-          </div>
-        </section>
+                <div className="reference-layer-bar">
+                  {[
+                    {
+                      label: "Map Style",
+                      icon: Map,
+                    },
+                    {
+                      label: "Heatmap",
+                      icon: Activity,
+                    },
+                    {
+                      label: "Traffic",
+                      icon: Navigation,
+                    },
+                    {
+                      label: "Incidents",
+                      icon: ShieldAlert,
+                    },
+                    {
+                      label: "Vehicles",
+                      icon: Car,
+                    },
+                  ].map((layer) => {
+                    const Icon = layer.icon;
 
-        {/* LOWER DASHBOARD */}
-        <section className="lower-dashboard-grid">
-          {/* OVERVIEW */}
-          <div className="metro-card overview-card">
-            <div className="mini-window-header">
-              <div className="mini-brand">
-                <Building2 size={14} />
-                <strong>METROPOLIS</strong>
-              </div>
-
-              <span>Dashboard Overview</span>
-
-              <UserRound size={14} />
-            </div>
-
-            <div className="overview-kpis">
-              <div>
-                <span>Total Vehicles</span>
-                <strong>128</strong>
-                <small>↑ 12%</small>
-              </div>
-
-              <div>
-                <span>Average Speed</span>
-                <strong>32 km/h</strong>
-                <small>↑ 5%</small>
-              </div>
-
-              <div>
-                <span>Active Incidents</span>
-                <strong>08</strong>
-                <small className="negative">↓ 2</small>
-              </div>
-
-              <div>
-                <span>AI Quality</span>
-                <strong className="good">Good</strong>
-                <small>92%</small>
-              </div>
-            </div>
-
-            <div className="overview-charts">
-              <div className="overview-chart-panel">
-                <div className="chart-panel-title">
-                  <span>Traffic Flow</span>
-                  <MoreDots />
-                </div>
-
-                <MiniTrafficChart />
-
-                <div className="chart-labels">
-                  <span>08 AM</span>
-                  <span>10 AM</span>
-                  <span>12 PM</span>
-                  <span>02 PM</span>
-                  <span>04 PM</span>
+                    return (
+                      <button
+                        key={layer.label}
+                        className={
+                          activeLayer === layer.label
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() => setActiveLayer(layer.label)}
+                      >
+                        <Icon size={11} />
+                        {layer.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            </section>
 
-              <div className="overview-chart-panel">
-                <div className="chart-panel-title">
-                  <span>Vehicles by Type</span>
+            {/* RIGHT SIDE */}
+
+            <aside className="metro-right-column">
+              {/* LIVE VEHICLES */}
+
+              <section className="reference-panel live-vehicles-panel">
+                <div className="reference-panel-header">
+                  <h3>Live Vehicles</h3>
+                  <button>View All</button>
                 </div>
 
-                <div className="small-donut-row">
-                  <DonutChart />
+                <div className="live-vehicle-content">
+                  <div>
+                    <span className="small-label">
+                      Total Vehicles
+                    </span>
 
-                  <div className="small-legend">
-                    {vehicleDistribution.map((item) => (
+                    <div className="large-number">
+                      128
+                      <span className="positive-change">
+                        ↑ 12%
+                      </span>
+                    </div>
+
+                    <span className="small-label active-now">
+                      Active Now
+                    </span>
+                  </div>
+
+                  <div className="donut-wrapper">
+                    <div className="donut-chart">
+                      <div className="donut-hole">128</div>
+                    </div>
+                  </div>
+
+                  <div className="vehicle-legend">
+                    {vehicleTypes.map((item) => (
                       <div key={item.label}>
                         <span
                           className={`legend-dot ${item.className}`}
                         />
-                        {item.label}
+                        <span>{item.label}</span>
                         <strong>{item.value}</strong>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div className="overview-bottom">
-              <div className="overview-table">
-                <div className="chart-panel-title">
-                  <span>Top Congested Zones</span>
+              {/* TRAFFIC STATUS */}
+
+              <section className="reference-panel traffic-status-panel">
+                <div className="reference-panel-header">
+                  <h3>Traffic Status</h3>
+
+                  <span className="traffic-moderate">
+                    ◉ Moderate
+                  </span>
                 </div>
 
-                {[
-                  ["Zone A", "72%"],
-                  ["Zone B", "58%"],
-                  ["Zone C", "41%"],
-                  ["Zone D", "29%"],
-                ].map(([zone, value], index) => (
-                  <div className="zone-progress" key={zone}>
-                    <span>{index + 1}</span>
-                    <strong>{zone}</strong>
-                    <div>
-                      <span
-                        style={{
-                          width: value,
-                        }}
-                      />
-                    </div>
-                    <label>{value}</label>
+                <div className="traffic-speed">
+                  <span>Average Speed</span>
+
+                  <div>
+                    <strong>{averageSpeed}</strong>
+                    <span> km/h</span>
+                    <b>↑ 5%</b>
                   </div>
-                ))}
-              </div>
-
-              <div className="overview-table">
-                <div className="chart-panel-title">
-                  <span>Incident Trend</span>
                 </div>
 
-                <MiniBars />
+                <div className="mini-chart">
+                  <div className="chart-axis">
+                    <span>60</span>
+                    <span>30</span>
+                    <span>0</span>
+                  </div>
 
-                <div className="chart-labels">
+                  <div className="chart-lines">
+                    <span style={{ height: "24%" }} />
+                    <span style={{ height: "31%" }} />
+                    <span style={{ height: "37%" }} />
+                    <span style={{ height: "32%" }} />
+                    <span style={{ height: "46%" }} />
+                    <span style={{ height: "41%" }} />
+                    <span style={{ height: "61%" }} />
+                    <span style={{ height: "76%" }} />
+                    <span style={{ height: "65%" }} />
+                    <span style={{ height: "70%" }} />
+                    <span style={{ height: "66%" }} />
+                  </div>
+                </div>
+
+                <div className="chart-time">
                   <span>08 AM</span>
                   <span>10 AM</span>
                   <span>12 PM</span>
                   <span>02 PM</span>
                   <span>04 PM</span>
                 </div>
-              </div>
-            </div>
+              </section>
+
+              {/* INCIDENTS */}
+
+              <section className="reference-panel incidents-panel">
+                <div className="reference-panel-header">
+                  <h3 className="danger-title">
+                    Active Incidents
+                  </h3>
+
+                  <button>View All</button>
+                </div>
+
+                <div className="reference-incident">
+                  <div className="incident-symbol danger">
+                    <ShieldAlert size={17} />
+                  </div>
+
+                  <div>
+                    <strong>Road Closure</strong>
+                    <span>Main Street, Zone A</span>
+                  </div>
+
+                  <em className="severity-high">High</em>
+                </div>
+
+                <div className="reference-incident">
+                  <div className="incident-symbol warning">
+                    <CircleAlert size={17} />
+                  </div>
+
+                  <div>
+                    <strong>Accident</strong>
+                    <span>5th Cross, Zone C</span>
+                  </div>
+
+                  <em className="severity-medium">Medium</em>
+                </div>
+              </section>
+            </aside>
           </div>
 
-          {/* VEHICLE SEARCH */}
-          <div className="metro-card vehicle-search-card">
-            <div className="mini-window-header">
-              <div className="mini-brand">
-                <Building2 size={14} />
-                <strong>METROPOLIS</strong>
+          {/* =================================================
+              LOWER DASHBOARD
+          ================================================== */}
+
+          <div className="reference-bottom-grid">
+            {/* DASHBOARD OVERVIEW */}
+
+            <section className="reference-panel overview-panel">
+              <div className="reference-panel-header">
+                <div className="panel-brand-title">
+                  <span className="mini-brand-icon">
+                    <Activity size={13} />
+                  </span>
+                  <h3>Dashboard Overview</h3>
+                </div>
+
+                <CircleDot size={14} className="muted" />
               </div>
 
-              <span>Vehicle Search &amp; Details</span>
+              <div className="overview-kpis">
+                <div>
+                  <span>Total Vehicles</span>
+                  <strong>
+                    128 <b>↑ 12%</b>
+                  </strong>
+                </div>
 
-              <Users size={14} />
-            </div>
+                <div>
+                  <span>Average Speed</span>
+                  <strong>
+                    32 <small>km/h</small>{" "}
+                    <b>↑ 5%</b>
+                  </strong>
+                </div>
 
-            <div className="vehicle-search-input">
-              <Search size={13} />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="KA-01-AB-1234"
-              />
-              <span>⌕</span>
-            </div>
+                <div>
+                  <span>Active Incidents</span>
+                  <strong>
+                    08 <i>↓ 2</i>
+                  </strong>
+                </div>
 
-            <div className="vehicle-detail-layout">
-              <div className="vehicle-list">
-                {filteredVehicles.slice(0, 4).map((vehicle) => (
-                  <button
-                    key={vehicle.id}
-                    className={`vehicle-list-item ${
-                      selectedVehicle === vehicle.id
-                        ? "active"
-                        : ""
-                    }`}
-                    onClick={() =>
-                      setSelectedVehicle(vehicle.id)
-                    }
-                  >
-                    <div className="vehicle-list-icon">
-                      <VehicleIcon type={vehicle.type} />
+                <div>
+                  <span>AI Quality</span>
+                  <strong className="quality-good">
+                    Good <b>↑ 4%</b>
+                  </strong>
+                </div>
+              </div>
+
+              <div className="overview-chart-grid">
+                <div className="small-dashboard-chart">
+                  <h4>Traffic Flow</h4>
+
+                  <div className="purple-line-chart">
+                    <span style={{ height: "35%" }} />
+                    <span style={{ height: "43%" }} />
+                    <span style={{ height: "38%" }} />
+                    <span style={{ height: "55%" }} />
+                    <span style={{ height: "48%" }} />
+                    <span style={{ height: "64%" }} />
+                    <span style={{ height: "57%" }} />
+                    <span style={{ height: "76%" }} />
+                    <span style={{ height: "62%" }} />
+                    <span style={{ height: "81%" }} />
+                  </div>
+
+                  <div className="chart-time">
+                    <span>08 AM</span>
+                    <span>10 AM</span>
+                    <span>12 PM</span>
+                    <span>02 PM</span>
+                    <span>04 PM</span>
+                  </div>
+                </div>
+
+                <div className="small-dashboard-chart vehicle-type-chart">
+                  <h4>Vehicles by Type</h4>
+
+                  <div className="mini-donut-row">
+                    <div className="mini-donut">
+                      <span>128</span>
+                    </div>
+
+                    <div className="mini-legend">
+                      {vehicleTypes.map((item) => (
+                        <div key={item.label}>
+                          <span
+                            className={`legend-dot ${item.className}`}
+                          />
+                          <span>{item.label}</span>
+                          <b>{item.value}</b>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="overview-bottom-grid">
+                <div>
+                  <h4>Top Congested Zones</h4>
+
+                  <div className="zone-ranking">
+                    <div>
+                      <span>1</span>
+                      <strong>Zone A</strong>
+                      <i>
+                        <b style={{ width: "72%" }} />
+                      </i>
+                      <em>72%</em>
                     </div>
 
                     <div>
-                      <strong>{vehicle.plate}</strong>
-                      <span>
-                        {vehicle.type} • {vehicle.speed.toFixed(0)} km/h
-                      </span>
-                      <small>
-                        {vehicle.id === "V001"
-                          ? "Main Road, Zone A"
-                          : "5th Cross, Zone C"}
-                      </small>
+                      <span>2</span>
+                      <strong>Zone B</strong>
+                      <i>
+                        <b style={{ width: "58%" }} />
+                      </i>
+                      <em>58%</em>
                     </div>
 
-                    <span className="mini-moving">Moving</span>
-                  </button>
-                ))}
-              </div>
+                    <div>
+                      <span>3</span>
+                      <strong>Zone C</strong>
+                      <i>
+                        <b style={{ width: "41%" }} />
+                      </i>
+                      <em>41%</em>
+                    </div>
 
-              <div className="selected-vehicle">
-                <span className="found-label">
-                  Vehicle Found ✓
-                </span>
-
-                <h3>{selected?.plate ?? "KA-01-AB-1234"}</h3>
-
-                <div className="vehicle-image">
-                  <Car size={65} strokeWidth={1.1} />
+                    <div>
+                      <span>4</span>
+                      <strong>Zone D</strong>
+                      <i>
+                        <b style={{ width: "29%" }} />
+                      </i>
+                      <em>29%</em>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="vehicle-data-grid">
-                  <span>Vehicle Type</span>
-                  <strong>{selected?.type ?? "Car"}</strong>
+                <div>
+                  <h4>Incident Trend</h4>
 
-                  <span>Model</span>
-                  <strong>Swift Dzire</strong>
+                  <div className="incident-bars">
+                    <span style={{ height: "42%" }} />
+                    <span style={{ height: "70%" }} />
+                    <span style={{ height: "35%" }} />
+                    <span style={{ height: "58%" }} />
+                    <span style={{ height: "77%" }} />
+                    <span style={{ height: "38%" }} />
+                    <span style={{ height: "61%" }} />
+                  </div>
 
-                  <span>Current Location</span>
-                  <strong>Main Road, Zone A</strong>
+                  <div className="chart-time">
+                    <span>08 AM</span>
+                    <span>10 AM</span>
+                    <span>12 PM</span>
+                    <span>02 PM</span>
+                    <span>04 PM</span>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-                  <span>Speed</span>
+            {/* VEHICLE SEARCH */}
+
+            <section className="reference-panel vehicle-search-panel">
+              <div className="reference-panel-header">
+                <div className="panel-brand-title">
+                  <span className="mini-brand-icon">
+                    <Car size={13} />
+                  </span>
+                  <h3>Vehicle Search & Details</h3>
+                </div>
+
+                <Users size={14} className="muted" />
+              </div>
+
+              <div className="vehicle-search-box">
+                <Search size={13} />
+
+                <input
+                  value={search}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
+                  placeholder="KA-01-AB-1234"
+                />
+              </div>
+
+              <div className="vehicle-detail-content">
+                <div className="vehicle-list">
+                  {filteredVehicles.slice(0, 4).map((vehicle) => (
+                    <button
+                      key={vehicle.id}
+                      className={`vehicle-list-item ${
+                        selectedVehicle?.id === vehicle.id
+                          ? "selected"
+                          : ""
+                      }`}
+                      onClick={() =>
+                        setSelectedVehicle(vehicle)
+                      }
+                    >
+                      <div className="vehicle-list-icon">
+                        {vehicle.type === "Bus" ? (
+                          <Truck size={13} />
+                        ) : vehicle.type === "Bike" ? (
+                          <Bike size={13} />
+                        ) : (
+                          <Car size={13} />
+                        )}
+                      </div>
+
+                      <div>
+                        <strong>{vehicle.plate}</strong>
+                        <span>
+                          {vehicle.type} •{" "}
+                          {vehicle.speed.toFixed(0)} km/h
+                        </span>
+                        <small>Main Road, Zone A</small>
+                      </div>
+
+                      <em>Moving</em>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="selected-vehicle-details">
+                  <span className="found-label">
+                    Vehicle Found ✓
+                  </span>
+
+                  {selectedVehicle && (
+                    <>
+                      <h4>{selectedVehicle.plate}</h4>
+
+                      <div className="vehicle-photo">
+                        <Car size={70} strokeWidth={1} />
+                      </div>
+
+                      <div className="vehicle-info-grid">
+                        <div>
+                          <span>Vehicle Type</span>
+                          <strong>{selectedVehicle.type}</strong>
+                        </div>
+
+                        <div>
+                          <span>Model</span>
+                          <strong>Swift Sedan</strong>
+                        </div>
+
+                        <div>
+                          <span>Current Location</span>
+                          <strong>Main Road, Zone A</strong>
+                        </div>
+
+                        <div>
+                          <span>Speed</span>
+                          <strong>
+                            {selectedVehicle.speed.toFixed(0)} km/h
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Direction</span>
+                          <strong>North-East</strong>
+                        </div>
+
+                        <div>
+                          <span>Status</span>
+                          <strong className="green-text">
+                            Moving
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>Last Updated</span>
+                          <strong>
+                            {new Date().toLocaleTimeString()}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <button className="show-map-button">
+                        <MapPin size={14} />
+                        Show on Map
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* VEHICLE ON MAP */}
+
+            <section className="reference-panel vehicle-on-map-panel">
+              <div className="reference-panel-header">
+                <h3>Vehicle on Map</h3>
+                <span className="close-small">×</span>
+              </div>
+
+              <div className="mini-city-map">
+                <div className="mini-road mini-road-1" />
+                <div className="mini-road mini-road-2" />
+                <div className="mini-road mini-road-3" />
+
+                <div className="mini-map-park" />
+
+                <div className="mini-selected-car">
+                  <span />
+                  <Car size={15} />
+                </div>
+
+                <div className="mini-map-popup">
                   <strong>
-                    {selected?.speed.toFixed(0) ?? 32} km/h
+                    {selectedVehicle?.plate ?? "KA-01-AB-1234"}
                   </strong>
 
-                  <span>Direction</span>
-                  <strong>North-East</strong>
+                  <span>
+                    {selectedVehicle?.type ?? "Car"} (Sedan)
+                  </span>
 
-                  <span>Status</span>
-                  <strong className="green-text">Moving</strong>
+                  <b>
+                    {selectedVehicle?.speed.toFixed(0) ?? "32"} km/h
+                  </b>
 
-                  <span>Last Updated</span>
-                  <strong>10:24:30 AM</strong>
+                  <span>North-East</span>
+
+                  <em>Moving</em>
                 </div>
 
-                <button
-                  className="show-map-button"
-                  onClick={() => {
-                    setActiveLayer("Vehicles");
-                    setSelectedVehicle(selected?.id ?? "V001");
-                  }}
-                >
-                  <MapPin size={14} />
-                  Show on Map
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* VEHICLE ON MAP */}
-          <div className="metro-card small-map-card">
-            <div className="mini-window-header">
-              <strong>Vehicle on Map</strong>
-
-              <button className="close-mini">
-                <X size={13} />
-              </button>
-            </div>
-
-            <div className="small-city-map">
-              <div className="small-road r1" />
-              <div className="small-road r2" />
-              <div className="small-road r3" />
-
-              <div className="small-city-building b1" />
-              <div className="small-city-building b2" />
-              <div className="small-city-building b3" />
-
-              <div className="small-map-label">
-                <strong>
-                  {selected?.plate ?? "KA-01-AB-1234"}
-                </strong>
-                <span>
-                  {selected?.type ?? "Car"} (Sedan)
-                </span>
-                <strong>
-                  {selected?.speed.toFixed(0) ?? 32} km/h
-                </strong>
-                <span>North-East</span>
-                <b>Moving</b>
-              </div>
-
-              <div className="focused-map-car">
-                <span />
-                <Car size={14} />
-              </div>
-
-              <div className="small-map-controls">
-                <button>
-                  <Plus size={12} />
-                </button>
-                <button>
-                  <Minus size={12} />
-                </button>
-                <button>
-                  <span>3D</span>
-                </button>
-                <button>
-                  <Layers size={12} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* WHAT IF */}
-          <div className="metro-card scenario-card">
-            <div className="mini-window-header">
-              <div className="mini-brand">
-                <Building2 size={14} />
-                <strong>METROPOLIS</strong>
-              </div>
-
-              <span>What-if Scenarios</span>
-            </div>
-
-            <div className="scenario-city">
-              <div className="scenario-buildings">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
-            </div>
-
-            <div className="scenario-content">
-              <span className="scenario-label">
-                Increase Vehicles by
-              </span>
-
-              <strong className="scenario-number">
-                {scenarioValue}%
-              </strong>
-
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={scenarioValue}
-                onChange={(event) =>
-                  setScenarioValue(Number(event.target.value))
-                }
-              />
-
-              <div className="slider-labels">
-                <span>0%</span>
-                <span>100%</span>
-              </div>
-
-              <span className="scenario-impact-title">
-                Scenario Impact
-              </span>
-
-              <div className="scenario-impact">
-                <div>
-                  <CircleGauge size={13} />
-                  <span>Average Speed</span>
-                  <strong>24 km/h ↓</strong>
+                <div className="mini-map-controls">
+                  <button>
+                    <Plus size={13} />
+                  </button>
+                  <button>
+                    <Minus size={13} />
+                  </button>
+                  <button>
+                    <span>3D</span>
+                  </button>
+                  <button>
+                    <Layers size={13} />
+                  </button>
+                  <button>
+                    <LocateFixed size={13} />
+                  </button>
                 </div>
+              </div>
+            </section>
 
-                <div>
-                  <Activity size={13} />
-                  <span>Traffic Density</span>
-                  <strong>High</strong>
-                </div>
+            {/* WHAT IF */}
 
-                <div>
-                  <TrendingUp size={13} />
-                  <span>Congestion</span>
-                  <strong>75% ↑</strong>
-                </div>
-
-                <div>
-                  <AlertTriangle size={13} />
-                  <span>Incidents Likelihood</span>
-                  <strong>Medium ↑</strong>
+            <section className="reference-panel scenario-panel">
+              <div className="reference-panel-header">
+                <div className="panel-brand-title">
+                  <Sparkles size={14} />
+                  <h3>What-If Scenarios</h3>
                 </div>
               </div>
 
-              <button className="run-simulation">
-                <Play size={13} />
-                Run Simulation
-              </button>
+              <div className="scenario-map-preview">
+                <div className="scenario-city-grid" />
 
-              <button className="save-scenario">
-                Save Scenario
-              </button>
-            </div>
+                <div className="scenario-buildings">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+
+              <div className="scenario-body">
+                <div className="scenario-question">
+                  <span>Increase Vehicles by</span>
+                  <strong>20%</strong>
+                </div>
+
+                <input
+                  className="scenario-slider"
+                  type="range"
+                  min="0"
+                  max="100"
+                  value="20"
+                  readOnly
+                />
+
+                <div className="slider-labels">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+
+                <h4>Scenario Impact</h4>
+
+                <div className="impact-row">
+                  <span>
+                    <Gauge size={12} />
+                    Average Speed
+                  </span>
+
+                  <strong>
+                    24 km/h <b>↓</b>
+                  </strong>
+                </div>
+
+                <div className="impact-row">
+                  <span>
+                    <Activity size={12} />
+                    Traffic Density
+                  </span>
+
+                  <strong className="yellow-text">
+                    High <b>↑</b>
+                  </strong>
+                </div>
+
+                <div className="impact-row">
+                  <span>
+                    <Navigation size={12} />
+                    Congestion
+                  </span>
+
+                  <strong className="yellow-text">
+                    75% <b>↑</b>
+                  </strong>
+                </div>
+
+                <div className="impact-row">
+                  <span>
+                    <ShieldAlert size={12} />
+                    Incidents Likelihood
+                  </span>
+
+                  <strong className="yellow-text">
+                    Medium <b>↑</b>
+                  </strong>
+                </div>
+
+                <button className="run-simulation-button">
+                  <Zap size={13} />
+                  Run Simulation
+                </button>
+
+                <button className="save-scenario-button">
+                  Save Scenario
+                </button>
+              </div>
+            </section>
           </div>
         </section>
 
-        {/* BOTTOM FEATURE STRIP */}
-        <section className="metro-feature-strip">
+        {/* =================================================
+            BOTTOM FEATURE BAR
+        ================================================== */}
+
+        <footer className="metro-feature-bar">
           <div className="feature-item">
             <div className="feature-icon">
-              <Box size={21} />
+              <Box size={19} />
             </div>
 
             <div>
@@ -1170,29 +1206,29 @@ export default function LiveMap() {
 
           <div className="feature-item">
             <div className="feature-icon">
-              <Radio size={21} />
+              <Radio size={19} />
             </div>
 
             <div>
               <strong>REAL-TIME SIMULATION</strong>
-              <span>Traffic, Vehicles &amp; Incidents</span>
+              <span>Traffic, Vehicles & Incidents</span>
             </div>
           </div>
 
           <div className="feature-item">
             <div className="feature-icon">
-              <BarChart3 size={21} />
+              <BarChart3 size={19} />
             </div>
 
             <div>
               <strong>AI POWERED ANALYTICS</strong>
-              <span>Smart Insights &amp; Predictions</span>
+              <span>Smart Insights & Predictions</span>
             </div>
           </div>
 
           <div className="feature-item">
             <div className="feature-icon">
-              <Sparkles size={21} />
+              <SlidersHorizontal size={19} />
             </div>
 
             <div>
@@ -1201,20 +1237,18 @@ export default function LiveMap() {
             </div>
           </div>
 
-          <div className="feature-brand">
-            <Building2 size={35} />
+          <div className="footer-logo">
+            <div className="footer-building-icon">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+
             <strong>METROPOLIS</strong>
           </div>
-        </section>
+        </footer>
       </main>
     </div>
-  );
-}
-
-function MoreDots() {
-  return (
-    <span className="more-dots">
-      •••
-    </span>
   );
 }
