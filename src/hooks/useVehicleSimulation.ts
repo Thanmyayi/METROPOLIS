@@ -1,263 +1,513 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+import { getVehicles } from "../services/api";
 import { vehicles as baseVehicles } from "../data/vehicles";
 import type { VehicleData } from "../data/vehicles";
 
+/* =========================================================
+   SIMULATED VEHICLE
+   ========================================================= */
+
 export interface SimulatedVehicle extends VehicleData {
+  latitude: number;
+  longitude: number;
   lastUpdated: string;
   routeIndex: number;
 }
 
-interface VehicleState {
+/* =========================================================
+   HOOK RETURN TYPE
+   ========================================================= */
+
+interface UseVehicleSimulationReturn {
   vehicles: SimulatedVehicle[];
+
   selectedVehicleId: string | null;
+
+  setSelectedVehicleId: (
+    id: string | null
+  ) => void;
+
+  selectVehicle: (
+    vehicleId: string
+  ) => void;
+
+  clearVehicleSelection: () => void;
+
+  loading: boolean;
+
+  error: string | null;
+
+  refreshVehicles: () => Promise<void>;
 }
 
-const initialVehicles: SimulatedVehicle[] = baseVehicles.map(
-  (vehicle) => ({
-    ...vehicle,
-    lastUpdated: "Just now",
-    routeIndex: 0,
-  }),
-);
+/* =========================================================
+   FALLBACK VEHICLES
+   ========================================================= */
 
-const routes: Record<string, [number, number][]> = {
-  "VH-001": [
-    [12.9718, 77.5945],
-    [12.9724, 77.5947],
-    [12.9730, 77.5949],
-    [12.9736, 77.5951],
-    [12.9742, 77.5953],
-    [12.9748, 77.5955],
-    [12.9752, 77.5957],
-    [12.9748, 77.5955],
-    [12.9742, 77.5953],
-    [12.9736, 77.5951],
-    [12.9730, 77.5949],
-    [12.9724, 77.5947],
-  ],
+const createFallbackVehicles =
+  (): SimulatedVehicle[] => {
+    return baseVehicles.map(
+      (vehicle, index) => {
+        const vehicleWithCoordinates =
+          vehicle as VehicleData & {
+            latitude?: number;
+            longitude?: number;
+          };
 
-  "VH-002": [
-    [12.9731, 77.5928],
-    [12.9731, 77.5935],
-    [12.9732, 77.5942],
-    [12.9732, 77.5949],
-    [12.9733, 77.5956],
-    [12.9733, 77.5963],
-    [12.9734, 77.5970],
-    [12.9733, 77.5963],
-    [12.9733, 77.5956],
-    [12.9732, 77.5949],
-    [12.9732, 77.5942],
-    [12.9731, 77.5935],
-  ],
-
-  "VH-003": [
-    [12.9698, 77.5962],
-    [12.9702, 77.5957],
-    [12.9707, 77.5952],
-    [12.9712, 77.5947],
-    [12.9717, 77.5942],
-    [12.9722, 77.5937],
-    [12.9727, 77.5932],
-    [12.9722, 77.5937],
-    [12.9717, 77.5942],
-    [12.9712, 77.5947],
-    [12.9707, 77.5952],
-    [12.9702, 77.5957],
-  ],
-
-  "VH-004": [
-    [12.9687, 77.5917],
-    [12.9691, 77.5921],
-    [12.9695, 77.5925],
-    [12.9699, 77.5929],
-    [12.9703, 77.5933],
-    [12.9707, 77.5937],
-    [12.9711, 77.5941],
-    [12.9707, 77.5937],
-    [12.9703, 77.5933],
-    [12.9699, 77.5929],
-    [12.9695, 77.5925],
-    [12.9691, 77.5921],
-  ],
-
-  "VH-005": [
-    [12.9742, 77.5971],
-    [12.9740, 77.5965],
-    [12.9738, 77.5959],
-    [12.9736, 77.5953],
-    [12.9734, 77.5947],
-    [12.9732, 77.5941],
-    [12.9730, 77.5935],
-    [12.9732, 77.5941],
-    [12.9734, 77.5947],
-    [12.9736, 77.5953],
-    [12.9738, 77.5959],
-    [12.9740, 77.5965],
-  ],
-
-  "VH-006": [
-    [12.9679, 77.5942],
-    [12.9684, 77.5946],
-    [12.9689, 77.5950],
-    [12.9694, 77.5954],
-    [12.9699, 77.5958],
-    [12.9704, 77.5962],
-    [12.9709, 77.5966],
-    [12.9704, 77.5962],
-    [12.9699, 77.5958],
-    [12.9694, 77.5954],
-    [12.9689, 77.5950],
-    [12.9684, 77.5946],
-  ],
-
-  "VH-007": [
-    [12.9725, 77.5908],
-    [12.9727, 77.5915],
-    [12.9729, 77.5922],
-    [12.9731, 77.5929],
-    [12.9733, 77.5936],
-    [12.9735, 77.5943],
-    [12.9737, 77.5950],
-    [12.9735, 77.5943],
-    [12.9733, 77.5936],
-    [12.9731, 77.5929],
-    [12.9729, 77.5922],
-    [12.9727, 77.5915],
-  ],
-
-  "VH-008": [
-    [12.9760, 77.5960],
-    [12.9756, 77.5956],
-    [12.9752, 77.5952],
-    [12.9748, 77.5948],
-    [12.9744, 77.5944],
-    [12.9740, 77.5940],
-    [12.9736, 77.5936],
-    [12.9740, 77.5940],
-    [12.9744, 77.5944],
-    [12.9748, 77.5948],
-    [12.9752, 77.5952],
-    [12.9756, 77.5956],
-  ],
-};
-
-let state: VehicleState = {
-  vehicles: initialVehicles,
-  selectedVehicleId: null,
-};
-
-const listeners = new Set<() => void>();
-
-let simulationTimer: ReturnType<typeof setInterval> | null = null;
-let subscribers = 0;
-
-function notify() {
-  listeners.forEach((listener) => listener());
-}
-
-function updateVehicles() {
-  state = {
-    ...state,
-
-    vehicles: state.vehicles.map((vehicle) => {
-      const route = routes[vehicle.id];
-
-      if (!route || vehicle.status === "Stopped") {
         return {
           ...vehicle,
-          lastUpdated: new Date().toLocaleTimeString(),
+
+          latitude:
+            Number(
+              vehicleWithCoordinates.latitude ??
+                12.9718
+            ),
+
+          longitude:
+            Number(
+              vehicleWithCoordinates.longitude ??
+                77.5945
+            ),
+
+          lastUpdated: "Just now",
+
+          routeIndex: index,
         };
       }
-
-      const nextIndex =
-        (vehicle.routeIndex + 1) % route.length;
-
-      return {
-        ...vehicle,
-        position: route[nextIndex],
-        routeIndex: nextIndex,
-        lastUpdated: new Date().toLocaleTimeString(),
-      };
-    }),
+    );
   };
 
-  notify();
-}
+/* =========================================================
+   NORMALIZE BACKEND VEHICLE
+   ========================================================= */
 
-function startSimulation() {
-  if (simulationTimer) return;
+const normalizeVehicle = (
+  vehicle: any,
+  index: number
+): SimulatedVehicle => {
+  const vehicleId =
+    vehicle.vehicle_id ??
+    vehicle.id ??
+    `VH-${String(
+      index + 1
+    ).padStart(3, "0")}`;
 
-  simulationTimer = setInterval(
-    updateVehicles,
-    1000,
-  );
-}
+  const plateNumber =
+    vehicle.plate_number ??
+    vehicle.number_plate ??
+    vehicle.plate ??
+    "KA-01-XX-0000";
 
-function stopSimulation() {
-  if (!simulationTimer) return;
+  const vehicleType =
+    vehicle.vehicle_type ??
+    vehicle.type ??
+    "car";
 
-  clearInterval(simulationTimer);
-  simulationTimer = null;
-}
+  const vehicleModel =
+    vehicle.model ??
+    vehicle.vehicle_name ??
+    vehicle.name ??
+    "Simulated Vehicle";
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  subscribers++;
+  const roadName =
+    vehicle.road ??
+    vehicle.road_name ??
+    "Main Road";
 
-  if (subscribers === 1) {
-    startSimulation();
-  }
+  const zoneName =
+    vehicle.zone ??
+    vehicle.zone_name ??
+    "Zone A";
 
-  return () => {
-    listeners.delete(listener);
-    subscribers--;
+  const speed =
+    Number(
+      vehicle.speed ?? 0
+    );
 
-    if (subscribers === 0) {
-      stopSimulation();
-    }
-  };
-}
+  const direction =
+    vehicle.direction ??
+    "North";
 
-function getSnapshot() {
-  return state;
-}
+  const status =
+    vehicle.status ??
+    "Moving";
 
-function selectVehicle(vehicleId: string) {
-  const vehicleExists = state.vehicles.some(
-    (vehicle) => vehicle.id === vehicleId,
-  );
+  const latitude =
+    Number(
+      vehicle.latitude ??
+        vehicle.lat ??
+        12.9718
+    );
 
-  if (!vehicleExists) return;
+  const longitude =
+    Number(
+      vehicle.longitude ??
+        vehicle.lng ??
+        77.5945
+    );
 
-  state = {
-    ...state,
-    selectedVehicleId: vehicleId,
-  };
-
-  notify();
-}
-
-function clearVehicleSelection() {
-  state = {
-    ...state,
-    selectedVehicleId: null,
-  };
-
-  notify();
-}
-
-export function useVehicleSimulation() {
-  const snapshot = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getSnapshot,
-  );
+  const lastUpdated =
+    vehicle.last_updated ??
+    vehicle.lastUpdated ??
+    "Just now";
 
   return {
-    vehicles: snapshot.vehicles,
-    selectedVehicleId: snapshot.selectedVehicleId,
-    selectVehicle,
-    clearVehicleSelection,
+    ...vehicle,
+
+    /* Frontend ID */
+    id: vehicleId,
+
+    /* Frontend plate */
+    plate: plateNumber,
+
+    /* Frontend type */
+    type: vehicleType,
+
+    /* Vehicle model */
+    model: vehicleModel,
+
+    /* Road */
+    road: roadName,
+
+    /* Zone */
+    zone: zoneName,
+
+    /* Speed */
+    speed,
+
+    /* Direction */
+    direction,
+
+    /* Status */
+    status,
+
+    /* Coordinates */
+    latitude,
+
+    longitude,
+
+    /* Backend-compatible fields */
+    vehicle_id: vehicleId,
+
+    plate_number: plateNumber,
+
+    vehicle_type: vehicleType,
+
+    /* Simulation fields */
+    lastUpdated,
+
+    routeIndex: index,
+  } as SimulatedVehicle;
+};
+
+/* =========================================================
+   MAIN HOOK
+   ========================================================= */
+
+export const useVehicleSimulation =
+  (): UseVehicleSimulationReturn => {
+    /* =====================================================
+       VEHICLE STATE
+       ===================================================== */
+
+    const [
+      vehicles,
+      setVehicles,
+    ] =
+      useState<SimulatedVehicle[]>(
+        createFallbackVehicles()
+      );
+
+    /* =====================================================
+       SELECTED VEHICLE
+       ===================================================== */
+
+    const [
+      selectedVehicleId,
+      setSelectedVehicleId,
+    ] =
+      useState<string | null>(
+        null
+      );
+
+    /* =====================================================
+       LOADING STATE
+       ===================================================== */
+
+    const [
+      loading,
+      setLoading,
+    ] =
+      useState<boolean>(true);
+
+    /* =====================================================
+       ERROR STATE
+       ===================================================== */
+
+    const [
+      error,
+      setError,
+    ] =
+      useState<string | null>(
+        null
+      );
+
+    /* =====================================================
+       SELECT VEHICLE
+       ===================================================== */
+
+    const selectVehicle = (
+      vehicleId: string
+    ) => {
+      setSelectedVehicleId(
+        vehicleId
+      );
+    };
+
+    /* =====================================================
+       CLEAR VEHICLE SELECTION
+       ===================================================== */
+
+    const clearVehicleSelection =
+      () => {
+        setSelectedVehicleId(
+          null
+        );
+      };
+
+    /* =====================================================
+       LOAD VEHICLES FROM BACKEND
+       ===================================================== */
+
+    const refreshVehicles =
+      async () => {
+        try {
+          setLoading(true);
+
+          setError(null);
+
+          const response =
+            await getVehicles();
+
+          const backendVehicles =
+            response?.data ?? [];
+
+          /* -----------------------------------------------
+             BACKEND DATA AVAILABLE
+             ----------------------------------------------- */
+
+          if (
+            Array.isArray(
+              backendVehicles
+            ) &&
+            backendVehicles.length >
+              0
+          ) {
+            const normalizedVehicles =
+              backendVehicles.map(
+                (
+                  vehicle: any,
+                  index: number
+                ) =>
+                  normalizeVehicle(
+                    vehicle,
+                    index
+                  )
+              );
+
+            setVehicles(
+              normalizedVehicles
+            );
+
+            return;
+          }
+
+          /* -----------------------------------------------
+             EMPTY BACKEND RESPONSE
+             ----------------------------------------------- */
+
+          setVehicles(
+            createFallbackVehicles()
+          );
+        } catch (err) {
+          console.error(
+            "Failed to load vehicles from backend:",
+            err
+          );
+
+          setError(
+            "Backend vehicle data unavailable. Using simulation data."
+          );
+
+          setVehicles(
+            createFallbackVehicles()
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    /* =====================================================
+       INITIAL BACKEND LOAD
+       ===================================================== */
+
+    useEffect(() => {
+      refreshVehicles();
+    }, []);
+
+    /* =====================================================
+       LIVE VEHICLE SIMULATION
+       ===================================================== */
+
+    useEffect(() => {
+      if (
+        vehicles.length ===
+        0
+      ) {
+        return;
+      }
+
+      const interval =
+        setInterval(() => {
+          setVehicles(
+            (
+              currentVehicles
+            ) => {
+              return currentVehicles.map(
+                (
+                  vehicle
+                ) => {
+                  /* -----------------------------------------
+                     STOPPED VEHICLE
+                     ----------------------------------------- */
+
+                  if (
+                    vehicle.status
+                      ?.toLowerCase() ===
+                    "stopped"
+                  ) {
+                    return {
+                      ...vehicle,
+
+                      lastUpdated:
+                        "Just now",
+                    };
+                  }
+
+                  /* -----------------------------------------
+                     MOVEMENT
+                     ----------------------------------------- */
+
+                  const movement =
+                    0.00005;
+
+                  let newLatitude =
+                    Number(
+                      vehicle.latitude
+                    );
+
+                  let newLongitude =
+                    Number(
+                      vehicle.longitude
+                    );
+
+                  /* -----------------------------------------
+                     DIRECTION
+                     ----------------------------------------- */
+
+                  switch (
+                    vehicle.direction?.toLowerCase()
+                  ) {
+                    case "north":
+                      newLatitude +=
+                        movement;
+                      break;
+
+                    case "south":
+                      newLatitude -=
+                        movement;
+                      break;
+
+                    case "east":
+                      newLongitude +=
+                        movement;
+                      break;
+
+                    case "west":
+                      newLongitude -=
+                        movement;
+                      break;
+
+                    default:
+                      newLongitude +=
+                        movement;
+                      break;
+                  }
+
+                  /* -----------------------------------------
+                     UPDATED VEHICLE
+                     ----------------------------------------- */
+
+                  return {
+                    ...vehicle,
+
+                    latitude:
+                      Number(
+                        newLatitude.toFixed(
+                          7
+                        )
+                      ),
+
+                    longitude:
+                      Number(
+                        newLongitude.toFixed(
+                          7
+                        )
+                      ),
+
+                    lastUpdated:
+                      "Just now",
+
+                    routeIndex:
+                      vehicle.routeIndex +
+                      1,
+                  };
+                }
+              );
+            }
+          );
+        }, 3000);
+
+      /* -----------------------------------------------
+         CLEANUP
+         ----------------------------------------------- */
+
+      return () => {
+        clearInterval(
+          interval
+        );
+      };
+    }, [vehicles.length]);
+
+    /* =====================================================
+       RETURN HOOK DATA
+       ===================================================== */
+
+    return {
+      vehicles,
+
+      selectedVehicleId,
+
+      setSelectedVehicleId,
+
+      selectVehicle,
+
+      clearVehicleSelection,
+
+      loading,
+
+      error,
+
+      refreshVehicles,
+    };
   };
-}

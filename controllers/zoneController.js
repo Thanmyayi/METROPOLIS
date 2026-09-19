@@ -1,17 +1,19 @@
-const zoneModel = require("../models/zoneModel");
+const db = require("../config/db");
 
-// GET /api/zones
-async function getAllZones(req, res) {
+// GET all zones
+const getAllZones = async (req, res) => {
   try {
-    const zones = await zoneModel.getAllZones();
+    const [rows] = await db.query(
+      "SELECT * FROM zones ORDER BY id ASC"
+    );
 
     res.status(200).json({
       success: true,
-      count: zones.length,
-      data: zones,
+      count: rows.length,
+      data: rows,
     });
   } catch (error) {
-    console.error("Error fetching zones:", error.message);
+    console.error("Get all zones error:", error);
 
     res.status(500).json({
       success: false,
@@ -19,28 +21,31 @@ async function getAllZones(req, res) {
       error: error.message,
     });
   }
-}
+};
 
-// GET /api/zones/:id
-async function getZoneById(req, res) {
+// GET zone by ID
+const getZoneById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const zone = await zoneModel.getZoneById(id);
+    const [rows] = await db.query(
+      "SELECT * FROM zones WHERE id = ?",
+      [id]
+    );
 
-    if (!zone) {
+    if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `Zone ${id} not found`,
+        message: "Zone not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: zone,
+      data: rows[0],
     });
   } catch (error) {
-    console.error("Error fetching zone:", error.message);
+    console.error("Get zone by ID error:", error);
 
     res.status(500).json({
       success: false,
@@ -48,28 +53,31 @@ async function getZoneById(req, res) {
       error: error.message,
     });
   }
-}
+};
 
-// GET /api/zones/name/:zoneName
-async function getZoneByName(req, res) {
+// GET zone by name
+const getZoneByName = async (req, res) => {
   try {
     const { zoneName } = req.params;
 
-    const zone = await zoneModel.getZoneByName(zoneName);
+    const [rows] = await db.query(
+      "SELECT * FROM zones WHERE zone_name = ?",
+      [zoneName]
+    );
 
-    if (!zone) {
+    if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `Zone ${zoneName} not found`,
+        message: "Zone not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: zone,
+      data: rows[0],
     });
   } catch (error) {
-    console.error("Error fetching zone by name:", error.message);
+    console.error("Get zone by name error:", error);
 
     res.status(500).json({
       success: false,
@@ -77,10 +85,10 @@ async function getZoneByName(req, res) {
       error: error.message,
     });
   }
-}
+};
 
-// POST /api/zones
-async function createZone(req, res) {
+// CREATE zone
+const createZone = async (req, res) => {
   try {
     const {
       zone_name,
@@ -97,28 +105,43 @@ async function createZone(req, res) {
       });
     }
 
-    const zoneId = await zoneModel.createZone({
-      zone_name,
-      description,
-      traffic_level: traffic_level || "Low",
-      population: population || 0,
-      active_vehicles: active_vehicles || 0,
-    });
+    const [existing] = await db.query(
+      "SELECT id FROM zones WHERE zone_name = ?",
+      [zone_name]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: "Zone already exists",
+      });
+    }
+
+    const [result] = await db.query(
+      `INSERT INTO zones
+      (zone_name, description, traffic_level, population, active_vehicles)
+      VALUES (?, ?, ?, ?, ?)`,
+      [
+        zone_name,
+        description || null,
+        traffic_level || "Low",
+        population || 0,
+        active_vehicles || 0,
+      ]
+    );
+
+    const [rows] = await db.query(
+      "SELECT * FROM zones WHERE id = ?",
+      [result.insertId]
+    );
 
     res.status(201).json({
       success: true,
       message: "Zone created successfully",
-      id: zoneId,
+      data: rows[0],
     });
   } catch (error) {
-    console.error("Error creating zone:", error.message);
-
-    if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({
-        success: false,
-        message: "Zone name already exists",
-      });
-    }
+    console.error("Create zone error:", error);
 
     res.status(500).json({
       success: false,
@@ -126,10 +149,10 @@ async function createZone(req, res) {
       error: error.message,
     });
   }
-}
+};
 
-// PUT /api/zones/:id
-async function updateZone(req, res) {
+// UPDATE zone
+const updateZone = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -141,34 +164,48 @@ async function updateZone(req, res) {
       active_vehicles,
     } = req.body;
 
-    const affectedRows = await zoneModel.updateZone(id, {
-      zone_name,
-      description,
-      traffic_level,
-      population,
-      active_vehicles,
-    });
+    const [existing] = await db.query(
+      "SELECT * FROM zones WHERE id = ?",
+      [id]
+    );
 
-    if (affectedRows === 0) {
+    if (existing.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `Zone ${id} not found`,
+        message: "Zone not found",
       });
     }
+
+    await db.query(
+      `UPDATE zones
+       SET zone_name = ?,
+           description = ?,
+           traffic_level = ?,
+           population = ?,
+           active_vehicles = ?
+       WHERE id = ?`,
+      [
+        zone_name ?? existing[0].zone_name,
+        description ?? existing[0].description,
+        traffic_level ?? existing[0].traffic_level,
+        population ?? existing[0].population,
+        active_vehicles ?? existing[0].active_vehicles,
+        id,
+      ]
+    );
+
+    const [rows] = await db.query(
+      "SELECT * FROM zones WHERE id = ?",
+      [id]
+    );
 
     res.status(200).json({
       success: true,
       message: "Zone updated successfully",
+      data: rows[0],
     });
   } catch (error) {
-    console.error("Error updating zone:", error.message);
-
-    if (error.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({
-        success: false,
-        message: "Zone name already exists",
-      });
-    }
+    console.error("Update zone error:", error);
 
     res.status(500).json({
       success: false,
@@ -176,28 +213,36 @@ async function updateZone(req, res) {
       error: error.message,
     });
   }
-}
+};
 
-// DELETE /api/zones/:id
-async function deleteZone(req, res) {
+// DELETE zone
+const deleteZone = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const affectedRows = await zoneModel.deleteZone(id);
+    const [existing] = await db.query(
+      "SELECT id FROM zones WHERE id = ?",
+      [id]
+    );
 
-    if (affectedRows === 0) {
+    if (existing.length === 0) {
       return res.status(404).json({
         success: false,
-        message: `Zone ${id} not found`,
+        message: "Zone not found",
       });
     }
+
+    await db.query(
+      "DELETE FROM zones WHERE id = ?",
+      [id]
+    );
 
     res.status(200).json({
       success: true,
       message: "Zone deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting zone:", error.message);
+    console.error("Delete zone error:", error);
 
     res.status(500).json({
       success: false,
@@ -205,7 +250,7 @@ async function deleteZone(req, res) {
       error: error.message,
     });
   }
-}
+};
 
 module.exports = {
   getAllZones,
