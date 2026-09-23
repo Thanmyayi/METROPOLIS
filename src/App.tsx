@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import LiveMap from "./pages/LiveMap";
+import Sidebar from "./components/Sidebar";
+
 import Dashboard from "./pages/Dashboard";
+import LiveMap from "./pages/LiveMap";
 import Vehicles from "./pages/Vehicles";
 import Traffic from "./pages/Traffic";
 import Incidents from "./pages/Incidents";
@@ -14,27 +16,33 @@ import Settings from "./pages/Settings";
 import "./index.css";
 import "./styles/metropolis.css";
 
-function App() {
+function AppLayout() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/live-map" replace />} />
+    <div className="min-h-screen bg-[#020914]">
+      <Sidebar />
 
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/live-map" element={<LiveMap />} />
-        <Route path="/vehicles" element={<Vehicles />} />
-        <Route path="/traffic" element={<Traffic />} />
-        <Route path="/incidents" element={<Incidents />} />
-        <Route path="/zones" element={<Zones />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/scenarios" element={<Scenarios />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
-
-        <Route path="*" element={<Navigate to="/live-map" replace />} />
-      </Routes>
-    </BrowserRouter>
+      <main className="min-h-screen pl-[230px]">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/live-map" element={<LiveMap />} />
+          <Route path="/vehicles" element={<Vehicles />} />
+          <Route path="/traffic" element={<Traffic />} />
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/zones" element={<Zones />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/scenarios" element={<Scenarios />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppLayout />
+    </BrowserRouter>
+  );
+}

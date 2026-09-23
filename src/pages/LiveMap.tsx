@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import {
   Activity,
   BarChart3,
@@ -14,14 +15,11 @@ import {
   Layers,
   LocateFixed,
   Map,
-  MapPin,
-  Menu,
   Minus,
   Navigation,
   Plus,
   Radio,
   Search,
-  Settings,
   ShieldAlert,
   SlidersHorizontal,
   Sparkles,
@@ -91,69 +89,98 @@ const initialVehicles: Vehicle[] = [
   },
 ];
 
-const menuItems = [
-  { label: "Dashboard", icon: BarChart3 },
-  { label: "Live Map", icon: Map },
-  { label: "Vehicles", icon: Car },
-  { label: "Traffic", icon: Activity },
-  { label: "Incidents", icon: ShieldAlert },
-  { label: "Zones", icon: Layers },
-  { label: "Analytics", icon: Gauge },
-  { label: "Scenarios", icon: Sparkles },
-  { label: "Reports", icon: BarChart3 },
-  { label: "Settings", icon: Settings },
-];
-
 const vehicleTypes = [
-  { label: "Cars", value: 72, className: "chart-blue" },
-  { label: "Buses", value: 18, className: "chart-purple" },
-  { label: "Bikes", value: 28, className: "chart-pink" },
-  { label: "Trucks", value: 10, className: "chart-yellow" },
+  {
+    label: "Cars",
+    value: 72,
+    className: "chart-blue",
+  },
+  {
+    label: "Buses",
+    value: 18,
+    className: "chart-purple",
+  },
+  {
+    label: "Bikes",
+    value: 28,
+    className: "chart-pink",
+  },
+  {
+    label: "Trucks",
+    value: 10,
+    className: "chart-yellow",
+  },
 ];
 
 export default function LiveMap() {
-  const [vehicles, setVehicles] = useState(initialVehicles);
-  const [activeLayer, setActiveLayer] = useState("Vehicles");
-  const [search, setSearch] = useState("");
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
-    initialVehicles[0],
+  const [vehicles, setVehicles] = useState<Vehicle[]>(
+    initialVehicles,
   );
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const [activeLayer, setActiveLayer] =
+    useState("Vehicles");
+
+  const [search, setSearch] = useState("");
+
+  const [selectedVehicle, setSelectedVehicle] =
+    useState<Vehicle | null>(initialVehicles[0]);
+
+  /*
+   * REAL-TIME VEHICLE SIMULATION
+   */
   useEffect(() => {
-    const timer = setInterval(() => {
+    const timer = window.setInterval(() => {
       setVehicles((current) =>
         current.map((vehicle) => ({
           ...vehicle,
-          x: vehicle.x > 91 ? 10 : vehicle.x + 0.28,
+
+          x:
+            vehicle.x > 91
+              ? 10
+              : vehicle.x + 0.28,
+
           speed: Math.max(
             12,
             Math.min(
               55,
-              vehicle.speed + (Math.random() - 0.5) * 2.5,
+              vehicle.speed +
+                (Math.random() - 0.5) * 2.5,
             ),
           ),
         })),
       );
     }, 900);
 
-    return () => clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+    };
   }, []);
 
+  /*
+   * KEEP SELECTED VEHICLE UPDATED
+   */
   useEffect(() => {
-    if (!selectedVehicle) return;
+    if (!selectedVehicle) {
+      return;
+    }
 
-    const updated = vehicles.find(
-      (vehicle) => vehicle.id === selectedVehicle.id,
+    const updatedVehicle = vehicles.find(
+      (vehicle) =>
+        vehicle.id === selectedVehicle.id,
     );
 
-    if (updated) {
-      setSelectedVehicle(updated);
+    if (updatedVehicle) {
+      setSelectedVehicle(updatedVehicle);
     }
-  }, [vehicles]);
+  }, [vehicles, selectedVehicle]);
 
+  /*
+   * SEARCH
+   */
   const filteredVehicles = useMemo(() => {
-    const query = search.toLowerCase().trim();
+    const query = search
+      .toLowerCase()
+      .trim();
 
     if (!query) {
       return vehicles;
@@ -161,107 +188,45 @@ export default function LiveMap() {
 
     return vehicles.filter(
       (vehicle) =>
-        vehicle.id.toLowerCase().includes(query) ||
-        vehicle.plate.toLowerCase().includes(query) ||
-        vehicle.type.toLowerCase().includes(query),
+        vehicle.id
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.plate
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.type
+          .toLowerCase()
+          .includes(query),
     );
   }, [vehicles, search]);
 
+  /*
+   * AVERAGE SPEED
+   */
   const averageSpeed =
     vehicles.length > 0
       ? Math.round(
-          vehicles.reduce((total, vehicle) => total + vehicle.speed, 0) /
-            vehicles.length,
+          vehicles.reduce(
+            (total, vehicle) =>
+              total + vehicle.speed,
+            0,
+          ) / vehicles.length,
         )
       : 0;
 
   return (
     <div className="metropolis-dashboard">
       {/* =====================================================
-          SIDEBAR
-      ====================================================== */}
-
-      <aside
-        className={`metro-sidebar ${
-          sidebarOpen ? "sidebar-open" : "sidebar-closed"
-        }`}
-      >
-        <div className="metro-brand">
-          <div className="brand-logo">
-            <span className="brand-building brand-building-1" />
-            <span className="brand-building brand-building-2" />
-            <span className="brand-building brand-building-3" />
-            <span className="brand-building brand-building-4" />
-          </div>
-
-          {sidebarOpen && (
-            <div className="brand-copy">
-              <strong>METROPOLIS</strong>
-              <span>AI-Enabled Digital Twin</span>
-            </div>
-          )}
-        </div>
-
-        <nav className="metro-nav">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.label === "Live Map";
-
-            return (
-              <button
-                key={item.label}
-                className={`metro-nav-item ${
-                  active ? "metro-nav-active" : ""
-                }`}
-                title={item.label}
-              >
-                <Icon size={16} />
-                {sidebarOpen && <span>{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {sidebarOpen && (
-          <div className="system-status">
-            <div className="system-status-title">System Status</div>
-
-            <div className="system-status-row">
-              <span className="system-online-dot" />
-              <span>All Systems</span>
-            </div>
-
-            <strong>Operational</strong>
-
-            <div className="status-bars">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        )}
-      </aside>
-
-      {/* =====================================================
           MAIN AREA
       ====================================================== */}
 
       <main className="metro-main">
-        {/* TOP HEADER */}
+        {/* ===================================================
+            TOP HEADER
+        ==================================================== */}
 
         <header className="metro-topbar">
           <div className="topbar-left">
-            <button
-              className="topbar-menu"
-              onClick={() => setSidebarOpen((value) => !value)}
-              aria-label="Toggle sidebar"
-            >
-              <Menu size={19} />
-            </button>
-
             <div className="topbar-title">
               <h1>Live City View</h1>
 
@@ -274,25 +239,49 @@ export default function LiveMap() {
 
           <div className="topbar-right">
             <div className="topbar-time">
-              <strong>{new Date().toLocaleTimeString()}</strong>
-              <span>May 18, 2026</span>
+              <strong>
+                {new Date().toLocaleTimeString()}
+              </strong>
+
+              <span>
+                {new Date().toLocaleDateString(
+                  "en-IN",
+                  {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  },
+                )}
+              </span>
             </div>
 
-            <button className="topbar-icon">
+            <button
+              className="topbar-icon"
+              aria-label="Notifications"
+            >
               <Bell size={17} />
+
               <span className="notification-dot" />
             </button>
 
-            <button className="topbar-icon">
+            <button
+              className="topbar-icon"
+              aria-label="AI Assistant"
+            >
               <Sparkles size={17} />
             </button>
 
             <div className="admin-profile">
-              <div className="admin-avatar">A</div>
+              <div className="admin-avatar">
+                A
+              </div>
 
               <div>
                 <strong>Admin</strong>
-                <span>City Planner</span>
+
+                <span>
+                  City Planner
+                </span>
               </div>
 
               <ChevronDown size={13} />
@@ -310,242 +299,407 @@ export default function LiveMap() {
           ================================================== */}
 
           <div className="metro-top-grid">
-            {/* MAP */}
+            {/* =================================================
+                CITY MAP
+            ================================================== */}
 
             <section className="metro-map-card">
               <div className="city-map">
                 <div className="map-atmosphere" />
+
                 <div className="map-grid" />
 
-                {/* roads */}
+                {/* ROADS */}
 
                 <div
                   className="city-road city-road-horizontal"
-                  style={{ top: "35%" }}
+                  style={{
+                    top: "35%",
+                  }}
                 />
 
                 <div
                   className="city-road city-road-horizontal"
-                  style={{ top: "68%" }}
+                  style={{
+                    top: "68%",
+                  }}
                 />
 
                 <div
                   className="city-road city-road-vertical"
-                  style={{ left: "43%" }}
+                  style={{
+                    left: "43%",
+                  }}
                 />
 
                 <div
                   className="city-road city-road-vertical"
-                  style={{ left: "73%" }}
+                  style={{
+                    left: "73%",
+                  }}
                 />
 
                 <div className="city-road city-road-diagonal" />
 
                 <div className="city-road city-road-diagonal-2" />
 
-                {/* buildings */}
+                {/* BUILDINGS */}
 
                 <div
                   className="city-building city-building-tall"
-                  style={{ left: "27%", top: "25%" }}
+                  style={{
+                    left: "27%",
+                    top: "25%",
+                  }}
                 />
 
                 <div
                   className="city-building"
-                  style={{ left: "17%", top: "55%" }}
+                  style={{
+                    left: "17%",
+                    top: "55%",
+                  }}
                 />
 
                 <div
                   className="city-building city-building-tall-2"
-                  style={{ left: "51%", top: "8%" }}
+                  style={{
+                    left: "51%",
+                    top: "8%",
+                  }}
                 />
 
                 <div
                   className="city-building"
-                  style={{ left: "67%", top: "22%" }}
+                  style={{
+                    left: "67%",
+                    top: "22%",
+                  }}
                 />
 
                 <div
                   className="city-building"
-                  style={{ left: "79%", top: "48%" }}
+                  style={{
+                    left: "79%",
+                    top: "48%",
+                  }}
                 />
 
                 <div
                   className="city-building"
-                  style={{ left: "58%", top: "67%" }}
+                  style={{
+                    left: "58%",
+                    top: "67%",
+                  }}
                 />
 
                 <div
                   className="city-building-small"
-                  style={{ left: "8%", top: "25%" }}
+                  style={{
+                    left: "8%",
+                    top: "25%",
+                  }}
                 />
 
                 <div
                   className="city-building-small"
-                  style={{ left: "37%", top: "62%" }}
+                  style={{
+                    left: "37%",
+                    top: "62%",
+                  }}
                 />
 
-                {/* parks */}
+                {/* PARKS */}
 
                 <div
                   className="city-park"
-                  style={{ left: "77%", top: "7%" }}
+                  style={{
+                    left: "77%",
+                    top: "7%",
+                  }}
                 />
 
                 <div
                   className="city-park city-park-large"
-                  style={{ left: "50%", top: "72%" }}
+                  style={{
+                    left: "50%",
+                    top: "72%",
+                  }}
                 />
 
                 <div
                   className="city-park"
-                  style={{ left: "5%", top: "72%" }}
+                  style={{
+                    left: "5%",
+                    top: "72%",
+                  }}
                 />
 
-                {/* zone labels */}
+                {/* ZONE LABELS */}
 
                 <div
                   className="reference-zone-label"
-                  style={{ left: "11%", top: "15%" }}
+                  style={{
+                    left: "11%",
+                    top: "15%",
+                  }}
                 >
-                  <strong>ZONE A</strong>
-                  <span>Central District</span>
+                  <strong>
+                    ZONE A
+                  </strong>
+
+                  <span>
+                    Central District
+                  </span>
                 </div>
 
                 <div
                   className="reference-zone-label"
-                  style={{ left: "65%", top: "12%" }}
+                  style={{
+                    left: "65%",
+                    top: "12%",
+                  }}
                 >
-                  <strong>ZONE B</strong>
-                  <span>Business Hub</span>
+                  <strong>
+                    ZONE B
+                  </strong>
+
+                  <span>
+                    Business Hub
+                  </span>
                 </div>
 
                 <div
                   className="reference-zone-label"
-                  style={{ left: "73%", top: "40%" }}
+                  style={{
+                    left: "73%",
+                    top: "40%",
+                  }}
                 >
-                  <strong>ZONE C</strong>
-                  <span>Residential Area</span>
+                  <strong>
+                    ZONE C
+                  </strong>
+
+                  <span>
+                    Residential Area
+                  </span>
                 </div>
 
                 <div
                   className="reference-zone-label"
-                  style={{ left: "48%", top: "67%" }}
+                  style={{
+                    left: "48%",
+                    top: "67%",
+                  }}
                 >
-                  <strong>ZONE D</strong>
-                  <span>Tech Park</span>
+                  <strong>
+                    ZONE D
+                  </strong>
+
+                  <span>
+                    Tech Park
+                  </span>
                 </div>
 
-                {/* vehicle markers */}
+                {/* =================================================
+                    VEHICLES
+                ================================================== */}
 
                 {activeLayer === "Vehicles" &&
-                  filteredVehicles.map((vehicle) => {
-                    const isSelected =
-                      selectedVehicle?.id === vehicle.id;
+                  filteredVehicles.map(
+                    (vehicle) => {
+                      const isSelected =
+                        selectedVehicle?.id ===
+                        vehicle.id;
 
-                    return (
-                      <button
-                        key={vehicle.id}
-                        className={`reference-vehicle ${
-                          isSelected ? "reference-vehicle-selected" : ""
-                        }`}
-                        style={{
-                          left: `${vehicle.x}%`,
-                          top: `${vehicle.y}%`,
-                        }}
-                        onClick={() => setSelectedVehicle(vehicle)}
-                        title={vehicle.plate}
-                      >
-                        <span className="vehicle-ring" />
-                        <span className="vehicle-body">
-                          {vehicle.type === "Bus" ? (
-                            <Truck size={11} />
-                          ) : vehicle.type === "Bike" ? (
-                            <Bike size={11} />
-                          ) : (
-                            <Car size={11} />
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={vehicle.id}
+                          className={`reference-vehicle ${
+                            isSelected
+                              ? "reference-vehicle-selected"
+                              : ""
+                          }`}
+                          style={{
+                            left: `${vehicle.x}%`,
+                            top: `${vehicle.y}%`,
+                          }}
+                          onClick={() =>
+                            setSelectedVehicle(
+                              vehicle,
+                            )
+                          }
+                          title={vehicle.plate}
+                        >
+                          <span className="vehicle-ring" />
 
-                {/* incidents */}
+                          <span className="vehicle-body">
+                            {vehicle.type ===
+                            "Bus" ? (
+                              <Truck
+                                size={11}
+                              />
+                            ) : vehicle.type ===
+                              "Bike" ? (
+                              <Bike
+                                size={11}
+                              />
+                            ) : (
+                              <Car
+                                size={11}
+                              />
+                            )}
+                          </span>
+                        </button>
+                      );
+                    },
+                  )}
+
+                {/* =================================================
+                    INCIDENT MARKERS
+                ================================================== */}
 
                 {activeLayer === "Incidents" && (
                   <>
                     <div
                       className="map-incident map-incident-red"
-                      style={{ left: "39%", top: "29%" }}
+                      style={{
+                        left: "39%",
+                        top: "29%",
+                      }}
                     >
-                      <ShieldAlert size={21} />
+                      <ShieldAlert
+                        size={21}
+                      />
                     </div>
 
                     <div
                       className="map-incident map-incident-yellow"
-                      style={{ left: "66%", top: "62%" }}
+                      style={{
+                        left: "66%",
+                        top: "62%",
+                      }}
                     >
-                      <TrafficCone size={21} />
+                      <TrafficCone
+                        size={21}
+                      />
                     </div>
                   </>
                 )}
 
-                {/* selected vehicle marker */}
+                {/* =================================================
+                    SELECTED VEHICLE CARD
+                ================================================== */}
 
-                {selectedVehicle && activeLayer === "Vehicles" && (
-                  <div
-                    className="selected-map-card"
-                    style={{
-                      left: `${Math.min(
-                        Math.max(selectedVehicle.x - 8, 5),
-                        72,
-                      )}%`,
-                      top: `${Math.min(
-                        Math.max(selectedVehicle.y - 17, 5),
-                        67,
-                      )}%`,
-                    }}
-                  >
-                    <div className="selected-map-card-close">×</div>
-                    <strong>{selectedVehicle.plate}</strong>
-                    <span>
-                      {selectedVehicle.type} •{" "}
-                      {selectedVehicle.speed.toFixed(0)} km/h
-                    </span>
-                    <span>North-East</span>
-                    <b>Moving</b>
-                  </div>
-                )}
+                {selectedVehicle &&
+                  activeLayer ===
+                    "Vehicles" && (
+                    <div
+                      className="selected-map-card"
+                      style={{
+                        left: `${Math.min(
+                          Math.max(
+                            selectedVehicle.x -
+                              8,
+                            5,
+                          ),
+                          72,
+                        )}%`,
 
-                {/* map controls */}
+                        top: `${Math.min(
+                          Math.max(
+                            selectedVehicle.y -
+                              17,
+                            5,
+                          ),
+                          67,
+                        )}%`,
+                      }}
+                    >
+                      <div className="selected-map-card-close">
+                        ×
+                      </div>
+
+                      <strong>
+                        {
+                          selectedVehicle.plate
+                        }
+                      </strong>
+
+                      <span>
+                        {
+                          selectedVehicle.type
+                        }{" "}
+                        •{" "}
+                        {selectedVehicle.speed.toFixed(
+                          0,
+                        )}{" "}
+                        km/h
+                      </span>
+
+                      <span>
+                        North-East
+                      </span>
+
+                      <b>
+                        Moving
+                      </b>
+                    </div>
+                  )}
+
+                {/* =================================================
+                    MAP CONTROLS
+                ================================================== */}
 
                 <div className="reference-map-controls">
-                  <button>
+                  <button
+                    aria-label="Zoom in"
+                  >
                     <Plus size={15} />
                   </button>
 
-                  <button>
+                  <button
+                    aria-label="Zoom out"
+                  >
                     <Minus size={15} />
                   </button>
 
-                  <button>
-                    <span className="three-d">3D</span>
+                  <button
+                    aria-label="3D view"
+                  >
+                    <span className="three-d">
+                      3D
+                    </span>
                   </button>
 
-                  <button>
-                    <Crosshair size={15} />
+                  <button
+                    aria-label="Center map"
+                  >
+                    <Crosshair
+                      size={15}
+                    />
                   </button>
 
-                  <button>
-                    <Layers size={15} />
+                  <button
+                    aria-label="Layers"
+                  >
+                    <Layers
+                      size={15}
+                    />
                   </button>
 
-                  <button>
-                    <LocateFixed size={15} />
+                  <button
+                    aria-label="Locate"
+                  >
+                    <LocateFixed
+                      size={15}
+                    />
                   </button>
                 </div>
 
-                {/* layer bar */}
+                {/* =================================================
+                    LAYER BAR
+                ================================================== */}
 
                 <div className="reference-layer-bar">
                   {[
@@ -570,19 +724,28 @@ export default function LiveMap() {
                       icon: Car,
                     },
                   ].map((layer) => {
-                    const Icon = layer.icon;
+                    const Icon =
+                      layer.icon;
 
                     return (
                       <button
                         key={layer.label}
                         className={
-                          activeLayer === layer.label
+                          activeLayer ===
+                          layer.label
                             ? "active"
                             : ""
                         }
-                        onClick={() => setActiveLayer(layer.label)}
+                        onClick={() =>
+                          setActiveLayer(
+                            layer.label,
+                          )
+                        }
                       >
-                        <Icon size={11} />
+                        <Icon
+                          size={11}
+                        />
+
                         {layer.label}
                       </button>
                     );
@@ -591,15 +754,24 @@ export default function LiveMap() {
               </div>
             </section>
 
-            {/* RIGHT SIDE */}
+            {/* =================================================
+                RIGHT COLUMN
+            ================================================== */}
 
             <aside className="metro-right-column">
-              {/* LIVE VEHICLES */}
+              {/* =================================================
+                  LIVE VEHICLES
+              ================================================== */}
 
               <section className="reference-panel live-vehicles-panel">
                 <div className="reference-panel-header">
-                  <h3>Live Vehicles</h3>
-                  <button>View All</button>
+                  <h3>
+                    Live Vehicles
+                  </h3>
+
+                  <button>
+                    View All
+                  </button>
                 </div>
 
                 <div className="live-vehicle-content">
@@ -610,6 +782,7 @@ export default function LiveMap() {
 
                     <div className="large-number">
                       128
+
                       <span className="positive-change">
                         ↑ 12%
                       </span>
@@ -622,29 +795,47 @@ export default function LiveMap() {
 
                   <div className="donut-wrapper">
                     <div className="donut-chart">
-                      <div className="donut-hole">128</div>
+                      <div className="donut-hole">
+                        128
+                      </div>
                     </div>
                   </div>
 
                   <div className="vehicle-legend">
-                    {vehicleTypes.map((item) => (
-                      <div key={item.label}>
-                        <span
-                          className={`legend-dot ${item.className}`}
-                        />
-                        <span>{item.label}</span>
-                        <strong>{item.value}</strong>
-                      </div>
-                    ))}
+                    {vehicleTypes.map(
+                      (item) => (
+                        <div
+                          key={item.label}
+                        >
+                          <span
+                            className={`legend-dot ${item.className}`}
+                          />
+
+                          <span>
+                            {
+                              item.label
+                            }
+                          </span>
+
+                          <strong>
+                            {item.value}
+                          </strong>
+                        </div>
+                      ),
+                    )}
                   </div>
                 </div>
               </section>
 
-              {/* TRAFFIC STATUS */}
+              {/* =================================================
+                  TRAFFIC STATUS
+              ================================================== */}
 
               <section className="reference-panel traffic-status-panel">
                 <div className="reference-panel-header">
-                  <h3>Traffic Status</h3>
+                  <h3>
+                    Traffic Status
+                  </h3>
 
                   <span className="traffic-moderate">
                     ◉ Moderate
@@ -652,47 +843,136 @@ export default function LiveMap() {
                 </div>
 
                 <div className="traffic-speed">
-                  <span>Average Speed</span>
+                  <span>
+                    Average Speed
+                  </span>
 
                   <div>
-                    <strong>{averageSpeed}</strong>
-                    <span> km/h</span>
-                    <b>↑ 5%</b>
+                    <strong>
+                      {averageSpeed}
+                    </strong>
+
+                    <span>
+                      {" "}
+                      km/h
+                    </span>
+
+                    <b>
+                      ↑ 5%
+                    </b>
                   </div>
                 </div>
 
                 <div className="mini-chart">
                   <div className="chart-axis">
-                    <span>60</span>
-                    <span>30</span>
-                    <span>0</span>
+                    <span>
+                      60
+                    </span>
+
+                    <span>
+                      30
+                    </span>
+
+                    <span>
+                      0
+                    </span>
                   </div>
 
                   <div className="chart-lines">
-                    <span style={{ height: "24%" }} />
-                    <span style={{ height: "31%" }} />
-                    <span style={{ height: "37%" }} />
-                    <span style={{ height: "32%" }} />
-                    <span style={{ height: "46%" }} />
-                    <span style={{ height: "41%" }} />
-                    <span style={{ height: "61%" }} />
-                    <span style={{ height: "76%" }} />
-                    <span style={{ height: "65%" }} />
-                    <span style={{ height: "70%" }} />
-                    <span style={{ height: "66%" }} />
+                    <span
+                      style={{
+                        height: "24%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "31%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "37%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "32%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "46%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "41%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "61%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "76%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "65%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "70%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "66%",
+                      }}
+                    />
                   </div>
                 </div>
 
                 <div className="chart-time">
-                  <span>08 AM</span>
-                  <span>10 AM</span>
-                  <span>12 PM</span>
-                  <span>02 PM</span>
-                  <span>04 PM</span>
+                  <span>
+                    08 AM
+                  </span>
+
+                  <span>
+                    10 AM
+                  </span>
+
+                  <span>
+                    12 PM
+                  </span>
+
+                  <span>
+                    02 PM
+                  </span>
+
+                  <span>
+                    04 PM
+                  </span>
                 </div>
               </section>
 
-              {/* INCIDENTS */}
+              {/* =================================================
+                  ACTIVE INCIDENTS
+              ================================================== */}
 
               <section className="reference-panel incidents-panel">
                 <div className="reference-panel-header">
@@ -700,33 +980,55 @@ export default function LiveMap() {
                     Active Incidents
                   </h3>
 
-                  <button>View All</button>
+                  <button>
+                    View All
+                  </button>
                 </div>
 
                 <div className="reference-incident">
                   <div className="incident-symbol danger">
-                    <ShieldAlert size={17} />
+                    <ShieldAlert
+                      size={17}
+                    />
                   </div>
 
                   <div>
-                    <strong>Road Closure</strong>
-                    <span>Main Street, Zone A</span>
+                    <strong>
+                      Road Closure
+                    </strong>
+
+                    <span>
+                      Main Street,
+                      Zone A
+                    </span>
                   </div>
 
-                  <em className="severity-high">High</em>
+                  <em className="severity-high">
+                    High
+                  </em>
                 </div>
 
                 <div className="reference-incident">
                   <div className="incident-symbol warning">
-                    <CircleAlert size={17} />
+                    <CircleAlert
+                      size={17}
+                    />
                   </div>
 
                   <div>
-                    <strong>Accident</strong>
-                    <span>5th Cross, Zone C</span>
+                    <strong>
+                      Accident
+                    </strong>
+
+                    <span>
+                      5th Cross,
+                      Zone C
+                    </span>
                   </div>
 
-                  <em className="severity-medium">Medium</em>
+                  <em className="severity-medium">
+                    Medium
+                  </em>
                 </div>
               </section>
             </aside>
@@ -737,230 +1039,513 @@ export default function LiveMap() {
           ================================================== */}
 
           <div className="reference-bottom-grid">
-            {/* DASHBOARD OVERVIEW */}
+            {/* =================================================
+                DASHBOARD OVERVIEW
+            ================================================== */}
 
             <section className="reference-panel overview-panel">
               <div className="reference-panel-header">
                 <div className="panel-brand-title">
                   <span className="mini-brand-icon">
-                    <Activity size={13} />
+                    <Activity
+                      size={13}
+                    />
                   </span>
-                  <h3>Dashboard Overview</h3>
+
+                  <h3>
+                    Dashboard Overview
+                  </h3>
                 </div>
 
-                <CircleDot size={14} className="muted" />
+                <CircleDot
+                  size={14}
+                  className="muted"
+                />
               </div>
 
               <div className="overview-kpis">
                 <div>
-                  <span>Total Vehicles</span>
+                  <span>
+                    Total Vehicles
+                  </span>
+
                   <strong>
-                    128 <b>↑ 12%</b>
+                    128{" "}
+                    <b>
+                      ↑ 12%
+                    </b>
                   </strong>
                 </div>
 
                 <div>
-                  <span>Average Speed</span>
+                  <span>
+                    Average Speed
+                  </span>
+
                   <strong>
-                    32 <small>km/h</small>{" "}
-                    <b>↑ 5%</b>
+                    32{" "}
+                    <small>
+                      km/h
+                    </small>{" "}
+                    <b>
+                      ↑ 5%
+                    </b>
                   </strong>
                 </div>
 
                 <div>
-                  <span>Active Incidents</span>
+                  <span>
+                    Active Incidents
+                  </span>
+
                   <strong>
-                    08 <i>↓ 2</i>
+                    08{" "}
+                    <i>
+                      ↓ 2
+                    </i>
                   </strong>
                 </div>
 
                 <div>
-                  <span>AI Quality</span>
+                  <span>
+                    AI Quality
+                  </span>
+
                   <strong className="quality-good">
-                    Good <b>↑ 4%</b>
+                    Good{" "}
+                    <b>
+                      ↑ 4%
+                    </b>
                   </strong>
                 </div>
               </div>
 
               <div className="overview-chart-grid">
+                {/* TRAFFIC FLOW */}
+
                 <div className="small-dashboard-chart">
-                  <h4>Traffic Flow</h4>
+                  <h4>
+                    Traffic Flow
+                  </h4>
 
                   <div className="purple-line-chart">
-                    <span style={{ height: "35%" }} />
-                    <span style={{ height: "43%" }} />
-                    <span style={{ height: "38%" }} />
-                    <span style={{ height: "55%" }} />
-                    <span style={{ height: "48%" }} />
-                    <span style={{ height: "64%" }} />
-                    <span style={{ height: "57%" }} />
-                    <span style={{ height: "76%" }} />
-                    <span style={{ height: "62%" }} />
-                    <span style={{ height: "81%" }} />
+                    <span
+                      style={{
+                        height: "35%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "43%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "38%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "55%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "48%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "64%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "57%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "76%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "62%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "81%",
+                      }}
+                    />
                   </div>
 
                   <div className="chart-time">
-                    <span>08 AM</span>
-                    <span>10 AM</span>
-                    <span>12 PM</span>
-                    <span>02 PM</span>
-                    <span>04 PM</span>
+                    <span>
+                      08 AM
+                    </span>
+
+                    <span>
+                      10 AM
+                    </span>
+
+                    <span>
+                      12 PM
+                    </span>
+
+                    <span>
+                      02 PM
+                    </span>
+
+                    <span>
+                      04 PM
+                    </span>
                   </div>
                 </div>
 
+                {/* VEHICLE TYPES */}
+
                 <div className="small-dashboard-chart vehicle-type-chart">
-                  <h4>Vehicles by Type</h4>
+                  <h4>
+                    Vehicles by Type
+                  </h4>
 
                   <div className="mini-donut-row">
                     <div className="mini-donut">
-                      <span>128</span>
+                      <span>
+                        128
+                      </span>
                     </div>
 
                     <div className="mini-legend">
-                      {vehicleTypes.map((item) => (
-                        <div key={item.label}>
-                          <span
-                            className={`legend-dot ${item.className}`}
-                          />
-                          <span>{item.label}</span>
-                          <b>{item.value}</b>
-                        </div>
-                      ))}
+                      {vehicleTypes.map(
+                        (item) => (
+                          <div
+                            key={
+                              item.label
+                            }
+                          >
+                            <span
+                              className={`legend-dot ${item.className}`}
+                            />
+
+                            <span>
+                              {
+                                item.label
+                              }
+                            </span>
+
+                            <b>
+                              {
+                                item.value
+                              }
+                            </b>
+                          </div>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
+              {/* =================================================
+                  ZONES + INCIDENT TREND
+              ================================================== */}
+
               <div className="overview-bottom-grid">
                 <div>
-                  <h4>Top Congested Zones</h4>
+                  <h4>
+                    Top Congested
+                    Zones
+                  </h4>
 
                   <div className="zone-ranking">
                     <div>
-                      <span>1</span>
-                      <strong>Zone A</strong>
+                      <span>
+                        1
+                      </span>
+
+                      <strong>
+                        Zone A
+                      </strong>
+
                       <i>
-                        <b style={{ width: "72%" }} />
+                        <b
+                          style={{
+                            width: "72%",
+                          }}
+                        />
                       </i>
-                      <em>72%</em>
+
+                      <em>
+                        72%
+                      </em>
                     </div>
 
                     <div>
-                      <span>2</span>
-                      <strong>Zone B</strong>
+                      <span>
+                        2
+                      </span>
+
+                      <strong>
+                        Zone B
+                      </strong>
+
                       <i>
-                        <b style={{ width: "58%" }} />
+                        <b
+                          style={{
+                            width: "58%",
+                          }}
+                        />
                       </i>
-                      <em>58%</em>
+
+                      <em>
+                        58%
+                      </em>
                     </div>
 
                     <div>
-                      <span>3</span>
-                      <strong>Zone C</strong>
+                      <span>
+                        3
+                      </span>
+
+                      <strong>
+                        Zone C
+                      </strong>
+
                       <i>
-                        <b style={{ width: "41%" }} />
+                        <b
+                          style={{
+                            width: "41%",
+                          }}
+                        />
                       </i>
-                      <em>41%</em>
+
+                      <em>
+                        41%
+                      </em>
                     </div>
 
                     <div>
-                      <span>4</span>
-                      <strong>Zone D</strong>
+                      <span>
+                        4
+                      </span>
+
+                      <strong>
+                        Zone D
+                      </strong>
+
                       <i>
-                        <b style={{ width: "29%" }} />
+                        <b
+                          style={{
+                            width: "29%",
+                          }}
+                        />
                       </i>
-                      <em>29%</em>
+
+                      <em>
+                        29%
+                      </em>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h4>Incident Trend</h4>
+                  <h4>
+                    Incident Trend
+                  </h4>
 
                   <div className="incident-bars">
-                    <span style={{ height: "42%" }} />
-                    <span style={{ height: "70%" }} />
-                    <span style={{ height: "35%" }} />
-                    <span style={{ height: "58%" }} />
-                    <span style={{ height: "77%" }} />
-                    <span style={{ height: "38%" }} />
-                    <span style={{ height: "61%" }} />
+                    <span
+                      style={{
+                        height: "42%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "70%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "35%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "58%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "77%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "38%",
+                      }}
+                    />
+
+                    <span
+                      style={{
+                        height: "61%",
+                      }}
+                    />
                   </div>
 
                   <div className="chart-time">
-                    <span>08 AM</span>
-                    <span>10 AM</span>
-                    <span>12 PM</span>
-                    <span>02 PM</span>
-                    <span>04 PM</span>
+                    <span>
+                      08 AM
+                    </span>
+
+                    <span>
+                      10 AM
+                    </span>
+
+                    <span>
+                      12 PM
+                    </span>
+
+                    <span>
+                      02 PM
+                    </span>
+
+                    <span>
+                      04 PM
+                    </span>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* VEHICLE SEARCH */}
+            {/* =================================================
+                VEHICLE SEARCH
+            ================================================== */}
 
             <section className="reference-panel vehicle-search-panel">
               <div className="reference-panel-header">
                 <div className="panel-brand-title">
                   <span className="mini-brand-icon">
-                    <Car size={13} />
+                    <Car
+                      size={13}
+                    />
                   </span>
-                  <h3>Vehicle Search & Details</h3>
+
+                  <h3>
+                    Vehicle Search &
+                    Details
+                  </h3>
                 </div>
 
-                <Users size={14} className="muted" />
+                <Users
+                  size={14}
+                  className="muted"
+                />
               </div>
 
               <div className="vehicle-search-box">
-                <Search size={13} />
+                <Search
+                  size={13}
+                />
 
                 <input
                   value={search}
                   onChange={(event) =>
-                    setSearch(event.target.value)
+                    setSearch(
+                      event.target.value,
+                    )
                   }
                   placeholder="KA-01-AB-1234"
                 />
               </div>
 
               <div className="vehicle-detail-content">
+                {/* VEHICLE LIST */}
+
                 <div className="vehicle-list">
-                  {filteredVehicles.slice(0, 4).map((vehicle) => (
-                    <button
-                      key={vehicle.id}
-                      className={`vehicle-list-item ${
-                        selectedVehicle?.id === vehicle.id
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setSelectedVehicle(vehicle)
-                      }
-                    >
-                      <div className="vehicle-list-icon">
-                        {vehicle.type === "Bus" ? (
-                          <Truck size={13} />
-                        ) : vehicle.type === "Bike" ? (
-                          <Bike size={13} />
-                        ) : (
-                          <Car size={13} />
-                        )}
-                      </div>
+                  {filteredVehicles
+                    .slice(0, 4)
+                    .map((vehicle) => (
+                      <button
+                        key={vehicle.id}
+                        className={`vehicle-list-item ${
+                          selectedVehicle?.id ===
+                          vehicle.id
+                            ? "selected"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          setSelectedVehicle(
+                            vehicle,
+                          )
+                        }
+                      >
+                        <div className="vehicle-list-icon">
+                          {vehicle.type ===
+                          "Bus" ? (
+                            <Truck
+                              size={13}
+                            />
+                          ) : vehicle.type ===
+                            "Bike" ? (
+                            <Bike
+                              size={13}
+                            />
+                          ) : (
+                            <Car
+                              size={13}
+                            />
+                          )}
+                        </div>
 
-                      <div>
-                        <strong>{vehicle.plate}</strong>
-                        <span>
-                          {vehicle.type} •{" "}
-                          {vehicle.speed.toFixed(0)} km/h
-                        </span>
-                        <small>Main Road, Zone A</small>
-                      </div>
+                        <div>
+                          <strong>
+                            {
+                              vehicle.plate
+                            }
+                          </strong>
 
-                      <em>Moving</em>
-                    </button>
-                  ))}
+                          <span>
+                            {
+                              vehicle.type
+                            }{" "}
+                            •{" "}
+                            {vehicle.speed.toFixed(
+                              0,
+                            )}{" "}
+                            km/h
+                          </span>
+
+                          <small>
+                            Main Road,
+                            Zone A
+                          </small>
+                        </div>
+
+                        <em>
+                          Moving
+                        </em>
+                      </button>
+                    ))}
                 </div>
+
+                {/* SELECTED VEHICLE */}
 
                 <div className="selected-vehicle-details">
                   <span className="found-label">
@@ -969,57 +1554,112 @@ export default function LiveMap() {
 
                   {selectedVehicle && (
                     <>
-                      <h4>{selectedVehicle.plate}</h4>
+                      <h4>
+                        {
+                          selectedVehicle.plate
+                        }
+                      </h4>
 
                       <div className="vehicle-photo">
-                        <Car size={70} strokeWidth={1} />
+                        <Car
+                          size={70}
+                          strokeWidth={
+                            1
+                          }
+                        />
                       </div>
 
                       <div className="vehicle-info-grid">
                         <div>
-                          <span>Vehicle Type</span>
-                          <strong>{selectedVehicle.type}</strong>
-                        </div>
+                          <span>
+                            Vehicle Type
+                          </span>
 
-                        <div>
-                          <span>Model</span>
-                          <strong>Swift Sedan</strong>
-                        </div>
-
-                        <div>
-                          <span>Current Location</span>
-                          <strong>Main Road, Zone A</strong>
-                        </div>
-
-                        <div>
-                          <span>Speed</span>
                           <strong>
-                            {selectedVehicle.speed.toFixed(0)} km/h
+                            {
+                              selectedVehicle.type
+                            }
                           </strong>
                         </div>
 
                         <div>
-                          <span>Direction</span>
-                          <strong>North-East</strong>
+                          <span>
+                            Model
+                          </span>
+
+                          <strong>
+                            Swift Sedan
+                          </strong>
                         </div>
 
                         <div>
-                          <span>Status</span>
+                          <span>
+                            Current
+                            Location
+                          </span>
+
+                          <strong>
+                            Main Road,
+                            Zone A
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Speed
+                          </span>
+
+                          <strong>
+                            {selectedVehicle.speed.toFixed(
+                              0,
+                            )}{" "}
+                            km/h
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Direction
+                          </span>
+
+                          <strong>
+                            North-East
+                          </strong>
+                        </div>
+
+                        <div>
+                          <span>
+                            Status
+                          </span>
+
                           <strong className="green-text">
                             Moving
                           </strong>
                         </div>
 
                         <div>
-                          <span>Last Updated</span>
+                          <span>
+                            Last Updated
+                          </span>
+
                           <strong>
                             {new Date().toLocaleTimeString()}
                           </strong>
                         </div>
                       </div>
 
-                      <button className="show-map-button">
-                        <MapPin size={14} />
+                      <button
+                        className="show-map-button"
+                        onClick={() =>
+                          setActiveLayer(
+                            "Vehicles",
+                          )
+                        }
+                      >
+                        <Map
+                          size={14}
+                        />
+
                         Show on Map
                       </button>
                     </>
@@ -1028,71 +1668,111 @@ export default function LiveMap() {
               </div>
             </section>
 
-            {/* VEHICLE ON MAP */}
+            {/* =================================================
+                VEHICLE ON MAP
+            ================================================== */}
 
             <section className="reference-panel vehicle-on-map-panel">
               <div className="reference-panel-header">
-                <h3>Vehicle on Map</h3>
-                <span className="close-small">×</span>
+                <h3>
+                  Vehicle on Map
+                </h3>
+
+                <span className="close-small">
+                  ×
+                </span>
               </div>
 
               <div className="mini-city-map">
                 <div className="mini-road mini-road-1" />
+
                 <div className="mini-road mini-road-2" />
+
                 <div className="mini-road mini-road-3" />
 
                 <div className="mini-map-park" />
 
                 <div className="mini-selected-car">
                   <span />
-                  <Car size={15} />
+
+                  <Car
+                    size={15}
+                  />
                 </div>
 
                 <div className="mini-map-popup">
                   <strong>
-                    {selectedVehicle?.plate ?? "KA-01-AB-1234"}
+                    {selectedVehicle?.plate ??
+                      "KA-01-AB-1234"}
                   </strong>
 
                   <span>
-                    {selectedVehicle?.type ?? "Car"} (Sedan)
+                    {selectedVehicle?.type ??
+                      "Car"}{" "}
+                    (Sedan)
                   </span>
 
                   <b>
-                    {selectedVehicle?.speed.toFixed(0) ?? "32"} km/h
+                    {selectedVehicle?.speed.toFixed(
+                      0,
+                    ) ?? "32"}{" "}
+                    km/h
                   </b>
 
-                  <span>North-East</span>
+                  <span>
+                    North-East
+                  </span>
 
-                  <em>Moving</em>
+                  <em>
+                    Moving
+                  </em>
                 </div>
 
                 <div className="mini-map-controls">
                   <button>
                     <Plus size={13} />
                   </button>
+
                   <button>
                     <Minus size={13} />
                   </button>
+
                   <button>
-                    <span>3D</span>
+                    <span>
+                      3D
+                    </span>
                   </button>
+
                   <button>
-                    <Layers size={13} />
+                    <Layers
+                      size={13}
+                    />
                   </button>
+
                   <button>
-                    <LocateFixed size={13} />
+                    <LocateFixed
+                      size={13}
+                    />
                   </button>
                 </div>
               </div>
             </section>
 
-            {/* WHAT IF */}
+            {/* =================================================
+                WHAT-IF SCENARIOS
+            ================================================== */}
 
             <section className="reference-panel scenario-panel">
               <div className="reference-panel-header">
                 <div className="panel-brand-title">
-                  <Sparkles size={14} />
-                  <h3>What-If Scenarios</h3>
+                  <Sparkles
+                    size={14}
+                  />
+
+                  <h3>
+                    What-If
+                    Scenarios
+                  </h3>
                 </div>
               </div>
 
@@ -1111,8 +1791,14 @@ export default function LiveMap() {
 
               <div className="scenario-body">
                 <div className="scenario-question">
-                  <span>Increase Vehicles by</span>
-                  <strong>20%</strong>
+                  <span>
+                    Increase
+                    Vehicles by
+                  </span>
+
+                  <strong>
+                    20%
+                  </strong>
                 </div>
 
                 <input
@@ -1122,61 +1808,97 @@ export default function LiveMap() {
                   max="100"
                   value="20"
                   readOnly
+                  aria-label="Increase vehicles"
                 />
 
                 <div className="slider-labels">
-                  <span>0%</span>
-                  <span>100%</span>
+                  <span>
+                    0%
+                  </span>
+
+                  <span>
+                    100%
+                  </span>
                 </div>
 
-                <h4>Scenario Impact</h4>
+                <h4>
+                  Scenario Impact
+                </h4>
 
                 <div className="impact-row">
                   <span>
-                    <Gauge size={12} />
+                    <Gauge
+                      size={12}
+                    />
+
                     Average Speed
                   </span>
 
                   <strong>
-                    24 km/h <b>↓</b>
+                    24 km/h{" "}
+                    <b>
+                      ↓
+                    </b>
                   </strong>
                 </div>
 
                 <div className="impact-row">
                   <span>
-                    <Activity size={12} />
+                    <Activity
+                      size={12}
+                    />
+
                     Traffic Density
                   </span>
 
                   <strong className="yellow-text">
-                    High <b>↑</b>
+                    High{" "}
+                    <b>
+                      ↑
+                    </b>
                   </strong>
                 </div>
 
                 <div className="impact-row">
                   <span>
-                    <Navigation size={12} />
+                    <Navigation
+                      size={12}
+                    />
+
                     Congestion
                   </span>
 
                   <strong className="yellow-text">
-                    75% <b>↑</b>
+                    75%{" "}
+                    <b>
+                      ↑
+                    </b>
                   </strong>
                 </div>
 
                 <div className="impact-row">
                   <span>
-                    <ShieldAlert size={12} />
-                    Incidents Likelihood
+                    <ShieldAlert
+                      size={12}
+                    />
+
+                    Incidents
+                    Likelihood
                   </span>
 
                   <strong className="yellow-text">
-                    Medium <b>↑</b>
+                    Medium{" "}
+                    <b>
+                      ↑
+                    </b>
                   </strong>
                 </div>
 
                 <button className="run-simulation-button">
-                  <Zap size={13} />
+                  <Zap
+                    size={13}
+                  />
+
                   Run Simulation
                 </button>
 
@@ -1195,45 +1917,80 @@ export default function LiveMap() {
         <footer className="metro-feature-bar">
           <div className="feature-item">
             <div className="feature-icon">
-              <Box size={19} />
+              <Box
+                size={19}
+              />
             </div>
 
             <div>
-              <strong>DIGITAL TWIN</strong>
-              <span>Realistic 2D/3D City Model</span>
+              <strong>
+                DIGITAL TWIN
+              </strong>
+
+              <span>
+                Realistic 2D/3D
+                City Model
+              </span>
             </div>
           </div>
 
           <div className="feature-item">
             <div className="feature-icon">
-              <Radio size={19} />
+              <Radio
+                size={19}
+              />
             </div>
 
             <div>
-              <strong>REAL-TIME SIMULATION</strong>
-              <span>Traffic, Vehicles & Incidents</span>
+              <strong>
+                REAL-TIME
+                SIMULATION
+              </strong>
+
+              <span>
+                Traffic, Vehicles
+                & Incidents
+              </span>
             </div>
           </div>
 
           <div className="feature-item">
             <div className="feature-icon">
-              <BarChart3 size={19} />
+              <BarChart3
+                size={19}
+              />
             </div>
 
             <div>
-              <strong>AI POWERED ANALYTICS</strong>
-              <span>Smart Insights & Predictions</span>
+              <strong>
+                AI POWERED
+                ANALYTICS
+              </strong>
+
+              <span>
+                Smart Insights &
+                Predictions
+              </span>
             </div>
           </div>
 
           <div className="feature-item">
             <div className="feature-icon">
-              <SlidersHorizontal size={19} />
+              <SlidersHorizontal
+                size={19}
+              />
             </div>
 
             <div>
-              <strong>WHAT-IF SCENARIOS</strong>
-              <span>Plan Better, Decide Smarter</span>
+              <strong>
+                WHAT-IF
+                SCENARIOS
+              </strong>
+
+              <span>
+                Plan Better,
+                Decide Smarter
+              </span>
             </div>
           </div>
 
@@ -1245,7 +2002,9 @@ export default function LiveMap() {
               <span />
             </div>
 
-            <strong>METROPOLIS</strong>
+            <strong>
+              METROPOLIS
+            </strong>
           </div>
         </footer>
       </main>
