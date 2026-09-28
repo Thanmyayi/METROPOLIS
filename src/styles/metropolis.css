@@ -2381,3 +2381,466 @@ button {
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   SHARED METROPOLIS SIDEBAR
+   Used by every page
+   ========================================================= */
+
+.app-layout {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  background: #020914;
+}
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+  margin-left: 184px;
+  min-height: 100vh;
+}
+
+.main-content {
+  width: 100%;
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 184px;
+
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 20, 34, 0.99),
+      rgba(3, 14, 25, 0.99)
+    );
+
+  border-right: 1px solid rgba(75, 140, 177, 0.11);
+
+  box-shadow:
+    15px 0 40px rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.logo-area {
+  height: 78px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 17px;
+
+  flex-shrink: 0;
+
+  border-bottom: 1px solid rgba(77, 141, 177, 0.07);
+}
+
+.logo-icon {
+  width: 35px;
+  height: 35px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  color: #28dded;
+
+  filter:
+    drop-shadow(
+      0 0 7px
+      rgba(23, 218, 235, 0.4)
+    );
+}
+
+.logo-area h2 {
+  margin: 0;
+
+  color: #eafaff;
+
+  font-size: 15px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.8px;
+}
+
+.logo-area span {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #617b8f;
+
+  font-size: 7px;
+
+  letter-spacing: 0.25px;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   SYSTEM STATUS
+   ========================================================= */
+
+.sidebar-system-status {
+  margin: 0;
+
+  padding: 10px 10px 9px;
+
+  border-bottom: 1px solid rgba(74, 142, 178, 0.07);
+
+  background:
+    rgba(16, 210, 180, 0.025);
+}
+
+.system-status-header {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: #20dfac;
+
+  font-size: 9px;
+
+  font-weight: 600;
+}
+
+.system-status-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #20dfac;
+
+  box-shadow:
+    0 0 8px rgba(32, 223, 172, 0.8);
+
+  animation: metropolisStatusPulse 2s infinite;
+}
+
+.sidebar-system-status p {
+  margin: 5px 0 0;
+
+  color: #526b7c;
+
+  font-size: 8px;
+}
+
+/* =========================================================
+   SECTION TITLE
+   ========================================================= */
+
+.sidebar-section-title {
+  padding: 10px 14px 5px;
+
+  color: #50677a;
+
+  font-size: 8px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.16em;
+}
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.sidebar-nav {
+  padding: 4px 10px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  overflow-y: auto;
+}
+
+.nav-item {
+  width: 100%;
+  min-height: 39px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 11px;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  color: #7d93a6;
+
+  background: transparent;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.nav-item svg {
+  flex-shrink: 0;
+}
+
+.nav-item:hover {
+  color: #d8f7ff;
+
+  background:
+    rgba(24, 158, 185, 0.08);
+
+  transform: translateX(1px);
+}
+
+.nav-item.active {
+  color: #dffaff;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(17, 197, 216, 0.26),
+      rgba(17, 197, 216, 0.12)
+    );
+
+  border-color:
+    rgba(22, 205, 222, 0.08);
+
+  box-shadow:
+    inset 3px 0 0 #13c9dc,
+    0 0 25px rgba(14, 190, 213, 0.05);
+}
+
+.nav-item.active svg {
+  color: #20dce9;
+}
+
+/* =========================================================
+   LIVE INDICATOR
+   ========================================================= */
+
+.live-nav-indicator {
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  color: #20dfac;
+
+  font-size: 7px;
+
+  font-weight: 600;
+}
+
+.live-nav-indicator span {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #20dfac;
+
+  box-shadow:
+    0 0 7px rgba(32, 223, 172, 0.8);
+
+  animation: metropolisStatusPulse 1.6s infinite;
+}
+
+/* =========================================================
+   BOTTOM
+   ========================================================= */
+
+.sidebar-bottom {
+  margin-top: auto;
+
+  padding: 8px 10px 10px;
+
+  border-top: 1px solid rgba(74, 142, 178, 0.08);
+}
+
+.settings-nav {
+  margin-bottom: 8px;
+}
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
+
+.sidebar-admin {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 9px;
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 255, 255, 0.025);
+}
+
+.sidebar-admin-avatar {
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 7px;
+
+  color: #19d9e8;
+
+  background:
+    rgba(20, 210, 230, 0.1);
+
+  font-size: 11px;
+
+  font-weight: 800;
+}
+
+.sidebar-admin div:last-child {
+  min-width: 0;
+}
+
+.sidebar-admin strong,
+.sidebar-admin span {
+  display: block;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.sidebar-admin strong {
+  color: #a8bfce;
+
+  font-size: 8px;
+
+  font-weight: 600;
+}
+
+.sidebar-admin span {
+  margin-top: 2px;
+
+  color: #536b7c;
+
+  font-size: 7px;
+}
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+@keyframes metropolisStatusPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 70px;
+  }
+
+  .main-area {
+    margin-left: 70px;
+  }
+
+  .logo-area {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .logo-area > div:last-child {
+    display: none;
+  }
+
+  .sidebar-system-status {
+    display: none;
+  }
+
+  .sidebar-section-title {
+    display: none;
+  }
+
+  .nav-item {
+    justify-content: center;
+
+    padding: 0;
+
+    gap: 0;
+  }
+
+  .nav-item span {
+    display: none;
+  }
+
+  .sidebar-admin {
+    justify-content: center;
+    padding: 7px;
+  }
+
+  .sidebar-admin > div:last-child {
+    display: none;
+  }
+
+  .live-nav-indicator {
+    display: none;
+  }
+}

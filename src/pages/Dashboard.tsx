@@ -1,422 +1,310 @@
 import {
   Activity,
-  AlertTriangle,
   Car,
   Gauge,
-  MapPin,
+  Map,
+  Radio,
+  Route,
+  ShieldAlert,
   TrendingUp,
-  Zap,
 } from "lucide-react";
-
-const statistics = [
-  {
-    title: "Active Vehicles",
-    value: "1,248",
-    change: "+8.4%",
-    icon: Car,
-  },
-  {
-    title: "Traffic Flow",
-    value: "72%",
-    change: "+4.2%",
-    icon: Activity,
-  },
-  {
-    title: "Active Incidents",
-    value: "07",
-    change: "-12.5%",
-    icon: AlertTriangle,
-  },
-  {
-    title: "City Efficiency",
-    value: "86.4%",
-    change: "+6.8%",
-    icon: Gauge,
-  },
-];
 
 const zones = [
   {
     name: "Zone A",
-    traffic: 82,
-    vehicles: 384,
+    value: 72,
     status: "High",
   },
   {
     name: "Zone B",
-    traffic: 64,
-    vehicles: 291,
+    value: 58,
     status: "Moderate",
   },
   {
     name: "Zone C",
-    traffic: 42,
-    vehicles: 215,
-    status: "Low",
+    value: 41,
+    status: "Moderate",
   },
   {
     name: "Zone D",
-    traffic: 71,
-    vehicles: 358,
-    status: "Moderate",
+    value: 29,
+    status: "Low",
   },
 ];
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
+    <div className="metropolis-page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
+            City Intelligence Dashboard
+          </h1>
 
-      {/* PAGE HEADER */}
-
-      <div>
-
-        <div className="flex items-center gap-2">
-
-          <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
-
-          <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-400">
-            City Intelligence
-          </span>
-
+          <p className="page-subtitle">
+            Real-time overview of the METROPOLIS digital twin
+          </p>
         </div>
 
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-white">
-          METROPOLIS Control Center
-        </h1>
-
-        <p className="mt-1 text-xs text-slate-600">
-          Real-time overview of the simulated urban environment.
-        </p>
-
+        <span className="live-pill">
+          <span className="live-dot" />
+          SYSTEM LIVE
+        </span>
       </div>
 
+      {/* KPI CARDS */}
 
-      {/* STATISTICS */}
+      <div className="grid-4">
+        <div className="panel kpi-card">
+          <Radio />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <span className="kpi-label">
+            System Status
+          </span>
 
-        {statistics.map((stat) => {
+          <strong className="kpi-value">
+            Operational
+          </strong>
 
-          const Icon = stat.icon;
+          <span className="kpi-change">
+            Live simulation
+          </span>
+        </div>
 
-          return (
-            <div
-              key={stat.title}
-              className="
-                group
-                rounded-2xl
-                border
-                border-white/[0.06]
-                bg-white/[0.02]
-                p-5
-                transition
-                duration-300
-                hover:-translate-y-1
-                hover:border-cyan-400/20
-                hover:bg-cyan-400/[0.025]
-              "
-            >
+        <div className="panel kpi-card">
+          <Car />
 
-              <div className="flex items-start justify-between">
+          <span className="kpi-label">
+            Active Vehicles
+          </span>
 
-                <div
-                  className="
-                    rounded-xl
-                    bg-cyan-400/10
-                    p-2.5
-                  "
-                >
+          <strong className="kpi-value">
+            128
+          </strong>
 
-                  <Icon
-                    size={19}
-                    className="text-cyan-400"
-                  />
+          <span className="kpi-change">
+            ↑ 12%
+          </span>
+        </div>
 
-                </div>
+        <div className="panel kpi-card">
+          <Gauge />
 
-                <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[9px] font-medium text-emerald-400">
-                  {stat.change}
-                </span>
+          <span className="kpi-label">
+            Average Speed
+          </span>
 
-              </div>
+          <strong className="kpi-value">
+            32 km/h
+          </strong>
 
-              <p className="mt-5 text-[10px] uppercase tracking-wider text-slate-600">
-                {stat.title}
-              </p>
+          <span className="kpi-change">
+            ↑ 5%
+          </span>
+        </div>
 
-              <p className="mt-1 text-2xl font-bold text-white">
-                {stat.value}
-              </p>
+        <div className="panel kpi-card">
+          <ShieldAlert />
 
-            </div>
-          );
-        })}
+          <span className="kpi-label">
+            Active Incidents
+          </span>
 
+          <strong className="kpi-value">
+            08
+          </strong>
+
+          <span className="kpi-change">
+            ↓ 2 today
+          </span>
+        </div>
       </div>
-
 
       {/* MAIN GRID */}
 
-      <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+      <div
+        className="grid-2"
+        style={{ marginTop: 18 }}
+      >
+        {/* LIVE MAP */}
 
-        {/* CITY STATUS */}
-
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-
-          <div className="flex items-center justify-between">
-
+        <div className="panel">
+          <div className="panel-header">
             <div>
+              <h3 className="panel-title">
+                Live City Map
+              </h3>
 
-              <h2 className="text-sm font-semibold text-white">
-                City Activity
-              </h2>
-
-              <p className="mt-1 text-[10px] text-slate-600">
-                Simulated activity across the digital twin
+              <p className="muted">
+                Simulated real-time vehicle movement
               </p>
-
             </div>
 
-            <div className="rounded-lg bg-cyan-400/10 p-2">
-              <TrendingUp
-                size={16}
-                className="text-cyan-400"
-              />
-            </div>
-
-          </div>
-
-
-          {/* GRAPH */}
-
-          <div className="relative mt-6 h-[230px] overflow-hidden rounded-xl border border-white/[0.04] bg-[#07111e]">
-
-            <div
-              className="
-                absolute
-                inset-0
-                opacity-20
-                [background-image:linear-gradient(rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.15)_1px,transparent_1px)]
-                [background-size:40px_40px]
-              "
+            <Map
+              size={18}
+              className="muted"
             />
-
-            <svg
-              viewBox="0 0 800 230"
-              className="absolute inset-0 h-full w-full"
-              preserveAspectRatio="none"
-            >
-
-              <polyline
-                points="0,170 80,145 160,155 240,110 320,125 400,80 480,95 560,60 640,75 720,45 800,58"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                className="text-cyan-400"
-              />
-
-              <polyline
-                points="0,195 80,180 160,188 240,165 320,175 400,140 480,150 560,125 640,135 720,110 800,120"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeDasharray="5 7"
-                className="text-slate-600"
-              />
-
-            </svg>
-
-
-            <div className="absolute bottom-3 left-4 right-4 flex justify-between text-[8px] text-slate-700">
-
-              <span>08:00</span>
-              <span>10:00</span>
-              <span>12:00</span>
-              <span>14:00</span>
-              <span>16:00</span>
-              <span>18:00</span>
-
-            </div>
-
           </div>
 
+          <div
+            style={{
+              height: 300,
+              position: "relative",
+              overflow: "hidden",
+              background:
+                "linear-gradient(135deg,#071827,#06111d)",
+            }}
+          >
+            <div className="dashboard-map-grid" />
+
+            <div className="dashboard-road road-one" />
+            <div className="dashboard-road road-two" />
+            <div className="dashboard-road road-three" />
+
+            <span className="dashboard-zone zone-one">
+              ZONE A
+            </span>
+
+            <span className="dashboard-zone zone-two">
+              ZONE B
+            </span>
+
+            <span className="dashboard-zone zone-three">
+              ZONE C
+            </span>
+
+            {[
+              [25, 32],
+              [48, 54],
+              [68, 28],
+              [76, 67],
+              [38, 72],
+            ].map(([left, top], index) => (
+              <span
+                key={index}
+                className="dashboard-vehicle"
+                style={{
+                  left: `${left}%`,
+                  top: `${top}%`,
+                }}
+              >
+                <Car size={12} />
+              </span>
+            ))}
+          </div>
         </div>
 
+        {/* TRAFFIC */}
 
-        {/* ZONES */}
-
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-
-          <div className="flex items-center justify-between">
-
+        <div className="panel">
+          <div className="panel-header">
             <div>
+              <h3 className="panel-title">
+                Traffic Intelligence
+              </h3>
 
-              <h2 className="text-sm font-semibold text-white">
-                Zone Monitoring
-              </h2>
-
-              <p className="mt-1 text-[10px] text-slate-600">
-                Current traffic conditions
+              <p className="muted">
+                Congestion by zone
               </p>
-
             </div>
 
-            <MapPin
-              size={17}
-              className="text-slate-600"
+            <Activity
+              size={18}
+              className="muted"
             />
-
           </div>
 
-
-          <div className="mt-5 space-y-4">
-
+          <div style={{ padding: 20 }}>
             {zones.map((zone) => (
+              <div
+                key={zone.name}
+                style={{ marginBottom: 22 }}
+              >
+                <div className="metric-row">
+                  <span>{zone.name}</span>
 
-              <div key={zone.name}>
-
-                <div className="mb-2 flex items-center justify-between">
-
-                  <div className="flex items-center gap-2">
-
-                    <span className="text-xs font-medium text-slate-300">
-                      {zone.name}
-                    </span>
-
-                    <span className="text-[9px] text-slate-700">
-                      {zone.vehicles} vehicles
-                    </span>
-
-                  </div>
-
-                  <span
-                    className={`
-                      text-[9px]
-                      font-medium
-                      ${
-                        zone.status === "High"
-                          ? "text-rose-400"
-                          : zone.status === "Moderate"
-                            ? "text-amber-400"
-                            : "text-emerald-400"
-                      }
-                    `}
-                  >
-                    {zone.status}
-                  </span>
-
+                  <strong>
+                    {zone.value}%
+                  </strong>
                 </div>
 
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.04]">
-
+                <div className="progress">
                   <div
-                    className={`
-                      h-full
-                      rounded-full
-                      transition-all
-                      ${
-                        zone.status === "High"
-                          ? "bg-rose-400"
-                          : zone.status === "Moderate"
-                            ? "bg-amber-400"
-                            : "bg-emerald-400"
-                      }
-                    `}
+                    className="progress-fill"
                     style={{
-                      width: `${zone.traffic}%`,
+                      width: `${zone.value}%`,
                     }}
                   />
-
                 </div>
 
+                <span
+                  className={`status ${
+                    zone.status === "High"
+                      ? "status-high"
+                      : zone.status === "Moderate"
+                      ? "status-medium"
+                      : "status-low"
+                  }`}
+                >
+                  {zone.status}
+                </span>
               </div>
-
             ))}
-
           </div>
-
         </div>
-
       </div>
 
+      {/* BOTTOM */}
 
-      {/* SYSTEM STATUS */}
+      <div
+        className="grid-3"
+        style={{ marginTop: 18 }}
+      >
+        <div className="panel">
+          <Route />
+          <h3 className="panel-title">
+            Traffic Flow
+          </h3>
 
-      <div className="grid gap-4 md:grid-cols-3">
+          <strong className="big-stat">
+            78%
+          </strong>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-
-          <div className="rounded-xl bg-emerald-400/10 p-2.5">
-            <Zap
-              size={17}
-              className="text-emerald-400"
-            />
-          </div>
-
-          <div>
-
-            <p className="text-[10px] text-slate-600">
-              Simulation Engine
-            </p>
-
-            <p className="mt-1 text-xs font-medium text-emerald-400">
-              Running
-            </p>
-
-          </div>
-
+          <p className="kpi-change">
+            ↑ 6.2% from previous period
+          </p>
         </div>
 
+        <div className="panel">
+          <TrendingUp />
+          <h3 className="panel-title">
+            AI Analytics
+          </h3>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <strong className="big-stat">
+            Good
+          </strong>
 
-          <div className="rounded-xl bg-cyan-400/10 p-2.5">
-            <Activity
-              size={17}
-              className="text-cyan-400"
-            />
-          </div>
-
-          <div>
-
-            <p className="text-[10px] text-slate-600">
-              Data Synchronization
-            </p>
-
-            <p className="mt-1 text-xs font-medium text-cyan-400">
-              Live
-            </p>
-
-          </div>
-
+          <p className="kpi-change">
+            Prediction quality ↑ 4%
+          </p>
         </div>
 
+        <div className="panel">
+          <Map />
+          <h3 className="panel-title">
+            Digital Twin
+          </h3>
 
-        <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <strong className="big-stat">
+            ACTIVE
+          </strong>
 
-          <div className="rounded-xl bg-violet-400/10 p-2.5">
-            <Gauge
-              size={17}
-              className="text-violet-400"
-            />
-          </div>
-
-          <div>
-
-            <p className="text-[10px] text-slate-600">
-              AI Analytics
-            </p>
-
-            <p className="mt-1 text-xs font-medium text-violet-400">
-              Ready
-            </p>
-
-          </div>
-
+          <p className="kpi-change">
+            2D simulation engine running
+          </p>
         </div>
-
       </div>
-
     </div>
   );
 }

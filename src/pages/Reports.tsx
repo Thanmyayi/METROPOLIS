@@ -1,294 +1,656 @@
 import {
   BarChart3,
+  CalendarDays,
+  CheckCircle2,
   Download,
+  FileBarChart,
   FileText,
-  Calendar,
+  Gauge,
+  RefreshCw,
   TrendingUp,
+  TriangleAlert,
   Car,
-  AlertTriangle,
-  Activity,
-  Clock,
 } from "lucide-react";
 
-const Reports = () => {
-  const reportCards = [
-    {
-      title: "Traffic Performance",
-      description: "Traffic flow, congestion and average speed analysis",
-      icon: Activity,
-      value: "86%",
-      label: "Efficiency",
-    },
-    {
-      title: "Vehicle Activity",
-      description: "Vehicle movement and simulation statistics",
-      icon: Car,
-      value: "128",
-      label: "Active Vehicles",
-    },
-    {
-      title: "Incident Analysis",
-      description: "Road incidents and affected zones",
-      icon: AlertTriangle,
-      value: "08",
-      label: "Incidents",
-    },
-    {
-      title: "System Performance",
-      description: "Digital twin simulation performance",
-      icon: TrendingUp,
-      value: "94%",
-      label: "System Health",
-    },
-  ];
+const reportCards = [
+  {
+    title: "Traffic Performance",
+    description:
+      "Traffic flow, congestion levels and average vehicle speed.",
+    icon: TrendingUp,
+    value: "78%",
+    label: "Traffic Flow",
+  },
+  {
+    title: "Vehicle Activity",
+    description:
+      "Vehicle movement, active vehicles and vehicle distribution.",
+    icon: Car,
+    value: "128",
+    label: "Active Vehicles",
+  },
+  {
+    title: "Incident Analysis",
+    description:
+      "Incident count, severity and incident distribution by zone.",
+    icon: TriangleAlert,
+    value: "08",
+    label: "Active Incidents",
+  },
+  {
+    title: "System Analytics",
+    description:
+      "AI analytics, simulation performance and system activity.",
+    icon: Gauge,
+    value: "94%",
+    label: "AI Quality",
+  },
+];
 
-  const monthlyData = [
-    { month: "Jan", traffic: 62 },
-    { month: "Feb", traffic: 70 },
-    { month: "Mar", traffic: 65 },
-    { month: "Apr", traffic: 78 },
-    { month: "May", traffic: 86 },
-    { month: "Jun", traffic: 81 },
-  ];
+const reportHistory = [
+  {
+    name: "Daily Traffic Intelligence Report",
+    type: "Traffic",
+    date: "28 Sep 2026",
+    status: "Generated",
+  },
+  {
+    name: "Vehicle Activity Report",
+    type: "Vehicles",
+    date: "28 Sep 2026",
+    status: "Generated",
+  },
+  {
+    name: "Incident Summary Report",
+    type: "Incidents",
+    date: "27 Sep 2026",
+    status: "Generated",
+  },
+  {
+    name: "Zone Congestion Analysis",
+    type: "Zones",
+    date: "27 Sep 2026",
+    status: "Generated",
+  },
+];
+
+export default function Reports() {
+  const handleDownload = (reportName: string) => {
+    const reportContent = `
+METROPOLIS
+Digital Twin Platform
+
+${reportName}
+
+Generated: ${new Date().toLocaleString()}
+
+----------------------------------------
+SYSTEM SUMMARY
+----------------------------------------
+
+Traffic Flow: 78%
+Average Speed: 32 km/h
+Active Vehicles: 128
+Active Incidents: 08
+AI Quality: 94%
+
+----------------------------------------
+ZONE CONGESTION
+----------------------------------------
+
+Zone A: 72%
+Zone B: 58%
+Zone C: 41%
+Zone D: 29%
+
+----------------------------------------
+REPORT STATUS
+----------------------------------------
+
+This report was generated from the METROPOLIS
+digital twin simulation environment.
+`;
+
+    const blob = new Blob([reportContent], {
+      type: "text/plain",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${reportName
+      .replace(/\s+/g, "-")
+      .toLowerCase()}.txt`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className="min-h-screen bg-[#050b14] text-white p-6 md:p-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center">
-              <FileText className="text-cyan-400" size={22} />
-            </div>
+    <div className="metropolis-page">
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
 
-            <div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-                Reports
-              </h1>
-              <p className="text-slate-400 text-sm">
-                METROPOLIS city intelligence reports
-              </p>
-            </div>
-          </div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Reports</h1>
+
+          <p className="page-subtitle">
+            Generate and review METROPOLIS city intelligence reports
+          </p>
         </div>
 
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition">
-            <Calendar size={17} />
-            May 2026
-          </button>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <span className="live-pill">
+            <span className="live-dot" />
+            SYSTEM LIVE
+          </span>
 
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-medium transition">
-            <Download size={17} />
+          <button
+            className="report-action-button"
+            onClick={() =>
+              handleDownload("METROPOLIS City Intelligence Report")
+            }
+          >
+            <Download size={15} />
             Export Report
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+      {/* =====================================================
+          REPORT SUMMARY
+      ====================================================== */}
+
+      <div className="grid-4">
         {reportCards.map((card) => {
           const Icon = card.icon;
 
           return (
             <div
+              className="panel"
               key={card.title}
-              className="group rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-5 hover:border-cyan-400/30 transition-all duration-300"
+              style={{
+                padding: 20,
+              }}
             >
-              <div className="flex justify-between items-start">
-                <div className="w-10 h-10 rounded-xl bg-cyan-400/10 flex items-center justify-center">
-                  <Icon className="text-cyan-400" size={20} />
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div
+                  style={{
+                    width: 38,
+                    height: 38,
+                    display: "grid",
+                    placeItems: "center",
+                    borderRadius: 10,
+                    background: "rgba(34, 211, 238, 0.08)",
+                    color: "#22d3ee",
+                  }}
+                >
+                  <Icon size={18} />
                 </div>
 
-                <TrendingUp
-                  size={16}
-                  className="text-emerald-400"
+                <FileBarChart
+                  size={15}
+                  className="muted"
                 />
               </div>
 
-              <div className="mt-5">
-                <p className="text-slate-400 text-sm">{card.title}</p>
-
-                <div className="flex items-end gap-2 mt-1">
-                  <span className="text-2xl font-semibold">
-                    {card.value}
-                  </span>
-
-                  <span className="text-xs text-emerald-400 mb-1">
-                    {card.label}
-                  </span>
+              <div
+                style={{
+                  marginTop: 18,
+                }}
+              >
+                <div className="kpi-label">
+                  {card.label}
                 </div>
 
-                <p className="text-xs text-slate-500 mt-2">
-                  {card.description}
-                </p>
+                <div className="kpi-value">
+                  {card.value}
+                </div>
               </div>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 8,
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                }}
+              >
+                {card.description}
+              </p>
             </div>
           );
         })}
       </div>
 
-      {/* Main Report Area */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Traffic Report */}
-        <div className="xl:col-span-2 rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold">
-                Traffic Performance
-              </h2>
+      {/* =====================================================
+          REPORT GENERATOR
+      ====================================================== */}
 
-              <p className="text-sm text-slate-400 mt-1">
-                Monthly traffic efficiency overview
+      <div
+        className="grid-2"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Generate Report
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 4,
+                  fontSize: 10,
+                }}
+              >
+                Select a report type and reporting period
               </p>
             </div>
 
-            <BarChart3 className="text-cyan-400" size={21} />
+            <FileText
+              size={17}
+              className="muted"
+            />
           </div>
 
-          <div className="h-64 flex items-end justify-between gap-4 border-b border-white/10 px-2">
-            {monthlyData.map((item) => (
-              <div
-                key={item.month}
-                className="flex-1 flex flex-col items-center gap-3"
-              >
-                <div className="text-xs text-slate-400">
-                  {item.traffic}%
-                </div>
-
-                <div
-                  className="w-full max-w-[55px] rounded-t-xl bg-gradient-to-t from-cyan-600/30 to-cyan-400 transition-all duration-500 hover:from-cyan-500/50"
+          <div
+            style={{
+              padding: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(2, minmax(0, 1fr))",
+                gap: 14,
+              }}
+            >
+              <div>
+                <label
                   style={{
-                    height: `${item.traffic * 2}px`,
+                    display: "block",
+                    marginBottom: 7,
+                    color: "#6f8799",
+                    fontSize: 10,
                   }}
-                />
+                >
+                  Report Type
+                </label>
 
-                <span className="text-xs text-slate-500">
-                  {item.month}
+                <select
+                  className="report-select"
+                  defaultValue="City Intelligence"
+                >
+                  <option>
+                    City Intelligence
+                  </option>
+
+                  <option>
+                    Traffic Performance
+                  </option>
+
+                  <option>
+                    Vehicle Activity
+                  </option>
+
+                  <option>
+                    Incident Analysis
+                  </option>
+
+                  <option>
+                    Zone Congestion
+                  </option>
+
+                  <option>
+                    AI Analytics
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: 7,
+                    color: "#6f8799",
+                    fontSize: 10,
+                  }}
+                >
+                  Reporting Period
+                </label>
+
+                <select
+                  className="report-select"
+                  defaultValue="Today"
+                >
+                  <option>Today</option>
+                  <option>Last 7 Days</option>
+                  <option>Last 30 Days</option>
+                  <option>This Month</option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 15,
+              }}
+            >
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: 7,
+                  color: "#6f8799",
+                  fontSize: 10,
+                }}
+              >
+                Report Date
+              </label>
+
+              <div
+                className="report-date-input"
+              >
+                <CalendarDays size={14} />
+
+                <span>
+                  {new Date().toLocaleDateString(
+                    "en-IN",
+                    {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    },
+                  )}
                 </span>
               </div>
-            ))}
+            </div>
+
+            <button
+              className="report-generate-button"
+              onClick={() =>
+                handleDownload(
+                  "METROPOLIS City Intelligence Report",
+                )
+              }
+            >
+              <FileBarChart size={15} />
+              Generate & Download
+            </button>
           </div>
         </div>
 
-        {/* Report Generator */}
-        <div className="rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-6">
-          <h2 className="text-lg font-semibold">
-            Generate Report
-          </h2>
+        {/* ===================================================
+            REPORT INFORMATION
+        ==================================================== */}
 
-          <p className="text-sm text-slate-400 mt-1 mb-6">
-            Select the information you want to analyze.
-          </p>
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Report Information
+              </h3>
 
-          <div className="space-y-3">
-            {[
-              "Traffic Analysis",
-              "Vehicle Movement",
-              "Incident Summary",
-              "Zone Performance",
-              "AI Analytics",
-            ].map((item, index) => (
-              <label
-                key={item}
-                className="flex items-center gap-3 p-3 rounded-xl border border-white/10 bg-black/20 hover:border-cyan-400/30 transition cursor-pointer"
+              <p
+                className="muted"
+                style={{
+                  marginTop: 4,
+                  fontSize: 10,
+                }}
               >
-                <input
-                  type="checkbox"
-                  defaultChecked={index < 3}
-                  className="accent-cyan-400"
-                />
+                Current simulation intelligence
+              </p>
+            </div>
 
-                <span className="text-sm text-slate-300">
-                  {item}
-                </span>
-              </label>
-            ))}
+            <RefreshCw
+              size={15}
+              className="muted"
+            />
           </div>
 
-          <button className="w-full mt-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold transition">
-            Generate Report
-          </button>
+          <div
+            style={{
+              padding: 20,
+            }}
+          >
+            <div className="report-info-row">
+              <span>Traffic Flow</span>
+              <strong>78%</strong>
+            </div>
+
+            <div className="report-progress">
+              <div
+                style={{
+                  width: "78%",
+                }}
+              />
+            </div>
+
+            <div className="report-info-row">
+              <span>Average Speed</span>
+              <strong>32 km/h</strong>
+            </div>
+
+            <div className="report-progress">
+              <div
+                style={{
+                  width: "64%",
+                }}
+              />
+            </div>
+
+            <div className="report-info-row">
+              <span>Vehicle Activity</span>
+              <strong>128</strong>
+            </div>
+
+            <div className="report-progress">
+              <div
+                style={{
+                  width: "82%",
+                }}
+              />
+            </div>
+
+            <div className="report-info-row">
+              <span>AI Quality</span>
+              <strong>94%</strong>
+            </div>
+
+            <div className="report-progress">
+              <div
+                style={{
+                  width: "94%",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                marginTop: 20,
+                padding: 12,
+                borderRadius: 10,
+                border:
+                  "1px solid rgba(34, 197, 94, 0.12)",
+                background:
+                  "rgba(34, 197, 94, 0.04)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: "#4ade80",
+                  fontSize: 10,
+                  fontWeight: 600,
+                }}
+              >
+                <CheckCircle2 size={14} />
+
+                Simulation data ready
+              </div>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 9,
+                }}
+              >
+                All major METROPOLIS intelligence
+                modules are available for reporting.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Recent Reports */}
-      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.035] backdrop-blur-xl p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-lg font-semibold">
-              Recent Reports
-            </h2>
+      {/* =====================================================
+          REPORT HISTORY
+      ====================================================== */}
 
-            <p className="text-sm text-slate-400">
-              Previously generated city reports
+      <div
+        className="panel"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              Recent Reports
+            </h3>
+
+            <p
+              className="muted"
+              style={{
+                marginTop: 4,
+                fontSize: 10,
+              }}
+            >
+              Previously generated intelligence reports
             </p>
           </div>
 
-          <FileText className="text-cyan-400" size={20} />
+          <BarChart3
+            size={16}
+            className="muted"
+          />
         </div>
 
-        <div className="space-y-3">
-          {[
-            {
-              name: "Traffic Performance Report",
-              date: "May 18, 2026",
-              type: "Traffic",
-            },
-            {
-              name: "Vehicle Simulation Report",
-              date: "May 17, 2026",
-              type: "Vehicles",
-            },
-            {
-              name: "Incident Analysis Report",
-              date: "May 16, 2026",
-              type: "Incidents",
-            },
-          ].map((report) => (
-            <div
-              key={report.name}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-white/10 bg-black/20 hover:border-cyan-400/20 transition"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-cyan-400/10 flex items-center justify-center">
-                  <FileText size={18} className="text-cyan-400" />
-                </div>
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
+          <table className="reports-table">
+            <thead>
+              <tr>
+                <th>Report</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
 
-                <div>
-                  <p className="text-sm font-medium">
-                    {report.name}
-                  </p>
+            <tbody>
+              {reportHistory.map((report) => (
+                <tr key={report.name}>
+                  <td>
+                    <div className="report-name">
+                      <span className="report-file-icon">
+                        <FileText size={14} />
+                      </span>
 
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-slate-500">
-                      {report.date}
-                    </span>
+                      <strong>
+                        {report.name}
+                      </strong>
+                    </div>
+                  </td>
 
-                    <span className="text-xs px-2 py-1 rounded-md bg-white/5 text-slate-400">
+                  <td>
+                    <span className="report-type">
                       {report.type}
                     </span>
-                  </div>
-                </div>
-              </div>
+                  </td>
 
-              <button className="flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300">
-                <Download size={16} />
-                Download
-              </button>
-            </div>
-          ))}
+                  <td className="muted">
+                    {report.date}
+                  </td>
+
+                  <td>
+                    <span className="report-status">
+                      <span />
+                      {report.status}
+                    </span>
+                  </td>
+
+                  <td>
+                    <button
+                      className="report-download-button"
+                      onClick={() =>
+                        handleDownload(
+                          report.name,
+                        )
+                      }
+                    >
+                      <Download size={13} />
+                      Download
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Footer status */}
-      <div className="mt-6 flex items-center gap-2 text-xs text-slate-500">
-        <Clock size={14} />
-        Last report update: 10:24:35 AM
-        <span className="text-emerald-400">● System Operational</span>
+      {/* =====================================================
+          FOOTER
+      ====================================================== */}
+
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          color: "#536b7c",
+          fontSize: 9,
+        }}
+      >
+        <span>
+          METROPOLIS Digital Twin Platform
+        </span>
+
+        <span>
+          Reports generated from simulated city data
+        </span>
       </div>
     </div>
   );
-};
-
-export default Reports;
+}

@@ -1,18 +1,33 @@
 import {
   AlertTriangle,
-  BellRing,
-  CheckCircle2,
+  Car,
   Clock,
   MapPin,
   ShieldAlert,
 } from "lucide-react";
 
 const incidents = [
-  ["Road Closure", "Main Street, Zone A", "High", "12 min ago"],
-  ["Accident", "5th Cross, Zone C", "Medium", "18 min ago"],
-  ["Traffic Signal Failure", "MG Road, Zone B", "High", "26 min ago"],
-  ["Vehicle Breakdown", "Ring Road, Zone D", "Low", "34 min ago"],
-  ["Waterlogging", "Central Avenue, Zone A", "Medium", "42 min ago"],
+  {
+    id: "INC-001",
+    title: "Road Closure",
+    location: "Main Street, Zone A",
+    severity: "High",
+    time: "10:42 AM",
+  },
+  {
+    id: "INC-002",
+    title: "Vehicle Accident",
+    location: "5th Cross, Zone C",
+    severity: "Medium",
+    time: "11:15 AM",
+  },
+  {
+    id: "INC-003",
+    title: "Traffic Congestion",
+    location: "Ring Road, Zone B",
+    severity: "Low",
+    time: "12:05 PM",
+  },
 ];
 
 export default function Incidents() {
@@ -20,138 +35,126 @@ export default function Incidents() {
     <div className="metropolis-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Incident Command Center</h1>
+          <h1 className="page-title">
+            Incident Management
+          </h1>
+
           <p className="page-subtitle">
-            Monitor and manage simulated city incidents
+            Monitor active city incidents and alerts
           </p>
         </div>
 
-        <button className="btn btn-primary">
-          <BellRing size={15} style={{ marginRight: 6 }} />
-          Create Incident
-        </button>
+        <span className="live-pill">
+          <span className="live-dot" />
+          LIVE MONITORING
+        </span>
       </div>
 
-      <div className="grid-4" style={{ marginBottom: 18 }}>
+      <div className="grid-4">
         <div className="panel kpi-card">
-          <div className="kpi-label">Active Incidents</div>
-          <div className="kpi-value">08</div>
-          <div className="kpi-change">2 new today</div>
+          <ShieldAlert />
+
+          <span className="kpi-label">
+            Active Incidents
+          </span>
+
+          <strong className="kpi-value">
+            08
+          </strong>
         </div>
 
         <div className="panel kpi-card">
-          <div className="kpi-label">High Priority</div>
-          <div className="kpi-value">02</div>
-          <div className="kpi-change" style={{ color: "#ff6b72" }}>
-            Immediate attention
-          </div>
+          <AlertTriangle />
+
+          <span className="kpi-label">
+            High Severity
+          </span>
+
+          <strong className="kpi-value">
+            02
+          </strong>
         </div>
 
         <div className="panel kpi-card">
-          <div className="kpi-label">Resolved Today</div>
-          <div className="kpi-value">17</div>
-          <div className="kpi-change">↑ 8%</div>
+          <Car />
+
+          <span className="kpi-label">
+            Vehicle Incidents
+          </span>
+
+          <strong className="kpi-value">
+            05
+          </strong>
         </div>
 
         <div className="panel kpi-card">
-          <div className="kpi-label">Avg. Response</div>
-          <div className="kpi-value">06m</div>
-          <div className="kpi-change">↓ 12%</div>
+          <Clock />
+
+          <span className="kpi-label">
+            Avg Response
+          </span>
+
+          <strong className="kpi-value">
+            06 min
+          </strong>
         </div>
       </div>
 
-      <div className="grid-2">
-        <div className="panel">
-          <div className="panel-header">
-            <h3 className="panel-title">Active Incidents</h3>
-            <span className="muted">Live</span>
-          </div>
+      <div className="panel" style={{ marginTop: 18 }}>
+        <div className="panel-header">
+          <h3 className="panel-title">
+            Active Incidents
+          </h3>
+        </div>
 
-          {incidents.map((incident, index) => (
-            <div className="incident-item" key={index}>
-              <div className="incident-icon">
-                {incident[0].includes("Accident") ? (
-                  <AlertTriangle size={18} />
-                ) : (
-                  <ShieldAlert size={18} />
-                )}
+        <div className="incident-list">
+          {incidents.map((incident) => (
+            <div
+              className="incident-row"
+              key={incident.id}
+            >
+              <div
+                className={`incident-icon ${
+                  incident.severity === "High"
+                    ? "danger"
+                    : incident.severity ===
+                      "Medium"
+                    ? "warning"
+                    : "normal"
+                }`}
+              >
+                <AlertTriangle size={18} />
               </div>
 
               <div className="incident-main">
-                <div className="incident-title">{incident[0]}</div>
+                <strong>
+                  {incident.title}
+                </strong>
 
-                <div className="incident-meta">
-                  <MapPin size={11} style={{ marginRight: 4 }} />
-                  {incident[1]}
-                </div>
-
-                <div className="incident-meta">
-                  <Clock size={11} style={{ marginRight: 4 }} />
-                  {incident[3]}
-                </div>
+                <span>
+                  <MapPin size={12} />
+                  {incident.location}
+                </span>
               </div>
+
+              <span className="incident-time">
+                {incident.time}
+              </span>
 
               <span
                 className={`status ${
-                  incident[2] === "High"
+                  incident.severity === "High"
                     ? "status-high"
-                    : incident[2] === "Medium"
+                    : incident.severity ===
+                      "Medium"
                     ? "status-medium"
                     : "status-low"
                 }`}
               >
-                {incident[2]}
+                {incident.severity}
               </span>
             </div>
           ))}
-        </div>
-
-        <div className="panel">
-          <div className="panel-header">
-            <h3 className="panel-title">Incident Response</h3>
-          </div>
-
-          <div style={{ padding: 22 }}>
-            <div
-              style={{
-                padding: 20,
-                borderRadius: 13,
-                background: "rgba(255, 80, 90, 0.05)",
-                border: "1px solid rgba(255, 80, 90, 0.12)",
-              }}
-            >
-              <ShieldAlert size={30} />
-              <h2 style={{ margin: "12px 0 6px" }}>Road Closure</h2>
-              <p className="muted">
-                Main Street, Zone A has been marked as closed in the digital
-                twin simulation.
-              </p>
-
-              <div className="metric-row">
-                <span className="muted">Severity</span>
-                <span className="status status-high">High</span>
-              </div>
-
-              <div className="metric-row">
-                <span className="muted">Affected Vehicles</span>
-                <strong>24</strong>
-              </div>
-
-              <div className="metric-row">
-                <span className="muted">Estimated Delay</span>
-                <strong>11 min</strong>
-              </div>
-            </div>
-
-            <button className="btn btn-primary" style={{ width: "100%", marginTop: 18 }}>
-              Simulate Response
-            </button>
-
-            <button className="btn" style={{ width: "100%", marginTop: 9 }}>
-              <CheckCircle2 size={15} style={{ marginRight: 6 }} />
-              Mark Resolved
-            </button>
-          </div>
         </div>
       </div>
     </div>

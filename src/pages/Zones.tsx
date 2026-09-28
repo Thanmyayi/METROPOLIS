@@ -1,10 +1,40 @@
-import { Building2, MapPin, Users, Activity } from "lucide-react";
+import {
+  Activity,
+  Gauge,
+  MapPin,
+  Route,
+  Users,
+} from "lucide-react";
 
 const zones = [
-  ["Zone A", "Central District", 72, "High", 42],
-  ["Zone B", "Business Hub", 58, "Moderate", 31],
-  ["Zone C", "Residential Area", 41, "Moderate", 27],
-  ["Zone D", "Tech Park", 29, "Low", 28],
+  {
+    name: "Zone A",
+    type: "Central District",
+    congestion: 72,
+    vehicles: 42,
+    speed: 26,
+  },
+  {
+    name: "Zone B",
+    type: "Business Hub",
+    congestion: 58,
+    vehicles: 35,
+    speed: 31,
+  },
+  {
+    name: "Zone C",
+    type: "Residential Area",
+    congestion: 41,
+    vehicles: 29,
+    speed: 36,
+  },
+  {
+    name: "Zone D",
+    type: "Tech Park",
+    congestion: 29,
+    vehicles: 22,
+    speed: 42,
+  },
 ];
 
 export default function Zones() {
@@ -12,92 +42,85 @@ export default function Zones() {
     <div className="metropolis-page">
       <div className="page-header">
         <div>
-          <h1 className="page-title">City Zones</h1>
+          <h1 className="page-title">
+            City Zones
+          </h1>
+
           <p className="page-subtitle">
-            Monitor zones, infrastructure and simulated activity
+            Monitor traffic conditions across city zones
           </p>
         </div>
+
+        <span className="live-pill">
+          <span className="live-dot" />
+          LIVE ZONES
+        </span>
       </div>
 
-      <div className="grid-4" style={{ marginBottom: 18 }}>
-        <div className="panel kpi-card">
-          <Building2 />
-          <div className="kpi-label" style={{ marginTop: 14 }}>
-            Total Zones
-          </div>
-          <div className="kpi-value">04</div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Activity />
-          <div className="kpi-label" style={{ marginTop: 14 }}>
-            Active Zones
-          </div>
-          <div className="kpi-value">04</div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Users />
-          <div className="kpi-label" style={{ marginTop: 14 }}>
-            Population Index
-          </div>
-          <div className="kpi-value">86K</div>
-        </div>
-
-        <div className="panel kpi-card">
-          <MapPin />
-          <div className="kpi-label" style={{ marginTop: 14 }}>
-            Infrastructure
-          </div>
-          <div className="kpi-value">94%</div>
-        </div>
-      </div>
-
-      <div className="grid-2">
-        {zones.map(([name, description, congestion, status, vehicles]) => (
-          <div className="panel" key={name}>
-            <div className="panel-header">
+      <div className="zones-grid">
+        {zones.map((zone) => (
+          <div
+            className="panel zone-card"
+            key={zone.name}
+          >
+            <div className="zone-card-header">
               <div>
-                <h3 className="panel-title">{name}</h3>
-                <div className="muted" style={{ marginTop: 5 }}>
-                  {description}
-                </div>
+                <h3>{zone.name}</h3>
+
+                <span>
+                  <MapPin size={12} />
+                  {zone.type}
+                </span>
               </div>
 
-              <span
-                className={`status ${
-                  status === "High"
-                    ? "status-high"
-                    : status === "Moderate"
-                    ? "status-medium"
-                    : "status-low"
-                }`}
-              >
-                {status}
-              </span>
+              <Route size={18} />
             </div>
 
-            <div style={{ padding: 20 }}>
-              <div className="metric-row">
-                <span className="muted">Traffic Density</span>
-                <strong>{congestion}%</strong>
+            <div className="zone-congestion">
+              <strong>
+                {zone.congestion}%
+              </strong>
+
+              <span>Congestion</span>
+            </div>
+
+            <div className="progress">
+              <div
+                className="progress-fill"
+                style={{
+                  width: `${zone.congestion}%`,
+                }}
+              />
+            </div>
+
+            <div className="zone-stats">
+              <div>
+                <Users size={14} />
+                <span>
+                  Vehicles
+                  <strong>
+                    {zone.vehicles}
+                  </strong>
+                </span>
               </div>
 
-              <div className="progress">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${congestion}%` }}
-                />
+              <div>
+                <Gauge size={14} />
+                <span>
+                  Speed
+                  <strong>
+                    {zone.speed} km/h
+                  </strong>
+                </span>
               </div>
 
-              <div className="metric-row">
-                <span className="muted">Active Vehicles</span>
-                <strong>{vehicles}</strong>
+              <div>
+                <Activity size={14} />
+                <span>
+                  Flow
+                  <strong>Active</strong>
+                </span>
               </div>
-
-              <button className="btn" style={{ width: "100%", marginTop: 12 }}>
-                View Zone on Map
-              </button>
             </div>
           </div>
         ))}

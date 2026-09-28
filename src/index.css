@@ -1,8 +1,4 @@
-@import "tailwindcss";
-
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
@@ -15,10 +11,22 @@ body,
   padding: 0;
 }
 
+html {
+  background: #020914;
+}
+
 body {
-  font-family: Inter, Arial, sans-serif;
-  background: #020617;
-  color: #e2e8f0;
+  min-height: 100vh;
+  background: #020914;
+  color: #d8edf5;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 button,
@@ -29,143 +37,470 @@ textarea {
 }
 
 button {
-  cursor: pointer;
+  border: 0;
 }
 
-::-webkit-scrollbar {
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================================
+   APP LAYOUT
+   ========================================================= */
+
+.app-layout {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  background: #020914;
+}
+
+.main-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 184px;
+  background: #020914;
+}
+
+.main-content {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+
+  width: 184px;
+
+  z-index: 1000;
+
+  display: flex;
+  flex-direction: column;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(5, 20, 34, 0.99),
+      rgba(3, 14, 25, 0.99)
+    );
+
+  border-right: 1px solid rgba(75, 140, 177, 0.11);
+
+  box-shadow:
+    15px 0 40px rgba(0, 0, 0, 0.12);
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.logo-area {
+  height: 78px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 17px;
+
+  flex-shrink: 0;
+
+  border-bottom: 1px solid rgba(77, 141, 177, 0.07);
+}
+
+.logo-icon {
+  width: 35px;
+  height: 35px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  color: #28dded;
+
+  filter:
+    drop-shadow(
+      0 0 7px rgba(23, 218, 235, 0.4)
+    );
+}
+
+.logo-area h2 {
+  margin: 0;
+
+  color: #eafaff;
+
+  font-size: 15px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: 0.8px;
+}
+
+.logo-area span {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #617b8f;
+
+  font-size: 7px;
+
+  letter-spacing: 0.25px;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   SYSTEM STATUS
+   ========================================================= */
+
+.sidebar-system-status {
+  margin: 0;
+
+  padding: 10px 10px 9px;
+
+  border-bottom: 1px solid rgba(74, 142, 178, 0.07);
+
+  background: rgba(16, 210, 180, 0.025);
+}
+
+.system-status-header {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  color: #20dfac;
+
+  font-size: 9px;
+
+  font-weight: 600;
+}
+
+.system-status-dot {
   width: 6px;
   height: 6px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #20dfac;
+
+  box-shadow:
+    0 0 8px rgba(32, 223, 172, 0.8);
+
+  animation: metropolisStatusPulse 2s infinite;
 }
 
-::-webkit-scrollbar-track {
-  background: #020617;
+.sidebar-system-status p {
+  margin: 5px 0 0;
+
+  color: #526b7c;
+
+  font-size: 8px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #164e63;
-  border-radius: 10px;
+/* =========================================================
+   SECTION TITLE
+   ========================================================= */
+
+.sidebar-section-title {
+  padding: 10px 14px 5px;
+
+  color: #50677a;
+
+  font-size: 8px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.16em;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #0891b2;
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+.sidebar-nav {
+  padding: 4px 10px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  overflow-y: auto;
 }
 
-/* Leaflet */
-.leaflet-container {
+.nav-item {
   width: 100%;
-  height: 100%;
-  min-height: 500px;
-  background: #020617;
-  font-family: Inter, Arial, sans-serif;
+  min-height: 39px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 11px;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  color: #7d93a6;
+
+  background: transparent;
+
+  font-size: 11px;
+
+  font-weight: 500;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
-.leaflet-popup-content-wrapper {
-  background: #020617;
-  color: #e2e8f0;
-  border: 1px solid rgba(34, 211, 238, 0.25);
-  border-radius: 12px;
+.nav-item svg {
+  flex-shrink: 0;
 }
 
-.leaflet-popup-tip {
-  background: #020617;
+.nav-item:hover {
+  color: #d8f7ff;
+
+  background: rgba(24, 158, 185, 0.08);
+
+  transform: translateX(1px);
 }
 
-.leaflet-popup-content {
-  margin: 14px;
+.nav-item.active {
+  color: #dffaff;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(17, 197, 216, 0.26),
+      rgba(17, 197, 216, 0.12)
+    );
+
+  border-color:
+    rgba(22, 205, 222, 0.08);
+
+  box-shadow:
+    inset 3px 0 0 #13c9dc,
+    0 0 25px rgba(14, 190, 213, 0.05);
 }
 
-.leaflet-control-zoom a {
-  background: #020617 !important;
-  color: #67e8f9 !important;
-  border-color: rgba(34, 211, 238, 0.2) !important;
+.nav-item.active svg {
+  color: #20dce9;
 }
 
-.leaflet-control-zoom a:hover {
-  background: #083344 !important;
+/* =========================================================
+   LIVE INDICATOR
+   ========================================================= */
+
+.live-nav-indicator {
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  color: #20dfac;
+
+  font-size: 7px;
+
+  font-weight: 600;
 }
 
-.leaflet-control-attribution {
-  background: rgba(2, 6, 23, 0.85) !important;
-  color: #64748b !important;
+.live-nav-indicator span {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #20dfac;
+
+  box-shadow:
+    0 0 7px rgba(32, 223, 172, 0.8);
+
+  animation: metropolisStatusPulse 1.6s infinite;
 }
 
-.leaflet-control-attribution a {
-  color: #38bdf8 !important;
+/* =========================================================
+   SIDEBAR BOTTOM
+   ========================================================= */
+
+.sidebar-bottom {
+  margin-top: auto;
+
+  padding: 8px 10px 10px;
+
+  border-top: 1px solid rgba(74, 142, 178, 0.08);
 }
 
-/* Vehicle markers */
-.metropolis-vehicle-marker {
-  background: transparent !important;
-  border: none !important;
+.settings-nav {
+  margin-bottom: 8px;
 }
 
-/* Animations */
-@keyframes metropolisPulse {
+/* =========================================================
+   ADMIN
+   ========================================================= */
+
+.sidebar-admin {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 9px;
+
+  border-radius: 9px;
+
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.sidebar-admin-avatar {
+  width: 28px;
+  height: 28px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border-radius: 7px;
+
+  color: #19d9e8;
+
+  background: rgba(20, 210, 230, 0.1);
+
+  font-size: 11px;
+
+  font-weight: 800;
+}
+
+.sidebar-admin div:last-child {
+  min-width: 0;
+}
+
+.sidebar-admin strong,
+.sidebar-admin span {
+  display: block;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.sidebar-admin strong {
+  color: #a8bfce;
+
+  font-size: 8px;
+
+  font-weight: 600;
+}
+
+.sidebar-admin span {
+  margin-top: 2px;
+
+  color: #536b7c;
+
+  font-size: 7px;
+}
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+@keyframes metropolisStatusPulse {
   0% {
-    transform: scale(0.8);
-    opacity: 0.9;
-  }
-
-  70% {
-    transform: scale(1.2);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1.2);
-    opacity: 0;
-  }
-}
-
-@keyframes pulseGlow {
-  0%,
-  100% {
-    opacity: 0.6;
+    opacity: 1;
+    transform: scale(1);
   }
 
   50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+
+  100% {
     opacity: 1;
+    transform: scale(1);
   }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 70px;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .main-area {
+    margin-left: 70px;
   }
-}
 
-.animate-metropolis-pulse {
-  animation: metropolisPulse 1.5s infinite;
-}
+  .logo-area {
+    justify-content: center;
+    padding: 0;
+  }
 
-.animate-pulse-glow {
-  animation: pulseGlow 2s ease-in-out infinite;
-}
+  .logo-area > div:last-child {
+    display: none;
+  }
 
-.animate-slide-up {
-  animation: slideUp 0.4s ease-out;
-}
+  .sidebar-system-status {
+    display: none;
+  }
 
-/* App background */
-.metropolis-app {
-  min-height: 100vh;
-  width: 100%;
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(6, 182, 212, 0.08),
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 80% 90%,
-      rgba(37, 99, 235, 0.06),
-      transparent 30%
-    ),
-    #020617;
+  .sidebar-section-title {
+    display: none;
+  }
+
+  .nav-item {
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+  }
+
+  .nav-item > span:not(.live-nav-indicator) {
+    display: none;
+  }
+
+  .sidebar-admin {
+    justify-content: center;
+    padding: 7px;
+  }
+
+  .sidebar-admin > div:last-child {
+    display: none;
+  }
+
+  .live-nav-indicator {
+    display: none;
+  }
 }

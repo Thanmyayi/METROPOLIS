@@ -1,266 +1,200 @@
 import { useMemo, useState } from "react";
 import {
-  Search,
-  Car,
-  Bus,
   Bike,
-  MapPin,
+  Bus,
+  Car,
   Gauge,
+  MapPin,
   Radio,
+  Search,
+  Truck,
 } from "lucide-react";
 
-import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
-import type { SimulatedVehicle } from "../hooks/useVehicleSimulation";
+const vehicles = [
+  {
+    id: "VH-001",
+    plate: "KA-01-AB-1234",
+    type: "Car",
+    road: "Main Road",
+    zone: "Zone A",
+    speed: 32,
+    status: "Moving",
+    direction: "North",
+  },
+  {
+    id: "VH-002",
+    plate: "KA-01-CD-5621",
+    type: "Bus",
+    road: "Ring Road",
+    zone: "Zone B",
+    speed: 18,
+    status: "Moving",
+    direction: "East",
+  },
+  {
+    id: "VH-003",
+    plate: "KA-01-EF-8934",
+    type: "Car",
+    road: "Tech Road",
+    zone: "Zone C",
+    speed: 41,
+    status: "Moving",
+    direction: "South",
+  },
+  {
+    id: "VH-004",
+    plate: "KA-05-GH-1245",
+    type: "Bike",
+    road: "5th Cross",
+    zone: "Zone C",
+    speed: 22,
+    status: "Stopped",
+    direction: "West",
+  },
+  {
+    id: "VH-005",
+    plate: "KA-03-JK-7412",
+    type: "Truck",
+    road: "Industrial Road",
+    zone: "Zone D",
+    speed: 21,
+    status: "Moving",
+    direction: "North",
+  },
+];
 
-interface VehicleSearchProps {
-  onVehicleSelect?: (vehicleId: string) => void;
-}
+export default function Vehicles() {
+  const [search, setSearch] =
+    useState("");
 
-export default function VehicleSearch({
-  onVehicleSelect,
-}: VehicleSearchProps) {
-  const {
-    vehicles,
-    selectedVehicleId,
-    selectVehicle,
-  } = useVehicleSimulation();
+  const filtered = useMemo(() => {
+    const query =
+      search.toLowerCase().trim();
 
-  const [searchTerm, setSearchTerm] = useState("");
+    if (!query) return vehicles;
 
-  const filteredVehicles = useMemo<SimulatedVehicle[]>(
-    () => {
-      const query = searchTerm
-        .toLowerCase()
-        .trim();
-
-      if (!query) {
-        return vehicles;
-      }
-
-      return vehicles.filter(
-        (vehicle: SimulatedVehicle) =>
-          vehicle.id
-            .toLowerCase()
-            .includes(query) ||
-          vehicle.plate
-            .toLowerCase()
-            .includes(query) ||
-          vehicle.road
-            .toLowerCase()
-            .includes(query) ||
-          vehicle.zone
-            .toLowerCase()
-            .includes(query) ||
-          vehicle.type
-            .toLowerCase()
-            .includes(query),
-      );
-    },
-    [searchTerm, vehicles],
-  );
-
-  const handleSelect = (vehicleId: string) => {
-    selectVehicle(vehicleId);
-    onVehicleSelect?.(vehicleId);
-  };
-
-  const getVehicleIcon = (
-    type: SimulatedVehicle["type"],
-  ) => {
-    if (type === "bus") {
-      return Bus;
-    }
-
-    if (type === "bike") {
-      return Bike;
-    }
-
-    return Car;
-  };
-
-  const movingVehicles = vehicles.filter(
-    (vehicle: SimulatedVehicle) =>
-      vehicle.status === "Moving",
-  ).length;
+    return vehicles.filter(
+      (vehicle) =>
+        vehicle.id
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.plate
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.road
+          .toLowerCase()
+          .includes(query) ||
+        vehicle.zone
+          .toLowerCase()
+          .includes(query),
+    );
+  }, [search]);
 
   return (
-    <div className="w-full rounded-2xl border border-cyan-400/20 bg-slate-950/80 p-5 shadow-[0_0_30px_rgba(6,182,212,0.08)] backdrop-blur-xl">
-      {/* Header */}
-      <div className="mb-5 flex items-center justify-between">
+    <div className="metropolis-page">
+      <div className="page-header">
         <div>
-          <div className="flex items-center gap-2">
-            <Radio className="h-5 w-5 text-cyan-400" />
+          <h1 className="page-title">
+            Vehicle Tracking
+          </h1>
 
-            <h2 className="text-lg font-semibold text-white">
-              Vehicle Tracking
-            </h2>
-          </div>
-
-          <p className="mt-1 text-xs text-slate-400">
-            Search and locate simulated live vehicles
+          <p className="page-subtitle">
+            Search and monitor simulated city vehicles
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-
-          <span className="text-[10px] font-semibold tracking-wider text-emerald-300">
-            LIVE
-          </span>
-        </div>
+        <span className="live-pill">
+          <span className="live-dot" />
+          LIVE VEHICLES
+        </span>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
+      <div className="panel">
+        <div className="vehicle-search-header">
+          <div className="search-input-wrapper">
+            <Search size={17} />
 
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(event) =>
-            setSearchTerm(event.target.value)
-          }
-          placeholder="Search Vehicle ID, Number Plate, Road or Zone..."
-          className="w-full rounded-xl border border-slate-700 bg-slate-900/80 py-3 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30"
-        />
-      </div>
-
-      {/* Vehicle list */}
-      <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto pr-1">
-        {filteredVehicles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-700 py-10 text-center">
-            <Search className="mx-auto mb-3 h-7 w-7 text-slate-600" />
-
-            <p className="text-sm text-slate-400">
-              No vehicles found
-            </p>
-
-            <p className="mt-1 text-xs text-slate-600">
-              Try another ID, plate or location
-            </p>
+            <input
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search Vehicle ID, Number Plate, Road or Zone..."
+            />
           </div>
-        ) : (
-          filteredVehicles.map(
-            (vehicle: SimulatedVehicle) => {
-              const VehicleIcon =
-                getVehicleIcon(vehicle.type);
 
-              const isSelected =
-                selectedVehicleId === vehicle.id;
+          <div className="vehicle-count">
+            <Radio size={15} />
+            {filtered.length} vehicles
+          </div>
+        </div>
 
-              return (
-                <button
-                  key={vehicle.id}
-                  type="button"
-                  onClick={() =>
-                    handleSelect(vehicle.id)
-                  }
-                  className={`group w-full rounded-xl border p-4 text-left transition-all duration-200 ${
-                    isSelected
-                      ? "border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_20px_rgba(6,182,212,0.12)]"
-                      : "border-slate-800 bg-slate-900/50 hover:border-cyan-400/30 hover:bg-slate-900"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className={`rounded-lg p-2 ${
-                          isSelected
-                            ? "bg-cyan-400/20 text-cyan-300"
-                            : "bg-slate-800 text-slate-400 group-hover:text-cyan-400"
-                        }`}
-                      >
-                        <VehicleIcon className="h-5 w-5" />
-                      </div>
+        <div className="vehicle-table">
+          <div className="vehicle-table-header">
+            <span>Vehicle</span>
+            <span>Type</span>
+            <span>Location</span>
+            <span>Speed</span>
+            <span>Direction</span>
+            <span>Status</span>
+          </div>
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-semibold text-white">
-                            {vehicle.id}
-                          </span>
+          {filtered.map((vehicle) => (
+            <div
+              className="vehicle-table-row"
+              key={vehicle.id}
+            >
+              <div className="vehicle-id">
+                {vehicle.type === "Bus" ? (
+                  <Bus />
+                ) : vehicle.type === "Bike" ? (
+                  <Bike />
+                ) : vehicle.type === "Truck" ? (
+                  <Truck />
+                ) : (
+                  <Car />
+                )}
 
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              vehicle.status ===
-                              "Moving"
-                                ? "bg-emerald-400"
-                                : "bg-amber-400"
-                            }`}
-                          />
-                        </div>
+                <div>
+                  <strong>
+                    {vehicle.id}
+                  </strong>
 
-                        <p className="mt-1 font-mono text-xs text-cyan-400">
-                          {vehicle.plate}
-                        </p>
-                      </div>
-                    </div>
+                  <span>
+                    {vehicle.plate}
+                  </span>
+                </div>
+              </div>
 
-                    <span
-                      className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase ${
-                        vehicle.status ===
-                        "Moving"
-                          ? "bg-emerald-400/10 text-emerald-300"
-                          : "bg-amber-400/10 text-amber-300"
-                      }`}
-                    >
-                      {vehicle.status}
-                    </span>
-                  </div>
+              <span>{vehicle.type}</span>
 
-                  {/* Vehicle information */}
-                  <div className="mt-4 grid grid-cols-2 gap-2 text-[11px]">
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <MapPin className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="location-cell">
+                <MapPin size={13} />
+                {vehicle.road},{" "}
+                {vehicle.zone}
+              </span>
 
-                      <span className="truncate">
-                        {vehicle.road}
-                      </span>
-                    </div>
+              <span className="speed-cell">
+                <Gauge size={13} />
+                {vehicle.speed} km/h
+              </span>
 
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <Gauge className="h-3.5 w-3.5 text-cyan-400" />
+              <span>
+                {vehicle.direction}
+              </span>
 
-                      <span>
-                        {vehicle.speed} km/h
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-                    <span>{vehicle.zone}</span>
-
-                    <span>
-                      {vehicle.direction}
-                    </span>
-                  </div>
-
-                  {/* Live update indicator */}
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-3">
-                    <span className="text-[9px] uppercase tracking-wider text-slate-600">
-                      Updated
-                    </span>
-
-                    <span className="font-mono text-[9px] text-slate-500">
-                      {vehicle.lastUpdated}
-                    </span>
-                  </div>
-                </button>
-              );
-            },
-          )
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-slate-800 pt-4">
-        <span className="text-xs text-slate-500">
-          Showing {filteredVehicles.length} of{" "}
-          {vehicles.length} vehicles
-        </span>
-
-        <span className="font-mono text-xs text-cyan-400">
-          {movingVehicles} MOVING
-        </span>
+              <span
+                className={`status ${
+                  vehicle.status === "Moving"
+                    ? "status-low"
+                    : "status-medium"
+                }`}
+              >
+                {vehicle.status}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

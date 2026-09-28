@@ -1,6 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 
-import Sidebar from "./components/Sidebar";
+import AppLayout from "./components/AppLayout";
 
 import Dashboard from "./pages/Dashboard";
 import LiveMap from "./pages/LiveMap";
@@ -13,16 +13,11 @@ import Scenarios from "./pages/Scenarios";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 
-import "./index.css";
-import "./styles/metropolis.css";
-
-function AppLayout() {
+export default function App() {
   return (
-    <div className="min-h-screen bg-[#020914]">
-      <Sidebar />
-
-      <main className="min-h-screen pl-[230px]">
-        <Routes>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/live-map" element={<LiveMap />} />
           <Route path="/vehicles" element={<Vehicles />} />
@@ -33,16 +28,8 @@ function AppLayout() {
           <Route path="/scenarios" element={<Scenarios />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </main>
-    </div>
-  );
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AppLayout />
+        </Route>
+      </Routes>
     </BrowserRouter>
   );
 }
