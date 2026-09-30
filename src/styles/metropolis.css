@@ -2844,3 +2844,21 @@ button {
     display: none;
   }
 }
+/* =========================================================
+   SCENARIO SIMULATION
+   ========================================================= */
+
+.scenario-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(24, 201, 239, 0.15);
+  border-top-color: #18c9ef;
+  animation: scenarioSpin 0.8s linear infinite;
+}
+
+@keyframes scenarioSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,542 +1,299 @@
 import {
   BarChart3,
   CalendarDays,
-  CheckCircle2,
   Download,
   FileBarChart,
   FileText,
   Gauge,
   RefreshCw,
   TrendingUp,
-  TriangleAlert,
-  Car,
+  Truck,
+  Zap,
 } from "lucide-react";
 
-const reportCards = [
+const reportStats = [
   {
-    title: "Traffic Performance",
-    description:
-      "Traffic flow, congestion levels and average vehicle speed.",
+    title: "Traffic Reports",
+    value: "24",
+    description: "Generated this month",
+    icon: BarChart3,
+  },
+  {
+    title: "Vehicle Reports",
+    value: "18",
+    description: "Tracking summaries",
+    icon: Truck,
+  },
+  {
+    title: "Incident Reports",
+    value: "09",
+    description: "Incident analysis",
+    icon: FileBarChart,
+  },
+  {
+    title: "Analytics Reports",
+    value: "15",
+    description: "AI-generated insights",
     icon: TrendingUp,
-    value: "78%",
-    label: "Traffic Flow",
-  },
-  {
-    title: "Vehicle Activity",
-    description:
-      "Vehicle movement, active vehicles and vehicle distribution.",
-    icon: Car,
-    value: "128",
-    label: "Active Vehicles",
-  },
-  {
-    title: "Incident Analysis",
-    description:
-      "Incident count, severity and incident distribution by zone.",
-    icon: TriangleAlert,
-    value: "08",
-    label: "Active Incidents",
-  },
-  {
-    title: "System Analytics",
-    description:
-      "AI analytics, simulation performance and system activity.",
-    icon: Gauge,
-    value: "94%",
-    label: "AI Quality",
   },
 ];
 
-const reportHistory = [
+const recentReports = [
   {
-    name: "Daily Traffic Intelligence Report",
+    name: "Daily Traffic Analysis",
     type: "Traffic",
-    date: "28 Sep 2026",
-    status: "Generated",
+    date: "Today, 06:30 PM",
+    status: "Ready",
   },
   {
     name: "Vehicle Activity Report",
     type: "Vehicles",
-    date: "28 Sep 2026",
-    status: "Generated",
+    date: "Today, 05:45 PM",
+    status: "Ready",
   },
   {
-    name: "Incident Summary Report",
-    type: "Incidents",
-    date: "27 Sep 2026",
-    status: "Generated",
-  },
-  {
-    name: "Zone Congestion Analysis",
+    name: "Zone Performance Report",
     type: "Zones",
-    date: "27 Sep 2026",
-    status: "Generated",
+    date: "Yesterday, 08:20 PM",
+    status: "Ready",
+  },
+  {
+    name: "Incident Summary",
+    type: "Incidents",
+    date: "Yesterday, 06:10 PM",
+    status: "Ready",
+  },
+  {
+    name: "AI Analytics Summary",
+    type: "Analytics",
+    date: "28 Sep 2026, 07:15 PM",
+    status: "Ready",
   },
 ];
 
 export default function Reports() {
-  const handleDownload = (reportName: string) => {
-    const reportContent = `
-METROPOLIS
-Digital Twin Platform
-
-${reportName}
-
-Generated: ${new Date().toLocaleString()}
-
-----------------------------------------
-SYSTEM SUMMARY
-----------------------------------------
-
-Traffic Flow: 78%
-Average Speed: 32 km/h
-Active Vehicles: 128
-Active Incidents: 08
-AI Quality: 94%
-
-----------------------------------------
-ZONE CONGESTION
-----------------------------------------
-
-Zone A: 72%
-Zone B: 58%
-Zone C: 41%
-Zone D: 29%
-
-----------------------------------------
-REPORT STATUS
-----------------------------------------
-
-This report was generated from the METROPOLIS
-digital twin simulation environment.
-`;
-
-    const blob = new Blob([reportContent], {
-      type: "text/plain",
-    });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${reportName
-      .replace(/\s+/g, "-")
-      .toLowerCase()}.txt`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="metropolis-page">
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
+      {/* HEADER */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Reports</h1>
-
+          <h1 className="page-title">Reports & Insights</h1>
           <p className="page-subtitle">
-            Generate and review METROPOLIS city intelligence reports
+            Generate, review and download METROPOLIS operational reports
           </p>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <span className="live-pill">
-            <span className="live-dot" />
-            SYSTEM LIVE
-          </span>
-
-          <button
-            className="report-action-button"
-            onClick={() =>
-              handleDownload("METROPOLIS City Intelligence Report")
-            }
-          >
-            <Download size={15} />
-            Export Report
-          </button>
+        <div className="live-pill">
+          <span className="live-dot" />
+          REPORTING ENGINE
         </div>
       </div>
 
-      {/* =====================================================
-          REPORT SUMMARY
-      ====================================================== */}
-
+      {/* REPORT STATISTICS */}
       <div className="grid-4">
-        {reportCards.map((card) => {
-          const Icon = card.icon;
+        {reportStats.map((item) => {
+          const Icon = item.icon;
 
           return (
-            <div
-              className="panel"
-              key={card.title}
-              style={{
-                padding: 20,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    display: "grid",
-                    placeItems: "center",
-                    borderRadius: 10,
-                    background: "rgba(34, 211, 238, 0.08)",
-                    color: "#22d3ee",
-                  }}
-                >
-                  <Icon size={18} />
-                </div>
-
-                <FileBarChart
-                  size={15}
-                  className="muted"
-                />
-              </div>
+            <div className="panel kpi-card" key={item.title}>
+              <Icon size={22} />
 
               <div
-                style={{
-                  marginTop: 18,
-                }}
+                className="kpi-label"
+                style={{ marginTop: 14 }}
               >
-                <div className="kpi-label">
-                  {card.label}
-                </div>
-
-                <div className="kpi-value">
-                  {card.value}
-                </div>
+                {item.title}
               </div>
 
-              <p
-                className="muted"
-                style={{
-                  marginTop: 8,
-                  fontSize: 11,
-                  lineHeight: 1.5,
-                }}
-              >
-                {card.description}
-              </p>
+              <div className="kpi-value">
+                {item.value}
+              </div>
+
+              <div className="kpi-change">
+                {item.description}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* =====================================================
-          REPORT GENERATOR
-      ====================================================== */}
-
+      {/* GENERATE REPORT */}
       <div
         className="grid-2"
         style={{
           marginTop: 18,
+          alignItems: "stretch",
         }}
       >
         <div className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Generate Report
+                Generate New Report
               </h3>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 4,
-                  fontSize: 10,
-                }}
-              >
-                Select a report type and reporting period
-              </p>
-            </div>
-
-            <FileText
-              size={17}
-              className="muted"
-            />
-          </div>
-
-          <div
-            style={{
-              padding: 20,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(2, minmax(0, 1fr))",
-                gap: 14,
-              }}
-            >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 7,
-                    color: "#6f8799",
-                    fontSize: 10,
-                  }}
-                >
-                  Report Type
-                </label>
-
-                <select
-                  className="report-select"
-                  defaultValue="City Intelligence"
-                >
-                  <option>
-                    City Intelligence
-                  </option>
-
-                  <option>
-                    Traffic Performance
-                  </option>
-
-                  <option>
-                    Vehicle Activity
-                  </option>
-
-                  <option>
-                    Incident Analysis
-                  </option>
-
-                  <option>
-                    Zone Congestion
-                  </option>
-
-                  <option>
-                    AI Analytics
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 7,
-                    color: "#6f8799",
-                    fontSize: 10,
-                  }}
-                >
-                  Reporting Period
-                </label>
-
-                <select
-                  className="report-select"
-                  defaultValue="Today"
-                >
-                  <option>Today</option>
-                  <option>Last 7 Days</option>
-                  <option>Last 30 Days</option>
-                  <option>This Month</option>
-                </select>
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: 15,
-              }}
-            >
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: 7,
-                  color: "#6f8799",
-                  fontSize: 10,
-                }}
-              >
-                Report Date
-              </label>
-
-              <div
-                className="report-date-input"
-              >
-                <CalendarDays size={14} />
-
-                <span>
-                  {new Date().toLocaleDateString(
-                    "en-IN",
-                    {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    },
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="report-generate-button"
-              onClick={() =>
-                handleDownload(
-                  "METROPOLIS City Intelligence Report",
-                )
-              }
-            >
-              <FileBarChart size={15} />
-              Generate & Download
-            </button>
-          </div>
-        </div>
-
-        {/* ===================================================
-            REPORT INFORMATION
-        ==================================================== */}
-
-        <div className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                Report Information
-              </h3>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 4,
-                  fontSize: 10,
-                }}
-              >
-                Current simulation intelligence
-              </p>
-            </div>
-
-            <RefreshCw
-              size={15}
-              className="muted"
-            />
-          </div>
-
-          <div
-            style={{
-              padding: 20,
-            }}
-          >
-            <div className="report-info-row">
-              <span>Traffic Flow</span>
-              <strong>78%</strong>
-            </div>
-
-            <div className="report-progress">
-              <div
-                style={{
-                  width: "78%",
-                }}
-              />
-            </div>
-
-            <div className="report-info-row">
-              <span>Average Speed</span>
-              <strong>32 km/h</strong>
-            </div>
-
-            <div className="report-progress">
-              <div
-                style={{
-                  width: "64%",
-                }}
-              />
-            </div>
-
-            <div className="report-info-row">
-              <span>Vehicle Activity</span>
-              <strong>128</strong>
-            </div>
-
-            <div className="report-progress">
-              <div
-                style={{
-                  width: "82%",
-                }}
-              />
-            </div>
-
-            <div className="report-info-row">
-              <span>AI Quality</span>
-              <strong>94%</strong>
-            </div>
-
-            <div className="report-progress">
-              <div
-                style={{
-                  width: "94%",
-                }}
-              />
-            </div>
-
-            <div
-              style={{
-                marginTop: 20,
-                padding: 12,
-                borderRadius: 10,
-                border:
-                  "1px solid rgba(34, 197, 94, 0.12)",
-                background:
-                  "rgba(34, 197, 94, 0.04)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "#4ade80",
-                  fontSize: 10,
-                  fontWeight: 600,
-                }}
-              >
-                <CheckCircle2 size={14} />
-
-                Simulation data ready
-              </div>
 
               <p
                 className="muted"
                 style={{
                   marginTop: 5,
-                  fontSize: 9,
+                  fontSize: 12,
                 }}
               >
-                All major METROPOLIS intelligence
-                modules are available for reporting.
+                Select the required report type and reporting period
               </p>
             </div>
+
+            <FileText size={18} />
+          </div>
+
+          <div style={{ padding: 20 }}>
+            <div className="report-form-grid">
+              <div className="report-field">
+                <label>Report Type</label>
+
+                <select defaultValue="traffic">
+                  <option value="traffic">
+                    Traffic Analysis
+                  </option>
+
+                  <option value="vehicles">
+                    Vehicle Activity
+                  </option>
+
+                  <option value="incidents">
+                    Incident Summary
+                  </option>
+
+                  <option value="zones">
+                    Zone Performance
+                  </option>
+
+                  <option value="analytics">
+                    AI Analytics
+                  </option>
+
+                  <option value="system">
+                    System Overview
+                  </option>
+                </select>
+              </div>
+
+              <div className="report-field">
+                <label>Time Period</label>
+
+                <select defaultValue="today">
+                  <option value="today">
+                    Today
+                  </option>
+
+                  <option value="7days">
+                    Last 7 Days
+                  </option>
+
+                  <option value="30days">
+                    Last 30 Days
+                  </option>
+
+                  <option value="month">
+                    This Month
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              className="report-field"
+              style={{ marginTop: 16 }}
+            >
+              <label>Report Description</label>
+
+              <textarea
+                rows={4}
+                placeholder="Add an optional description for this report..."
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 18,
+              }}
+            >
+              <button
+                type="button"
+                className="report-generate-button"
+                onClick={() =>
+                  alert("Report generation started")
+                }
+              >
+                <FileBarChart size={16} />
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* REPORT OVERVIEW */}
+        <div className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Current City Overview
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Latest operational indicators
+              </p>
+            </div>
+
+            <Gauge size={18} />
+          </div>
+
+          <div style={{ padding: 20 }}>
+            <OverviewRow
+              label="Traffic Flow"
+              value="78%"
+              progress={78}
+            />
+
+            <OverviewRow
+              label="Average Vehicle Speed"
+              value="32 km/h"
+              progress={64}
+            />
+
+            <OverviewRow
+              label="Vehicle Activity"
+              value="128 active"
+              progress={82}
+            />
+
+            <OverviewRow
+              label="City Performance"
+              value="91%"
+              progress={91}
+            />
+
+            <OverviewRow
+              label="System Availability"
+              value="99.8%"
+              progress={99.8}
+            />
           </div>
         </div>
       </div>
 
-      {/* =====================================================
-          REPORT HISTORY
-      ====================================================== */}
-
+      {/* RECENT REPORTS */}
       <div
         className="panel"
-        style={{
-          marginTop: 18,
-        }}
+        style={{ marginTop: 18 }}
       >
         <div className="panel-header">
           <div>
@@ -547,53 +304,48 @@ digital twin simulation environment.
             <p
               className="muted"
               style={{
-                marginTop: 4,
-                fontSize: 10,
+                marginTop: 5,
+                fontSize: 12,
               }}
             >
-              Previously generated intelligence reports
+              Previously generated METROPOLIS reports
             </p>
           </div>
 
-          <BarChart3
-            size={16}
-            className="muted"
-          />
+          <button
+            type="button"
+            className="report-action-button"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={15} />
+            Refresh
+          </button>
         </div>
 
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
-          <table className="reports-table">
+        <div className="report-table-wrapper">
+          <table className="report-table">
             <thead>
               <tr>
                 <th>Report</th>
-                <th>Type</th>
-                <th>Date</th>
+                <th>Category</th>
+                <th>Generated</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {reportHistory.map((report) => (
+              {recentReports.map((report) => (
                 <tr key={report.name}>
                   <td>
                     <div className="report-name">
-                      <span className="report-file-icon">
-                        <FileText size={14} />
-                      </span>
-
-                      <strong>
-                        {report.name}
-                      </strong>
+                      <FileText size={16} />
+                      {report.name}
                     </div>
                   </td>
 
                   <td>
-                    <span className="report-type">
+                    <span className="report-category">
                       {report.type}
                     </span>
                   </td>
@@ -604,21 +356,22 @@ digital twin simulation environment.
 
                   <td>
                     <span className="report-status">
-                      <span />
+                      <span className="report-status-dot" />
                       {report.status}
                     </span>
                   </td>
 
                   <td>
                     <button
+                      type="button"
                       className="report-download-button"
                       onClick={() =>
-                        handleDownload(
-                          report.name,
+                        alert(
+                          `Preparing ${report.name} for download`
                         )
                       }
                     >
-                      <Download size={13} />
+                      <Download size={15} />
                       Download
                     </button>
                   </td>
@@ -629,28 +382,174 @@ digital twin simulation environment.
         </div>
       </div>
 
-      {/* =====================================================
-          FOOTER
-      ====================================================== */}
-
+      {/* QUICK REPORT TYPES */}
       <div
-        style={{
-          marginTop: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          color: "#536b7c",
-          fontSize: 9,
-        }}
+        className="panel"
+        style={{ marginTop: 18 }}
       >
-        <span>
-          METROPOLIS Digital Twin Platform
-        </span>
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              Quick Reports
+            </h3>
 
-        <span>
-          Reports generated from simulated city data
-        </span>
+            <p
+              className="muted"
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+              }}
+            >
+              Quickly create commonly used reports
+            </p>
+          </div>
+
+          <Zap size={18} />
+        </div>
+
+        <div className="quick-report-grid">
+          <QuickReport
+            icon={<BarChart3 size={20} />}
+            title="Traffic Report"
+            description="Traffic flow and congestion"
+          />
+
+          <QuickReport
+            icon={<Truck size={20} />}
+            title="Vehicle Report"
+            description="Vehicle activity and movement"
+          />
+
+          <QuickReport
+            icon={<FileBarChart size={20} />}
+            title="Incident Report"
+            description="Active and resolved incidents"
+          />
+
+          <QuickReport
+            icon={<TrendingUp size={20} />}
+            title="Analytics Report"
+            description="AI-based city insights"
+          />
+
+          <QuickReport
+            icon={<MapIcon />}
+            title="Zone Report"
+            description="Zone-wise performance"
+          />
+
+          <QuickReport
+            icon={<CalendarDays size={20} />}
+            title="Daily Summary"
+            description="Complete daily overview"
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+/* =========================================================
+   OVERVIEW ROW
+   ========================================================= */
+
+function OverviewRow({
+  label,
+  value,
+  progress,
+}: {
+  label: string;
+  value: string;
+  progress: number;
+}) {
+  return (
+    <div
+      style={{
+        marginBottom: 19,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 10,
+          marginBottom: 7,
+        }}
+      >
+        <span>{label}</span>
+
+        <strong>{value}</strong>
+      </div>
+
+      <div className="progress">
+        <div
+          className="progress-fill"
+          style={{
+            width: `${progress}%`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   QUICK REPORT
+   ========================================================= */
+
+function QuickReport({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      className="quick-report-card"
+      onClick={() =>
+        alert(`${title} generation started`)
+      }
+    >
+      <div className="quick-report-icon">
+        {icon}
+      </div>
+
+      <div>
+        <div className="quick-report-title">
+          {title}
+        </div>
+
+        <div className="quick-report-description">
+          {description}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* =========================================================
+   MAP ICON
+   ========================================================= */
+
+function MapIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6" />
+      <line x1="9" y1="3" x2="9" y2="18" />
+      <line x1="15" y1="6" x2="15" y2="21" />
+    </svg>
   );
 }
