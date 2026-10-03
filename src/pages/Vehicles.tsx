@@ -1,443 +1,769 @@
 import {
   Bike,
-  Bus,
+  BusFront,
   CarFront,
-  CircleGauge,
+  Gauge,
   MapPin,
+  Navigation,
   Radio,
   Search,
-  Signal,
-  SquareArrowOutUpRight,
+  SquareActivity,
+  Truck,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-type VehicleType = "Car" | "Bus" | "Bike";
-
-type Vehicle = {
-  id: string;
-  plate: string;
-  type: VehicleType;
-  model: string;
-  road: string;
-  zone: string;
-  speed: number;
-  direction: string;
-  status: "Moving" | "Stopped";
-  lastUpdated: string;
-};
-
-const vehicles: Vehicle[] = [
-  {
-    id: "VH-001",
-    plate: "KA-01-AB-1234",
-    type: "Car",
-    model: "Sedan",
-    road: "MG Road",
-    zone: "Zone A",
-    speed: 42,
-    direction: "North",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-002",
-    plate: "KA-01-BX-4589",
-    type: "Bus",
-    model: "City Bus",
-    road: "Main Road",
-    zone: "Zone A",
-    speed: 28,
-    direction: "East",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-003",
-    plate: "KA-05-MN-7788",
-    type: "Bike",
-    model: "Street Bike",
-    road: "Central Avenue",
-    zone: "Zone A",
-    speed: 36,
-    direction: "South",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-004",
-    plate: "KA-03-CD-9021",
-    type: "Car",
-    model: "Hatchback",
-    road: "Park Road",
-    zone: "Zone B",
-    speed: 12,
-    direction: "West",
-    status: "Stopped",
-    lastUpdated: "18 sec ago",
-  },
-  {
-    id: "VH-005",
-    plate: "KA-02-EF-3456",
-    type: "Car",
-    model: "SUV",
-    road: "Ring Road",
-    zone: "Zone A",
-    speed: 51,
-    direction: "North-East",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-006",
-    plate: "KA-04-GH-2211",
-    type: "Bus",
-    model: "Electric Bus",
-    road: "Station Road",
-    zone: "Zone B",
-    speed: 22,
-    direction: "South-East",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-007",
-    plate: "KA-02-JK-6543",
-    type: "Bike",
-    model: "Sports Bike",
-    road: "Market Road",
-    zone: "Zone A",
-    speed: 44,
-    direction: "East",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-  {
-    id: "VH-008",
-    plate: "KA-05-LM-8899",
-    type: "Car",
-    model: "Sedan",
-    road: "Airport Road",
-    zone: "Zone C",
-    speed: 31,
-    direction: "South",
-    status: "Moving",
-    lastUpdated: "Just now",
-  },
-];
+import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
 
 export default function Vehicles() {
+  const {
+    vehicles,
+    selectedVehicleId,
+    selectVehicle,
+    clearVehicleSelection,
+  } = useVehicleSimulation();
+
   const [search, setSearch] = useState("");
-  const [selectedVehicle, setSelectedVehicle] =
-    useState<Vehicle | null>(vehicles[0]);
+  const [typeFilter, setTypeFilter] =
+    useState("All");
+  const [zoneFilter, setZoneFilter] =
+    useState("All");
+  const [statusFilter, setStatusFilter] =
+    useState("All");
+
+  const selectedVehicle = vehicles.find(
+    (vehicle) =>
+      vehicle.id === selectedVehicleId,
+  );
+
+  /* =====================================================
+     FILTER VEHICLES
+  ====================================================== */
 
   const filteredVehicles = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = search
+      .trim()
+      .toLowerCase();
 
-    if (!query) {
-      return vehicles;
-    }
+    return vehicles.filter((vehicle) => {
+      const matchesSearch =
+        !query ||
+        [
+          vehicle.id,
+          vehicle.plate,
+          vehicle.type,
+          vehicle.model,
+          vehicle.road,
+          vehicle.zone,
+          vehicle.direction,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
 
-    return vehicles.filter((vehicle) =>
-      [
-        vehicle.id,
-        vehicle.plate,
-        vehicle.type,
-        vehicle.model,
-        vehicle.road,
-        vehicle.zone,
-        vehicle.direction,
-        vehicle.status,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [search]);
+      const matchesType =
+        typeFilter === "All" ||
+        vehicle.type ===
+          typeFilter.toLowerCase();
 
-  const movingVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "Moving"
-  ).length;
+      const matchesZone =
+        zoneFilter === "All" ||
+        vehicle.zone === zoneFilter;
 
-  const stoppedVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "Stopped"
-  ).length;
+      const matchesStatus =
+        statusFilter === "All" ||
+        vehicle.status === statusFilter;
 
-  const cars = vehicles.filter(
-    (vehicle) => vehicle.type === "Car"
-  ).length;
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesZone &&
+        matchesStatus
+      );
+    });
+  }, [
+    vehicles,
+    search,
+    typeFilter,
+    zoneFilter,
+    statusFilter,
+  ]);
 
-  const buses = vehicles.filter(
-    (vehicle) => vehicle.type === "Bus"
-  ).length;
+  /* =====================================================
+     KPI DATA
+  ====================================================== */
 
-  const bikes = vehicles.filter(
-    (vehicle) => vehicle.type === "Bike"
-  ).length;
+  const totalVehicles =
+    vehicles.length;
+
+  const movingVehicles =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.status === "Moving",
+    ).length;
+
+  const stoppedVehicles =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.status === "Stopped",
+    ).length;
+
+  const averageSpeed =
+    vehicles.length > 0
+      ? Math.round(
+          vehicles.reduce(
+            (total, vehicle) =>
+              total + vehicle.speed,
+            0,
+          ) / vehicles.length,
+        )
+      : 0;
+
+  const carCount =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.type === "car",
+    ).length;
+
+  const busCount =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.type === "bus",
+    ).length;
+
+  const bikeCount =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.type === "bike",
+    ).length;
+
+  const zones = Array.from(
+    new Set(
+      vehicles.map(
+        (vehicle) => vehicle.zone,
+      ),
+    ),
+  );
+
+  /* =====================================================
+     PAGE
+  ====================================================== */
 
   return (
     <div className="metropolis-page">
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================== */}
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">Vehicle Intelligence</h1>
+          <h1 className="page-title">
+            Vehicle Operations
+          </h1>
 
           <p className="page-subtitle">
-            Monitor and locate simulated vehicles across the digital twin
+            Real-time simulated vehicle tracking and information
+            management
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          LIVE VEHICLE TRACKING
+          VEHICLE ENGINE LIVE
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* =================================================
+          KPI CARDS
+      ================================================== */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <Radio size={22} />
+        <VehicleKpi
+          icon={<CarFront size={21} />}
+          label="Total Vehicles"
+          value={totalVehicles.toString()}
+          detail="Simulated fleet"
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Total Vehicles
-          </div>
+        <VehicleKpi
+          icon={<Radio size={21} />}
+          label="Moving"
+          value={movingVehicles.toString()}
+          detail="Currently active"
+        />
 
-          <div className="kpi-value">
-            {vehicles.length}
-          </div>
+        <VehicleKpi
+          icon={<SquareActivity size={21} />}
+          label="Stopped"
+          value={stoppedVehicles.toString()}
+          detail="Stationary vehicles"
+        />
 
-          <div className="kpi-change">
-            Simulated vehicles
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Signal size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Moving
-          </div>
-
-          <div className="kpi-value">
-            {movingVehicles}
-          </div>
-
-          <div className="kpi-change">
-            Live movement
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CircleGauge size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Stopped
-          </div>
-
-          <div className="kpi-value">
-            {stoppedVehicles}
-          </div>
-
-          <div className="kpi-change">
-            Stationary vehicles
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CarFront size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Vehicle Types
-          </div>
-
-          <div
-            className="kpi-value"
-            style={{ fontSize: 22 }}
-          >
-            {cars}C / {buses}B / {bikes}Bk
-          </div>
-
-          <div className="kpi-change">
-            Cars / Buses / Bikes
-          </div>
-        </div>
+        <VehicleKpi
+          icon={<Gauge size={21} />}
+          label="Average Speed"
+          value={`${averageSpeed} km/h`}
+          detail="Fleet average"
+        />
       </div>
 
-      {/* SEARCH */}
+      {/* =================================================
+          VEHICLE TYPE SUMMARY
+      ================================================== */}
+
       <div
+        className="grid-3"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <TypeSummary
+          icon={<CarFront size={20} />}
+          label="Cars"
+          count={carCount}
+          total={totalVehicles}
+        />
+
+        <TypeSummary
+          icon={<BusFront size={20} />}
+          label="Buses"
+          count={busCount}
+          total={totalVehicles}
+        />
+
+        <TypeSummary
+          icon={<Bike size={20} />}
+          label="Bikes"
+          count={bikeCount}
+          total={totalVehicles}
+        />
+      </div>
+
+      {/* =================================================
+          SEARCH AND FILTERS
+      ================================================== */}
+
+      <section
         className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          marginTop: 18,
+        }}
       >
         <div className="panel-header">
           <div>
             <h3 className="panel-title">
-              Find Any Vehicle
+              Vehicle Search & Filters
             </h3>
 
             <p
               className="muted"
               style={{
                 marginTop: 5,
-                fontSize: 12,
+                fontSize: 11,
               }}
             >
-              Search by Vehicle ID, number plate, road, zone or vehicle type
+              Search by vehicle ID, number plate, road,
+              zone or vehicle type
             </p>
           </div>
 
           <Search size={18} />
         </div>
 
-        <div style={{ padding: 20 }}>
+        <div
+          style={{
+            padding: 16,
+            display: "grid",
+            gridTemplateColumns:
+              "minmax(240px, 1.8fr) repeat(3, minmax(130px, 1fr))",
+            gap: 10,
+          }}
+        >
+          {/* SEARCH */}
+
           <div
             style={{
               position: "relative",
-              maxWidth: 700,
             }}
           >
             <Search
-              size={17}
+              size={15}
               style={{
                 position: "absolute",
-                left: 14,
+                left: 12,
                 top: "50%",
-                transform: "translateY(-50%)",
+                transform:
+                  "translateY(-50%)",
                 opacity: 0.55,
               }}
             />
 
             <input
-              type="text"
               value={search}
               onChange={(event) =>
-                setSearch(event.target.value)
+                setSearch(
+                  event.target.value,
+                )
               }
-              placeholder="Example: VH-001, KA-01-AB-1234, Zone A, MG Road..."
-              style={{
-                width: "100%",
-                padding: "13px 15px 13px 42px",
-                borderRadius: 8,
-                border:
-                  "1px solid rgba(80,170,205,.18)",
-                background: "#061521",
-                color: "#e8f8ff",
-                outline: "none",
-                fontSize: 13,
-              }}
+              placeholder="Search vehicle ID or plate..."
+              style={inputStyle}
             />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 8,
-              marginTop: 12,
-            }}
-          >
-            <SearchTag text="VH-001" />
-            <SearchTag text="KA-01-AB-1234" />
-            <SearchTag text="Zone A" />
-            <SearchTag text="MG Road" />
-          </div>
-        </div>
-      </div>
+          {/* TYPE */}
 
-      {/* VEHICLE LIST + DETAILS */}
+          <select
+            value={typeFilter}
+            onChange={(event) =>
+              setTypeFilter(
+                event.target.value,
+              )
+            }
+            style={selectStyle}
+          >
+            <option value="All">
+              All Types
+            </option>
+
+            <option value="Car">
+              Cars
+            </option>
+
+            <option value="Bus">
+              Buses
+            </option>
+
+            <option value="Bike">
+              Bikes
+            </option>
+          </select>
+
+          {/* ZONE */}
+
+          <select
+            value={zoneFilter}
+            onChange={(event) =>
+              setZoneFilter(
+                event.target.value,
+              )
+            }
+            style={selectStyle}
+          >
+            <option value="All">
+              All Zones
+            </option>
+
+            {zones.map((zone) => (
+              <option
+                key={zone}
+                value={zone}
+              >
+                {zone}
+              </option>
+            ))}
+          </select>
+
+          {/* STATUS */}
+
+          <select
+            value={statusFilter}
+            onChange={(event) =>
+              setStatusFilter(
+                event.target.value,
+              )
+            }
+            style={selectStyle}
+          >
+            <option value="All">
+              All Status
+            </option>
+
+            <option value="Moving">
+              Moving
+            </option>
+
+            <option value="Stopped">
+              Stopped
+            </option>
+          </select>
+        </div>
+      </section>
+
+      {/* =================================================
+          MAIN VEHICLE AREA
+      ================================================== */}
+
       <div
-        className="grid-2"
         style={{
+          display: "grid",
+          gridTemplateColumns:
+            "minmax(0, 1fr) 310px",
+          gap: 16,
           marginTop: 18,
           alignItems: "start",
         }}
       >
-        {/* VEHICLE LIST */}
-        <div className="panel">
+        {/* =================================================
+            VEHICLE TABLE
+        ================================================== */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Live Vehicle Feed
+                Live Vehicle Registry
               </h3>
 
               <p
                 className="muted"
                 style={{
                   marginTop: 5,
-                  fontSize: 12,
+                  fontSize: 11,
                 }}
               >
-                {filteredVehicles.length} vehicles shown
+                {filteredVehicles.length} vehicles
+                currently matching the selected filters
               </p>
             </div>
 
-            <Radio size={18} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                color: "#31d29a",
+                fontSize: 9,
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#31d29a",
+                  boxShadow:
+                    "0 0 8px rgba(49,210,154,.55)",
+                }}
+              />
+
+              LIVE
+            </div>
           </div>
 
           <div
             style={{
-              padding: 12,
-              maxHeight: 540,
-              overflowY: "auto",
+              overflowX: "auto",
             }}
           >
-            {filteredVehicles.length === 0 ? (
+            <table
+              style={{
+                width: "100%",
+                minWidth: 780,
+                borderCollapse:
+                  "collapse",
+              }}
+            >
+              <thead>
+                <tr>
+                  <TableHeader>
+                    Vehicle
+                  </TableHeader>
+
+                  <TableHeader>
+                    Type
+                  </TableHeader>
+
+                  <TableHeader>
+                    Location
+                  </TableHeader>
+
+                  <TableHeader>
+                    Speed
+                  </TableHeader>
+
+                  <TableHeader>
+                    Direction
+                  </TableHeader>
+
+                  <TableHeader>
+                    Status
+                  </TableHeader>
+
+                  <TableHeader>
+                    Action
+                  </TableHeader>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredVehicles.map(
+                  (vehicle) => {
+                    const isSelected =
+                      vehicle.id ===
+                      selectedVehicleId;
+
+                    return (
+                      <tr
+                        key={
+                          vehicle.id
+                        }
+                        style={{
+                          background:
+                            isSelected
+                              ? "rgba(20,190,235,.045)"
+                              : "transparent",
+                        }}
+                      >
+                        {/* VEHICLE */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <div
+                            style={{
+                              display:
+                                "flex",
+                              alignItems:
+                                "center",
+                              gap: 10,
+                            }}
+                          >
+                            <VehicleTypeIcon
+                              type={
+                                vehicle.type
+                              }
+                            />
+
+                            <div>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: 11,
+                                }}
+                              >
+                                {
+                                  vehicle.id
+                                }
+                              </div>
+
+                              <div
+                                className="muted"
+                                style={{
+                                  marginTop: 3,
+                                  fontSize: 9,
+                                }}
+                              >
+                                {
+                                  vehicle.plate
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* TYPE */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <span
+                            style={{
+                              textTransform:
+                                "capitalize",
+                              fontSize: 10,
+                            }}
+                          >
+                            {
+                              vehicle.type
+                            }
+                          </span>
+                        </td>
+
+                        {/* LOCATION */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <div
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {
+                              vehicle.road
+                            }
+                          </div>
+
+                          <div
+                            className="muted"
+                            style={{
+                              marginTop: 3,
+                              fontSize: 9,
+                            }}
+                          >
+                            {
+                              vehicle.zone
+                            }
+                          </div>
+                        </td>
+
+                        {/* SPEED */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <div
+                            style={{
+                              display:
+                                "flex",
+                              alignItems:
+                                "center",
+                              gap: 5,
+                            }}
+                          >
+                            <Gauge
+                              size={12}
+                            />
+
+                            {
+                              vehicle.speed
+                            }{" "}
+                            km/h
+                          </div>
+                        </td>
+
+                        {/* DIRECTION */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <div
+                            style={{
+                              display:
+                                "flex",
+                              alignItems:
+                                "center",
+                              gap: 5,
+                            }}
+                          >
+                            <Navigation
+                              size={12}
+                            />
+
+                            {
+                              vehicle.direction
+                            }
+                          </div>
+                        </td>
+
+                        {/* STATUS */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <span
+                            className={
+                              vehicle.status ===
+                              "Moving"
+                                ? "status status-low"
+                                : "status status-medium"
+                            }
+                          >
+                            {
+                              vehicle.status
+                            }
+                          </span>
+                        </td>
+
+                        {/* ACTION */}
+
+                        <td
+                          style={
+                            tableCell
+                          }
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              selectVehicle(
+                                vehicle.id,
+                              )
+                            }
+                            style={{
+                              padding:
+                                "6px 9px",
+                              borderRadius:
+                                5,
+                              border:
+                                isSelected
+                                  ? "1px solid rgba(22,201,237,.35)"
+                                  : "1px solid rgba(100,160,190,.12)",
+                              background:
+                                isSelected
+                                  ? "rgba(20,190,235,.08)"
+                                  : "rgba(5,20,32,.35)",
+                              color:
+                                isSelected
+                                  ? "#5de1ff"
+                                  : "#8da9b5",
+                              cursor:
+                                "pointer",
+                              fontSize: 9,
+                            }}
+                          >
+                            {isSelected
+                              ? "SELECTED"
+                              : "VIEW"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+              </tbody>
+            </table>
+
+            {filteredVehicles.length ===
+              0 && (
               <div
                 style={{
-                  padding: 40,
-                  textAlign: "center",
+                  padding: 45,
+                  textAlign:
+                    "center",
+                  color: "#66818e",
+                  fontSize: 11,
                 }}
               >
-                <Search size={25} />
-
-                <div
-                  style={{
-                    marginTop: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  No vehicle found
-                </div>
-
-                <div
-                  className="muted"
-                  style={{
-                    marginTop: 5,
-                    fontSize: 12,
-                  }}
-                >
-                  Try another Vehicle ID, plate number or location.
-                </div>
+                No vehicles match your
+                search or filters.
               </div>
-            ) : (
-              filteredVehicles.map((vehicle) => (
-                <VehicleListItem
-                  key={vehicle.id}
-                  vehicle={vehicle}
-                  selected={
-                    selectedVehicle?.id === vehicle.id
-                  }
-                  onClick={() =>
-                    setSelectedVehicle(vehicle)
-                  }
-                />
-              ))
             )}
           </div>
-        </div>
+        </section>
 
-        {/* VEHICLE DETAILS */}
-        <div className="panel">
+        {/* =================================================
+            VEHICLE DETAILS
+        ================================================== */}
+
+        <section
+          className="panel"
+          style={{
+            position: "sticky",
+            top: 18,
+          }}
+        >
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
@@ -448,7 +774,7 @@ export default function Vehicles() {
                 className="muted"
                 style={{
                   marginTop: 5,
-                  fontSize: 12,
+                  fontSize: 10,
                 }}
               >
                 Selected vehicle details
@@ -458,98 +784,100 @@ export default function Vehicles() {
             <MapPin size={18} />
           </div>
 
-          {selectedVehicle ? (
-            <div style={{ padding: 20 }}>
-              {/* VEHICLE IDENTITY */}
+          {!selectedVehicle ? (
+            <EmptyVehicleState />
+          ) : (
+            <div
+              style={{
+                padding: 15,
+              }}
+            >
+              {/* VEHICLE ID */}
+
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  paddingBottom: 18,
+                  alignItems:
+                    "center",
+                  gap: 11,
+                  paddingBottom: 14,
                   borderBottom:
-                    "1px solid rgba(100,160,190,.10)",
+                    "1px solid rgba(100,160,190,.08)",
                 }}
               >
+                <VehicleTypeIcon
+                  type={
+                    selectedVehicle.type
+                  }
+                  large
+                />
+
                 <div
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 10,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "rgba(20,190,235,.08)",
-                    border:
-                      "1px solid rgba(20,190,235,.15)",
+                    flex: 1,
                   }}
                 >
-                  <VehicleIcon
-                    type={selectedVehicle.type}
-                    size={25}
-                  />
-                </div>
-
-                <div>
                   <div
                     style={{
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: 700,
                     }}
                   >
-                    {selectedVehicle.id}
+                    {
+                      selectedVehicle.id
+                    }
                   </div>
 
                   <div
                     className="muted"
                     style={{
-                      marginTop: 4,
-                      fontSize: 12,
+                      marginTop: 3,
+                      fontSize: 10,
                     }}
                   >
-                    {selectedVehicle.plate}
+                    {
+                      selectedVehicle.plate
+                    }
                   </div>
                 </div>
 
                 <span
-                  className="status status-low"
-                  style={{
-                    marginLeft: "auto",
-                  }}
+                  className={
+                    selectedVehicle.status ===
+                    "Moving"
+                      ? "status status-low"
+                      : "status status-medium"
+                  }
                 >
-                  {selectedVehicle.status}
+                  {
+                    selectedVehicle.status
+                  }
                 </span>
               </div>
 
               {/* DETAILS */}
+
               <div
                 style={{
+                  marginTop: 14,
                   display: "grid",
                   gridTemplateColumns:
-                    "repeat(2, minmax(0, 1fr))",
-                  gap: 10,
-                  marginTop: 18,
+                    "1fr 1fr",
+                  gap: 8,
                 }}
               >
                 <DetailBox
                   label="Vehicle Type"
-                  value={selectedVehicle.type}
+                  value={
+                    selectedVehicle.type
+                  }
                 />
 
                 <DetailBox
                   label="Model"
-                  value={selectedVehicle.model}
-                />
-
-                <DetailBox
-                  label="Current Road"
-                  value={selectedVehicle.road}
-                />
-
-                <DetailBox
-                  label="Current Zone"
-                  value={selectedVehicle.zone}
+                  value={
+                    selectedVehicle.model
+                  }
                 />
 
                 <DetailBox
@@ -559,147 +887,331 @@ export default function Vehicles() {
 
                 <DetailBox
                   label="Direction"
-                  value={selectedVehicle.direction}
-                />
-
-                <DetailBox
-                  label="Last Updated"
-                  value={selectedVehicle.lastUpdated}
-                />
-
-                <DetailBox
-                  label="Traffic Status"
                   value={
-                    selectedVehicle.speed < 20
-                      ? "Slow"
-                      : selectedVehicle.speed < 35
-                        ? "Moderate"
-                        : "Normal"
+                    selectedVehicle.direction
+                  }
+                />
+
+                <DetailBox
+                  label="Road"
+                  value={
+                    selectedVehicle.road
+                  }
+                />
+
+                <DetailBox
+                  label="Zone"
+                  value={
+                    selectedVehicle.zone
                   }
                 />
               </div>
 
-              {/* MAP PREVIEW */}
+              {/* POSITION */}
+
               <div
                 style={{
-                  marginTop: 18,
-                  height: 170,
-                  borderRadius: 9,
-                  overflow: "hidden",
-                  position: "relative",
+                  marginTop: 10,
+                  padding: 11,
+                  borderRadius: 7,
                   border:
-                    "1px solid rgba(80,160,195,.12)",
+                    "1px solid rgba(100,160,190,.08)",
                   background:
-                    "linear-gradient(135deg, #071c2c, #03111d)",
+                    "rgba(5,20,32,.38)",
                 }}
               >
                 <div
                   style={{
-                    position: "absolute",
-                    left: "8%",
-                    right: "8%",
-                    top: "52%",
-                    height: 2,
-                    background:
-                      "rgba(50,180,220,.24)",
-                    transform: "rotate(-7deg)",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "8%",
-                    bottom: "8%",
-                    left: "55%",
-                    width: 2,
-                    background:
-                      "rgba(50,180,220,.18)",
-                    transform: "rotate(14deg)",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "52%",
-                    top: "48%",
-                    transform:
-                      "translate(-50%, -50%)",
-                    width: 34,
-                    height: 34,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "rgba(24,201,239,.15)",
-                    border:
-                      "1px solid rgba(24,201,239,.5)",
-                    boxShadow:
-                      "0 0 20px rgba(24,201,239,.25)",
+                    display:
+                      "flex",
+                    alignItems:
+                      "center",
+                    gap: 7,
+                    color:
+                      "#718b96",
+                    fontSize: 9,
+                    textTransform:
+                      "uppercase",
+                    letterSpacing:
+                      ".06em",
                   }}
                 >
-                  <VehicleIcon
-                    type={selectedVehicle.type}
-                    size={17}
-                  />
+                  <MapPin size={12} />
+
+                  Current Coordinates
                 </div>
 
                 <div
                   style={{
-                    position: "absolute",
-                    left: 12,
-                    top: 11,
-                    fontSize: 10,
-                    letterSpacing: ".08em",
+                    marginTop: 7,
+                    fontSize: 11,
+                    fontWeight: 600,
                   }}
                 >
-                  DIGITAL TWIN
-                </div>
-
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 12,
-                    bottom: 11,
-                    fontSize: 10,
-                    color: "#7d9aaa",
-                  }}
-                >
-                  {selectedVehicle.road}
+                  {
+                    selectedVehicle.position[0]
+                  }
+                  {" , "}
+                  {
+                    selectedVehicle.position[1]
+                  }
                 </div>
               </div>
 
-              {/* ACTION */}
+              {/* SIMULATION STATUS */}
+
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: 11,
+                  borderRadius: 7,
+                  background:
+                    "rgba(49,210,154,.035)",
+                  border:
+                    "1px solid rgba(49,210,154,.10)",
+                }}
+              >
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    alignItems:
+                      "center",
+                    gap: 7,
+                    color:
+                      "#31d29a",
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                >
+                  <Radio size={13} />
+
+                  SIMULATION ACTIVE
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    color:
+                      "#718b96",
+                    fontSize: 9,
+                    lineHeight:
+                      1.5,
+                  }}
+                >
+                  Vehicle position and movement
+                  are being updated by the
+                  METROPOLIS simulation engine.
+                </div>
+              </div>
+
+              {/* CLEAR */}
+
               <button
                 type="button"
-                className="report-action-button"
+                onClick={
+                  clearVehicleSelection
+                }
                 style={{
                   width: "100%",
-                  justifyContent: "center",
-                  marginTop: 14,
+                  marginTop: 12,
+                  padding: 9,
+                  borderRadius: 6,
+                  border:
+                    "1px solid rgba(100,160,190,.10)",
+                  background:
+                    "rgba(5,20,32,.40)",
+                  color:
+                    "#8da9b5",
+                  cursor:
+                    "pointer",
+                  fontSize: 10,
                 }}
-                onClick={() =>
-                  alert(
-                    `${selectedVehicle.id} selected on digital twin map`
-                  )
-                }
               >
-                <SquareArrowOutUpRight size={15} />
-                Locate on Digital Twin
+                Clear Vehicle Selection
               </button>
             </div>
-          ) : (
+          )}
+        </section>
+      </div>
+
+      {/* =================================================
+          FOOTER
+      ================================================== */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems:
+            "center",
+          gap: 7,
+          marginTop: 13,
+          paddingBottom: 20,
+          color: "#607c89",
+          fontSize: 10,
+        }}
+      >
+        <Radio size={13} />
+
+        METROPOLIS vehicle intelligence module ·
+        simulated real-time data stream active
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   KPI CARD
+========================================================= */
+
+function VehicleKpi({
+  icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 13,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="kpi-value">
+        {value}
+      </div>
+
+      <div
+        className="kpi-change"
+        style={{
+          fontSize: 9,
+        }}
+      >
+        {detail}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TYPE SUMMARY
+========================================================= */
+
+function TypeSummary({
+  icon,
+  label,
+  count,
+  total,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  count: number;
+  total: number;
+}) {
+  const percentage =
+    total > 0
+      ? Math.round(
+          (count / total) * 100,
+        )
+      : 0;
+
+  return (
+    <div className="panel">
+      <div
+        style={{
+          padding: 15,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems:
+              "center",
+            gap: 9,
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 7,
+              display:
+                "flex",
+              alignItems:
+                "center",
+              justifyContent:
+                "center",
+              background:
+                "rgba(20,190,235,.06)",
+            }}
+          >
+            {icon}
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+            }}
+          >
             <div
               style={{
-                padding: 50,
-                textAlign: "center",
+                fontSize: 11,
+                fontWeight: 600,
               }}
             >
-              Select a vehicle to view its information.
+              {label}
             </div>
-          )}
+
+            <div
+              className="muted"
+              style={{
+                marginTop: 3,
+                fontSize: 9,
+              }}
+            >
+              {percentage}% of fleet
+            </div>
+          </div>
+
+          <strong
+            style={{
+              fontSize: 17,
+            }}
+          >
+            {count}
+          </strong>
+        </div>
+
+        <div
+          style={{
+            marginTop: 12,
+            height: 5,
+            borderRadius: 20,
+            background:
+              "rgba(100,160,190,.08)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${percentage}%`,
+              height: "100%",
+              borderRadius: 20,
+              background:
+                "#16c9ed",
+            }}
+          />
         </div>
       </div>
     </div>
@@ -707,152 +1219,60 @@ export default function Vehicles() {
 }
 
 /* =========================================================
-   VEHICLE LIST ITEM
-   ========================================================= */
+   VEHICLE ICON
+========================================================= */
 
-function VehicleListItem({
-  vehicle,
-  selected,
-  onClick,
+function VehicleTypeIcon({
+  type,
+  large = false,
 }: {
-  vehicle: Vehicle;
-  selected: boolean;
-  onClick: () => void;
+  type: string;
+  large?: boolean;
 }) {
+  const size = large ? 23 : 16;
+
+  if (type === "bus") {
+    return (
+      <div
+        style={vehicleIconStyle}
+      >
+        <BusFront size={size} />
+      </div>
+    );
+  }
+
+  if (type === "bike") {
+    return (
+      <div
+        style={vehicleIconStyle}
+      >
+        <Bike size={size} />
+      </div>
+    );
+  }
+
+  if (type === "truck") {
+    return (
+      <div
+        style={vehicleIconStyle}
+      >
+        <Truck size={size} />
+      </div>
+    );
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: 13,
-        marginBottom: 8,
-        textAlign: "left",
-        borderRadius: 8,
-        border: selected
-          ? "1px solid rgba(24,201,239,.35)"
-          : "1px solid rgba(100,160,190,.08)",
-        background: selected
-          ? "rgba(20,190,235,.07)"
-          : "rgba(5,20,32,.40)",
-        color: "inherit",
-        cursor: "pointer",
-      }}
+    <div
+      style={vehicleIconStyle}
     >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          flexShrink: 0,
-          borderRadius: 8,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background:
-            "rgba(20,190,235,.07)",
-        }}
-      >
-        <VehicleIcon
-          type={vehicle.type}
-          size={19}
-        />
-      </div>
-
-      <div
-        style={{
-          minWidth: 0,
-          flex: 1,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
-        >
-          <strong style={{ fontSize: 13 }}>
-            {vehicle.id}
-          </strong>
-
-          <span
-            style={{
-              fontSize: 11,
-            }}
-          >
-            {vehicle.speed} km/h
-          </span>
-        </div>
-
-        <div
-          className="muted"
-          style={{
-            fontSize: 11,
-            marginTop: 4,
-          }}
-        >
-          {vehicle.plate} · {vehicle.road}
-        </div>
-
-        <div
-          className="muted"
-          style={{
-            fontSize: 10,
-            marginTop: 3,
-          }}
-        >
-          {vehicle.zone} · {vehicle.direction}
-        </div>
-      </div>
-
-      <span
-        style={{
-          width: 7,
-          height: 7,
-          flexShrink: 0,
-          borderRadius: "50%",
-          background:
-            vehicle.status === "Moving"
-              ? "#25d59b"
-              : "#f2b84b",
-          boxShadow:
-            vehicle.status === "Moving"
-              ? "0 0 8px rgba(37,213,155,.5)"
-              : "0 0 8px rgba(242,184,75,.4)",
-        }}
-      />
-    </button>
+      <CarFront size={size} />
+    </div>
   );
 }
 
 /* =========================================================
-   VEHICLE ICON
-   ========================================================= */
-
-function VehicleIcon({
-  type,
-  size = 20,
-}: {
-  type: VehicleType;
-  size?: number;
-}) {
-  if (type === "Bus") {
-    return <Bus size={size} />;
-  }
-
-  if (type === "Bike") {
-    return <Bike size={size} />;
-  }
-
-  return <CarFront size={size} />;
-}
-
-/* =========================================================
    DETAIL BOX
-   ========================================================= */
+========================================================= */
 
 function DetailBox({
   label,
@@ -864,19 +1284,22 @@ function DetailBox({
   return (
     <div
       style={{
-        padding: 12,
-        borderRadius: 7,
-        background: "rgba(5,20,32,.45)",
+        padding: 9,
+        borderRadius: 6,
+        background:
+          "rgba(5,20,32,.42)",
         border:
-          "1px solid rgba(100,160,190,.08)",
+          "1px solid rgba(100,160,190,.06)",
       }}
     >
       <div
-        className="muted"
         style={{
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: ".06em",
+          color: "#617b87",
+          fontSize: 8,
+          textTransform:
+            "uppercase",
+          letterSpacing:
+            ".04em",
         }}
       >
         {label}
@@ -884,9 +1307,19 @@ function DetailBox({
 
       <div
         style={{
-          marginTop: 6,
-          fontSize: 13,
+          marginTop: 5,
+          fontSize: 10,
           fontWeight: 600,
+          textTransform:
+            label ===
+            "Vehicle Type"
+              ? "capitalize"
+              : "none",
+          overflow: "hidden",
+          textOverflow:
+            "ellipsis",
+          whiteSpace:
+            "nowrap",
         }}
       >
         {value}
@@ -896,28 +1329,152 @@ function DetailBox({
 }
 
 /* =========================================================
-   SEARCH TAG
-   ========================================================= */
+   EMPTY VEHICLE STATE
+========================================================= */
 
-function SearchTag({
-  text,
-}: {
-  text: string;
-}) {
+function EmptyVehicleState() {
   return (
-    <button
-      type="button"
+    <div
       style={{
-        border: "1px solid rgba(80,170,205,.12)",
-        background: "rgba(20,190,235,.04)",
-        color: "#91b6c5",
-        borderRadius: 20,
-        padding: "5px 10px",
-        fontSize: 10,
-        cursor: "pointer",
+        padding: 30,
+        textAlign: "center",
       }}
     >
-      {text}
-    </button>
+      <div
+        style={{
+          width: 48,
+          height: 48,
+          margin: "0 auto",
+          borderRadius: 10,
+          display: "flex",
+          alignItems:
+            "center",
+          justifyContent:
+            "center",
+          background:
+            "rgba(20,190,235,.05)",
+          border:
+            "1px solid rgba(20,190,235,.10)",
+        }}
+      >
+        <MapPin
+          size={22}
+          style={{
+            opacity: 0.7,
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          fontSize: 12,
+          fontWeight: 600,
+        }}
+      >
+        No Vehicle Selected
+      </div>
+
+      <div
+        className="muted"
+        style={{
+          marginTop: 6,
+          fontSize: 10,
+          lineHeight: 1.6,
+        }}
+      >
+        Select a vehicle from the registry
+        to view its live simulated information.
+      </div>
+    </div>
   );
 }
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+function TableHeader({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <th
+      style={{
+        padding:
+          "12px 14px",
+        textAlign: "left",
+        color: "#688493",
+        fontSize: 9,
+        fontWeight: 600,
+        textTransform:
+          "uppercase",
+        letterSpacing:
+          ".06em",
+        borderBottom:
+          "1px solid rgba(100,160,190,.08)",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+/* =========================================================
+   STYLES
+========================================================= */
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding:
+    "10px 10px 10px 34px",
+  borderRadius: 7,
+  border:
+    "1px solid rgba(80,170,205,.14)",
+  background: "#061521",
+  color: "#e8f8ff",
+  outline: "none",
+  fontSize: 11,
+};
+
+const selectStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding:
+    "10px 10px",
+  borderRadius: 7,
+  border:
+    "1px solid rgba(80,170,205,.14)",
+  background: "#061521",
+  color: "#c8e0e8",
+  outline: "none",
+  fontSize: 10,
+  cursor: "pointer",
+};
+
+const tableCell: React.CSSProperties = {
+  padding:
+    "13px 14px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.06)",
+  fontSize: 10,
+  verticalAlign:
+    "middle",
+};
+
+const vehicleIconStyle: React.CSSProperties = {
+  width: 31,
+  height: 31,
+  flexShrink: 0,
+  borderRadius: 7,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background:
+    "rgba(20,190,235,.06)",
+  color: "#55dfff",
+  border:
+    "1px solid rgba(20,190,235,.10)",
+};

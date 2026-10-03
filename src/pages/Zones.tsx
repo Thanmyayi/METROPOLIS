@@ -2,305 +2,377 @@ import {
   Activity,
   CarFront,
   ChevronRight,
-  CircleAlert,
   MapPin,
+  Navigation,
   Radio,
   ShieldCheck,
   Users,
+  Waves,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-type Zone = {
+import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
+
+type ZoneLevel =
+  | "Low"
+  |  | "Medium"
+  | "High";
+
+interface ZoneData {
   name: string;
   description: string;
-  traffic: "Low" | "Medium" | "High";
   population: number;
-  vehicles: number;
+  trafficLevel: ZoneLevel;
+  capacity: number;
   roads: number;
   incidents: number;
-  congestion: number;
-  avgSpeed: number;
-};
+}
 
-const zones: Zone[] = [
+const zones: ZoneData[] = [
   {
     name: "Zone A",
-    description: "Central District",
-    traffic: "Medium",
+    description:
+      "Central District and primary city operations area",
     population: 45000,
-    vehicles: 5,
-    roads: 8,
+    trafficLevel: "Medium",
+    capacity: 250,
+    roads: 12,
     incidents: 2,
-    congestion: 48,
-    avgSpeed: 34,
   },
   {
     name: "Zone B",
-    description: "Business Hub",
-    traffic: "High",
+    description:
+      "Business Hub with high commercial activity",
     population: 32000,
-    vehicles: 2,
-    roads: 6,
-    incidents: 3,
-    congestion: 71,
-    avgSpeed: 21,
+    trafficLevel: "High",
+    capacity: 180,
+    roads: 9,
+    incidents: 4,
   },
   {
     name: "Zone C",
-    description: "Residential Area",
-    traffic: "Low",
+    description:
+      "Residential Area with lower traffic density",
     population: 28000,
-    vehicles: 1,
-    roads: 5,
-    incidents: 0,
-    congestion: 24,
-    avgSpeed: 39,
+    trafficLevel: "Low",
+    capacity: 160,
+    roads: 8,
+    incidents: 1,
   },
 ];
 
 export default function Zones() {
-  const [selectedZone, setSelectedZone] = useState<Zone>(
-    zones[0]
+  const {
+    vehicles,
+    selectedVehicleId,
+    selectVehicle,
+  } = useVehicleSimulation();
+
+  const [selectedZone, setSelectedZone] =
+    useState("Zone A");
+
+  const activeZone =
+    zones.find(
+      (zone) =>
+        zone.name === selectedZone,
+    ) ?? zones[0];
+
+  const zoneVehicles = useMemo(
+    () =>
+      vehicles.filter(
+        (vehicle) =>
+          vehicle.zone ===
+          activeZone.name,
+      ),
+    [vehicles, activeZone.name],
   );
 
-  const totalPopulation = useMemo(
-    () => zones.reduce((sum, zone) => sum + zone.population, 0),
-    []
-  );
+  const movingVehicles =
+    zoneVehicles.filter(
+      (vehicle) =>
+        vehicle.status === "Moving",
+    ).length;
 
-  const totalVehicles = useMemo(
-    () => zones.reduce((sum, zone) => sum + zone.vehicles, 0),
-    []
-  );
+  const stoppedVehicles =
+    zoneVehicles.filter(
+      (vehicle) =>
+        vehicle.status === "Stopped",
+    ).length;
 
-  const totalRoads = useMemo(
-    () => zones.reduce((sum, zone) => sum + zone.roads, 0),
-    []
-  );
+  const averageSpeed =
+    zoneVehicles.length > 0
+      ? Math.round(
+          zoneVehicles.reduce(
+            (sum, vehicle) =>
+              sum + vehicle.speed,
+            0,
+          ) /
+            zoneVehicles.length,
+        )
+      : 0;
 
-  const totalIncidents = useMemo(
-    () => zones.reduce((sum, zone) => sum + zone.incidents, 0),
-    []
-  );
+  const utilization =
+    Math.min(
+      100,
+      Math.round(
+        (zoneVehicles.length /
+          activeZone.capacity) *
+          100,
+      ),
+    );
+
+  const highTrafficZones =
+    zones.filter(
+      (zone) =>
+        zone.trafficLevel ===
+        "High",
+    ).length;
 
   return (
     <div className="metropolis-page">
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">Zone Intelligence</h1>
+          <h1 className="page-title">
+            Zone Operations
+          </h1>
 
           <p className="page-subtitle">
-            Monitor city zones, population, traffic and operational activity
+            Monitor city zones, traffic density,
+            population and operational activity
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          ZONE MONITORING ACTIVE
+          ZONE MONITORING LIVE
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* =====================================================
+          KPI CARDS
+      ====================================================== */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <MapPin size={22} />
+        <ZoneKpi
+          icon={<MapPin size={21} />}
+          label="Active Zones"
+          value={zones.length.toString()}
+          detail="City operational areas"
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Active Zones
-          </div>
+        <ZoneKpi
+          icon={<Users size={21} />}
+          label="Population"
+          value="105K"
+          detail="Across monitored zones"
+        />
 
-          <div className="kpi-value">
-            {zones.length}
-          </div>
+        <ZoneKpi
+          icon={<CarFront size={21} />}
+          label="Active Vehicles"
+          value={vehicles.length.toString()}
+          detail="Live simulated fleet"
+        />
 
-          <div className="kpi-change">
-            Digital twin sectors
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Users size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Population
-          </div>
-
-          <div className="kpi-value">
-            {(totalPopulation / 1000).toFixed(0)}K
-          </div>
-
-          <div className="kpi-change">
-            Simulated population
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CarFront size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Active Vehicles
-          </div>
-
-          <div className="kpi-value">
-            {totalVehicles}
-          </div>
-
-          <div className="kpi-change">
-            Across all zones
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CircleAlert size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Incidents
-          </div>
-
-          <div className="kpi-value">
-            {totalIncidents}
-          </div>
-
-          <div className="kpi-change">
-            Active zone incidents
-          </div>
-        </div>
+        <ZoneKpi
+          icon={<Activity size={21} />}
+          label="High Traffic Zones"
+          value={highTrafficZones.toString()}
+          detail="Requires monitoring"
+        />
       </div>
 
-      {/* ZONE OVERVIEW */}
-      <div
-        className="panel"
-        style={{ marginTop: 18 }}
-      >
-        <div className="panel-header">
-          <div>
-            <h3 className="panel-title">
-              Zone Overview
-            </h3>
+      {/* =====================================================
+          ZONE CARDS
+      ====================================================== */}
 
-            <p
-              className="muted"
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-              }}
-            >
-              Select a zone to inspect its current operational state
-            </p>
-          </div>
-
-          <Radio size={18} />
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(3, minmax(0, 1fr))",
-            gap: 12,
-            padding: 16,
-          }}
-        >
-          {zones.map((zone) => (
-            <ZoneCard
-              key={zone.name}
-              zone={zone}
-              selected={selectedZone.name === zone.name}
-              onClick={() => setSelectedZone(zone)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* SELECTED ZONE */}
-      <div
-        className="grid-2"
+      <section
         style={{
           marginTop: 18,
-          alignItems: "start",
         }}
       >
-        {/* ZONE DETAILS */}
-        <div className="panel">
+        <div
+          style={{
+            marginBottom: 10,
+            color: "#688493",
+            fontSize: 10,
+            textTransform:
+              "uppercase",
+            letterSpacing:
+              ".07em",
+          }}
+        >
+          City Zone Overview
+        </div>
+
+        <div className="grid-3">
+          {zones.map((zone) => {
+            const zoneVehicleCount =
+              vehicles.filter(
+                (vehicle) =>
+                  vehicle.zone ===
+                  zone.name,
+              ).length;
+
+            const isSelected =
+              zone.name ===
+              selectedZone;
+
+            return (
+              <ZoneCard
+                key={zone.name}
+                zone={zone}
+                vehicleCount={
+                  zoneVehicleCount
+                }
+                selected={
+                  isSelected
+                }
+                onClick={() =>
+                  setSelectedZone(
+                    zone.name,
+                  )
+                }
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =====================================================
+          ZONE DETAIL AREA
+      ====================================================== */}
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "minmax(0, 1fr) 320px",
+          gap: 16,
+          marginTop: 18,
+          alignItems:
+            "start",
+        }}
+      >
+        {/* ===================================================
+            SELECTED ZONE
+        ==================================================== */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                {selectedZone.name}
+                {activeZone.name}
+                {" · "}
+                Operational Detail
               </h3>
 
               <p
                 className="muted"
                 style={{
                   marginTop: 5,
-                  fontSize: 12,
+                  fontSize: 11,
                 }}
               >
-                {selectedZone.description}
+                {activeZone.description}
               </p>
             </div>
 
-            <span
-              className={
-                selectedZone.traffic === "High"
-                  ? "status status-high"
-                  : selectedZone.traffic === "Medium"
-                    ? "status status-medium"
-                    : "status status-low"
-              }
-            >
-              {selectedZone.traffic} Traffic
-            </span>
-          </div>
-
-          <div style={{ padding: 18 }}>
-            {/* METRICS */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(2, minmax(0, 1fr))",
-                gap: 10,
+                display:
+                  "flex",
+                alignItems:
+                  "center",
+                gap: 6,
+                color:
+                  trafficColor(
+                    activeZone.trafficLevel,
+                  ),
+                fontSize: 9,
               }}
             >
-              <ZoneMetric
-                icon={<Users size={17} />}
-                label="Population"
-                value={selectedZone.population.toLocaleString()}
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius:
+                    "50%",
+                  background:
+                    trafficColor(
+                      activeZone.trafficLevel,
+                    ),
+                }}
               />
 
-              <ZoneMetric
-                icon={<CarFront size={17} />}
+              {
+                activeZone.trafficLevel
+              }{" "}
+              TRAFFIC
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: 16,
+            }}
+          >
+            {/* DETAIL METRICS */}
+
+            <div className="grid-4">
+              <MiniMetric
+                icon={
+                  <CarFront
+                    size={17}
+                  />
+                }
                 label="Vehicles"
-                value={selectedZone.vehicles.toString()}
+                value={
+                  zoneVehicles.length.toString()
+                }
               />
 
-              <ZoneMetric
-                icon={<MapPin size={17} />}
-                label="Road Network"
-                value={`${selectedZone.roads} roads`}
+              <MiniMetric
+                icon={
+                  <Radio
+                    size={17}
+                  />
+                }
+                label="Moving"
+                value={
+                  movingVehicles.toString()
+                }
               />
 
-              <ZoneMetric
-                icon={<CircleAlert size={17} />}
-                label="Incidents"
-                value={selectedZone.incidents.toString()}
+              <MiniMetric
+                icon={
+                  <Activity
+                    size={17}
+                  />
+                }
+                label="Stopped"
+                value={
+                  stoppedVehicles.toString()
+                }
+              />
+
+              <MiniMetric
+                icon={
+                  <Navigation
+                    size={17}
+                  />
+                }
+                label="Avg Speed"
+                value={`${averageSpeed} km/h`}
               />
             </div>
 
-            {/* CONGESTION */}
+            {/* CAPACITY */}
+
             <div
               style={{
                 marginTop: 18,
@@ -308,34 +380,39 @@ export default function Zones() {
                 borderRadius: 8,
                 border:
                   "1px solid rgba(100,160,190,.08)",
-                background: "rgba(5,20,32,.45)",
+                background:
+                  "rgba(5,20,32,.35)",
               }}
             >
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+                  display:
+                    "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
                 }}
               >
                 <div>
                   <div
                     style={{
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: 600,
                     }}
                   >
-                    Congestion Level
+                    Vehicle Capacity
                   </div>
 
                   <div
                     className="muted"
                     style={{
                       marginTop: 4,
-                      fontSize: 10,
+                      fontSize: 9,
                     }}
                   >
-                    Current simulated road congestion
+                    Current simulated fleet
+                    utilization
                   </div>
                 </div>
 
@@ -344,284 +421,420 @@ export default function Zones() {
                     fontSize: 16,
                   }}
                 >
-                  {selectedZone.congestion}%
+                  {utilization}%
                 </strong>
               </div>
 
               <div
                 style={{
-                  marginTop: 12,
                   height: 7,
+                  marginTop: 12,
                   borderRadius: 20,
-                  background: "rgba(100,160,190,.10)",
-                  overflow: "hidden",
+                  overflow:
+                    "hidden",
+                  background:
+                    "rgba(100,160,190,.08)",
                 }}
               >
                 <div
                   style={{
-                    width: `${selectedZone.congestion}%`,
+                    width: `${utilization}%`,
                     height: "100%",
-                    borderRadius: 20,
+                    borderRadius:
+                      20,
                     background:
-                      selectedZone.congestion >= 65
-                        ? "#ef6a78"
-                        : selectedZone.congestion >= 40
-                          ? "#e5b45b"
-                          : "#31d29a",
+                      utilization >
+                      75
+                        ? "#e5b45b"
+                        : "#16c9ed",
+                    transition:
+                      "width .3s ease",
                   }}
                 />
               </div>
-            </div>
 
-            {/* SPEED */}
-            <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "13px 15px",
-                borderRadius: 8,
-                border:
-                  "1px solid rgba(100,160,190,.08)",
-                background: "rgba(5,20,32,.45)",
-              }}
-            >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 9,
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  marginTop: 7,
+                  color:
+                    "#617b87",
+                  fontSize: 8,
                 }}
               >
-                <Activity size={16} />
+                <span>
+                  {zoneVehicles.length}{" "}
+                  active
+                </span>
 
-                <span
-                  style={{
-                    fontSize: 12,
-                  }}
-                >
-                  Average Speed
+                <span>
+                  Capacity{" "}
+                  {
+                    activeZone.capacity
+                  }
                 </span>
               </div>
+            </div>
 
-              <strong>
-                {selectedZone.avgSpeed} km/h
-              </strong>
+            {/* ZONE INFORMATION */}
+
+            <div
+              style={{
+                display:
+                  "grid",
+                gridTemplateColumns:
+                  "repeat(3, 1fr)",
+                gap: 10,
+                marginTop: 10,
+              }}
+            >
+              <InfoBlock
+                label="Population"
+                value={formatNumber(
+                  activeZone.population,
+                )}
+              />
+
+              <InfoBlock
+                label="Road Network"
+                value={`${activeZone.roads} roads`}
+              />
+
+              <InfoBlock
+                label="Incidents"
+                value={activeZone.incidents.toString()}
+              />
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* DIGITAL ZONE MAP */}
-        <div className="panel">
+        {/* ===================================================
+            ZONE STATUS
+        ==================================================== */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Digital Zone Map
+                Zone Status
               </h3>
 
               <p
                 className="muted"
                 style={{
                   marginTop: 5,
-                  fontSize: 12,
+                  fontSize: 10,
                 }}
               >
-                Simulated operational area
+                Current operational condition
               </p>
             </div>
 
-            <MapPin size={18} />
+            <ShieldCheck size={18} />
           </div>
 
           <div
             style={{
-              padding: 18,
+              padding: 15,
             }}
           >
             <div
               style={{
-                height: 340,
-                borderRadius: 10,
-                overflow: "hidden",
-                position: "relative",
-                background:
-                  "linear-gradient(135deg, #061724, #03101b)",
+                padding: 14,
+                borderRadius: 8,
                 border:
-                  "1px solid rgba(70,150,190,.12)",
+                  `1px solid ${trafficColor(
+                    activeZone.trafficLevel,
+                  )}25`,
+                background:
+                  `${trafficColor(
+                    activeZone.trafficLevel,
+                  )}08`,
               }}
             >
-              {/* GRID */}
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: 0.22,
-                  backgroundImage:
-                    "linear-gradient(rgba(70,160,190,.16) 1px, transparent 1px), linear-gradient(90deg, rgba(70,160,190,.16) 1px, transparent 1px)",
-                  backgroundSize: "38px 38px",
-                }}
-              />
-
-              {/* ROADS */}
-              <div
-                style={{
-                  position: "absolute",
-                  width: "125%",
-                  height: 5,
-                  top: "46%",
-                  left: "-10%",
-                  background:
-                    "rgba(82,180,215,.22)",
-                  transform: "rotate(-12deg)",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  width: "120%",
-                  height: 4,
-                  top: "63%",
-                  left: "-10%",
-                  background:
-                    "rgba(82,180,215,.15)",
-                  transform: "rotate(17deg)",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  width: 4,
-                  height: "120%",
-                  left: "42%",
-                  top: "-10%",
-                  background:
-                    "rgba(82,180,215,.15)",
-                  transform: "rotate(9deg)",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  width: 4,
-                  height: "120%",
-                  left: "68%",
-                  top: "-10%",
-                  background:
-                    "rgba(82,180,215,.12)",
-                  transform: "rotate(-17deg)",
-                }}
-              />
-
-              {/* ZONE BOUNDARY */}
-              <div
-                style={{
-                  position: "absolute",
-                  width: "58%",
-                  height: "58%",
-                  left: "21%",
-                  top: "21%",
-                  borderRadius: 18,
-                  border:
-                    selectedZone.traffic === "High"
-                      ? "1px solid rgba(239,106,120,.48)"
-                      : selectedZone.traffic === "Medium"
-                        ? "1px solid rgba(229,180,91,.48)"
-                        : "1px solid rgba(49,210,154,.45)",
-                  background:
-                    selectedZone.traffic === "High"
-                      ? "rgba(239,106,120,.035)"
-                      : selectedZone.traffic === "Medium"
-                        ? "rgba(229,180,91,.035)"
-                        : "rgba(49,210,154,.035)",
-                }}
-              />
-
-              {/* ZONE LABEL */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "27%",
-                  transform: "translateX(-50%)",
-                  fontSize: 11,
-                  letterSpacing: ".1em",
-                  textTransform: "uppercase",
-                  opacity: 0.8,
-                }}
-              >
-                {selectedZone.name}
-              </div>
-
-              {/* VEHICLE MARKERS */}
-              <ZoneMarker
-                left="34%"
-                top="47%"
-                type="car"
-              />
-
-              <ZoneMarker
-                left="59%"
-                top="40%"
-                type="bus"
-              />
-
-              <ZoneMarker
-                left="48%"
-                top="66%"
-                type="bike"
-              />
-
-              {/* STATUS */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: 12,
-                  bottom: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: 10,
-                  color: "#83a6b5",
+                  display:
+                    "flex",
+                  alignItems:
+                    "center",
+                  gap: 9,
                 }}
               >
                 <span
                   style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "#31d29a",
+                    width: 10,
+                    height: 10,
+                    borderRadius:
+                      "50%",
+                    background:
+                      trafficColor(
+                        activeZone.trafficLevel,
+                      ),
                     boxShadow:
-                      "0 0 8px rgba(49,210,154,.5)",
+                      `0 0 10px ${trafficColor(
+                        activeZone.trafficLevel,
+                      )}70`,
                   }}
                 />
 
-                SIMULATION ACTIVE
+                <strong
+                  style={{
+                    fontSize: 13,
+                  }}
+                >
+                  {
+                    activeZone.trafficLevel
+                  } Traffic
+                </strong>
               </div>
 
-              <div
+              <p
+                className="muted"
                 style={{
-                  position: "absolute",
-                  right: 12,
-                  bottom: 12,
-                  fontSize: 10,
-                  color: "#6f8e9c",
+                  marginTop: 9,
+                  fontSize: 9,
+                  lineHeight:
+                    1.6,
                 }}
               >
-                {selectedZone.roads} ROAD NETWORKS
-              </div>
+                Zone activity is being
+                monitored by the METROPOLIS
+                simulation engine.
+              </p>
             </div>
+
+            {/* STATUS ROWS */}
+
+            <StatusRow
+              label="Traffic Level"
+              value={
+                activeZone.trafficLevel
+              }
+              valueColor={trafficColor(
+                activeZone.trafficLevel,
+              )}
+            />
+
+            <StatusRow
+              label="Vehicles"
+              value={`${zoneVehicles.length} active`}
+            />
+
+            <StatusRow
+              label="Average Speed"
+              value={`${averageSpeed} km/h`}
+            />
+
+            <StatusRow
+              label="Roads Monitored"
+              value={activeZone.roads.toString()}
+            />
+
+            <StatusRow
+              label="Incidents"
+              value={activeZone.incidents.toString()}
+              valueColor={
+                activeZone.incidents >
+                3
+                  ? "#e5b45b"
+                  : "#31d29a"
+              }
+            />
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* ZONE COMPARISON */}
-      <div
+      {/* =====================================================
+          VEHICLES IN SELECTED ZONE
+      ====================================================== */}
+
+      <section
         className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              Vehicles in {activeZone.name}
+            </h3>
+
+            <p
+              className="muted"
+              style={{
+                marginTop: 5,
+                fontSize: 10,
+              }}
+            >
+              Live simulated vehicles currently operating
+              inside this zone
+            </p>
+          </div>
+
+          <CarFront size={18} />
+        </div>
+
+        <div
+          style={{
+            padding: 15,
+          }}
+        >
+          {zoneVehicles.length ===
+          0 ? (
+            <div
+              style={{
+                padding: 35,
+                textAlign:
+                  "center",
+                color:
+                  "#66818e",
+                fontSize: 10,
+              }}
+            >
+              No simulated vehicles are
+              currently present in this zone.
+            </div>
+          ) : (
+            <div
+              style={{
+                display:
+                  "grid",
+                gridTemplateColumns:
+                  "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              {zoneVehicles.map(
+                (vehicle) => {
+                  const selected =
+                    vehicle.id ===
+                    selectedVehicleId;
+
+                  return (
+                    <button
+                      type="button"
+                      key={
+                        vehicle.id
+                      }
+                      onClick={() =>
+                        selectVehicle(
+                          vehicle.id,
+                        )
+                      }
+                      style={{
+                        textAlign:
+                          "left",
+                        padding: 12,
+                        borderRadius:
+                          8,
+                        border:
+                          selected
+                            ? "1px solid rgba(22,201,237,.35)"
+                            : "1px solid rgba(100,160,190,.08)",
+                        background:
+                          selected
+                            ? "rgba(20,190,235,.06)"
+                            : "rgba(5,20,32,.30)",
+                        color:
+                          "#d8edf3",
+                        cursor:
+                          "pointer",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          alignItems:
+                            "center",
+                          justifyContent:
+                            "space-between",
+                        }}
+                      >
+                        <strong
+                          style={{
+                            fontSize: 11,
+                          }}
+                        >
+                          {
+                            vehicle.id
+                          }
+                        </strong>
+
+                        <span
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius:
+                              "50%",
+                            background:
+                              vehicle.status ===
+                              "Moving"
+                                ? "#31d29a"
+                                : "#e5b45b",
+                          }}
+                        />
+                      </div>
+
+                      <div
+                        className="muted"
+                        style={{
+                          marginTop: 5,
+                          fontSize: 9,
+                        }}
+                      >
+                        {
+                          vehicle.plate
+                        }
+                      </div>
+
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          justifyContent:
+                            "space-between",
+                          marginTop: 10,
+                          fontSize: 9,
+                        }}
+                      >
+                        <span>
+                          {
+                            vehicle.speed
+                          }{" "}
+                          km/h
+                        </span>
+
+                        <span className="muted">
+                          {
+                            vehicle.direction
+                          }
+                        </span>
+                      </div>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* =====================================================
+          ZONE COMPARISON
+      ====================================================== */}
+
+      <section
+        className="panel"
+        style={{
+          marginTop: 18,
+          marginBottom: 20,
+        }}
       >
         <div className="panel-header">
           <div>
@@ -633,153 +846,282 @@ export default function Zones() {
               className="muted"
               style={{
                 marginTop: 5,
-                fontSize: 12,
+                fontSize: 10,
               }}
             >
-              Operational indicators across all monitored zones
+              Operational indicators across all city zones
             </p>
           </div>
 
-          <ShieldCheck size={18} />
+          <Waves size={18} />
         </div>
 
-        <div style={{ padding: 14 }}>
-          <div
+        <div
+          style={{
+            overflowX:
+              "auto",
+          }}
+        >
+          <table
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "1.2fr repeat(4, 1fr) 40px",
-              gap: 10,
-              padding: "10px 12px",
-              color: "#688493",
-              fontSize: 10,
-              textTransform: "uppercase",
-              letterSpacing: ".06em",
+              width: "100%",
+              borderCollapse:
+                "collapse",
+              minWidth: 650,
             }}
           >
-            <span>Zone</span>
-            <span>Traffic</span>
-            <span>Vehicles</span>
-            <span>Congestion</span>
-            <span>Speed</span>
-            <span />
-          </div>
+            <thead>
+              <tr>
+                <TableHeader>
+                  Zone
+                </TableHeader>
 
-          {zones.map((zone) => (
-            <button
-              type="button"
-              key={zone.name}
-              onClick={() => setSelectedZone(zone)}
-              style={{
-                width: "100%",
-                display: "grid",
-                gridTemplateColumns:
-                  "1.2fr repeat(4, 1fr) 40px",
-                gap: 10,
-                alignItems: "center",
-                padding: "14px 12px",
-                marginTop: 5,
-                borderRadius: 8,
-                border:
-                  selectedZone.name === zone.name
-                    ? "1px solid rgba(24,201,239,.20)"
-                    : "1px solid rgba(100,160,190,.06)",
-                background:
-                  selectedZone.name === zone.name
-                    ? "rgba(20,190,235,.045)"
-                    : "rgba(5,20,32,.30)",
-                color: "inherit",
-                textAlign: "left",
-                cursor: "pointer",
-              }}
-            >
-              <div>
-                <strong
-                  style={{
-                    fontSize: 12,
-                  }}
-                >
-                  {zone.name}
-                </strong>
+                <TableHeader>
+                  Population
+                </TableHeader>
 
-                <div
-                  className="muted"
-                  style={{
-                    marginTop: 3,
-                    fontSize: 10,
-                  }}
-                >
-                  {zone.description}
-                </div>
-              </div>
+                <TableHeader>
+                  Vehicles
+                </TableHeader>
 
-              <span
-                className={
-                  zone.traffic === "High"
-                    ? "status status-high"
-                    : zone.traffic === "Medium"
-                      ? "status status-medium"
-                      : "status status-low"
-                }
-                style={{
-                  width: "fit-content",
-                }}
-              >
-                {zone.traffic}
-              </span>
+                <TableHeader>
+                  Traffic
+                </TableHeader>
 
-              <span
-                style={{
-                  fontSize: 12,
-                }}
-              >
-                {zone.vehicles}
-              </span>
+                <TableHeader>
+                  Roads
+                </TableHeader>
 
-              <span
-                style={{
-                  fontSize: 12,
-                }}
-              >
-                {zone.congestion}%
-              </span>
+                <TableHeader>
+                  Incidents
+                </TableHeader>
 
-              <span
-                style={{
-                  fontSize: 12,
-                }}
-              >
-                {zone.avgSpeed} km/h
-              </span>
+                <TableHeader>
+                  Action
+                </TableHeader>
+              </tr>
+            </thead>
 
-              <ChevronRight
-                size={15}
-                style={{
-                  opacity: 0.45,
-                }}
-              />
-            </button>
-          ))}
+            <tbody>
+              {zones.map(
+                (zone) => {
+                  const count =
+                    vehicles.filter(
+                      (vehicle) =>
+                        vehicle.zone ===
+                        zone.name,
+                    ).length;
+
+                  return (
+                    <tr
+                      key={
+                        zone.name
+                      }
+                    >
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        <strong
+                          style={{
+                            fontSize: 11,
+                          }}
+                        >
+                          {
+                            zone.name
+                          }
+                        </strong>
+
+                        <div
+                          className="muted"
+                          style={{
+                            marginTop: 3,
+                            fontSize: 9,
+                          }}
+                        >
+                          {
+                            zone.description
+                          }
+                        </div>
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {formatNumber(
+                          zone.population,
+                        )}
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {count}
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        <span
+                          style={{
+                            color:
+                              trafficColor(
+                                zone.trafficLevel,
+                              ),
+                            fontSize: 10,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {
+                            zone.trafficLevel
+                          }
+                        </span>
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {zone.roads}
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {zone.incidents}
+                      </td>
+
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedZone(
+                              zone.name,
+                            )
+                          }
+                          style={{
+                            display:
+                              "inline-flex",
+                            alignItems:
+                              "center",
+                            gap: 5,
+                            padding:
+                              "6px 9px",
+                            borderRadius:
+                              5,
+                            border:
+                              "1px solid rgba(100,160,190,.12)",
+                            background:
+                              zone.name ===
+                              selectedZone
+                                ? "rgba(20,190,235,.08)"
+                                : "rgba(5,20,32,.35)",
+                            color:
+                              zone.name ===
+                              selectedZone
+                                ? "#55dfff"
+                                : "#8da9b5",
+                            cursor:
+                              "pointer",
+                            fontSize: 9,
+                          }}
+                        >
+                          View
+
+                          <ChevronRight
+                            size={11}
+                          />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </section>
 
-      {/* FOOTER STATUS */}
+      {/* =====================================================
+          FOOTER
+      ====================================================== */}
+
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginTop: 14,
-          padding: "10px 2px",
-          color: "#64808d",
+          display:
+            "flex",
+          alignItems:
+            "center",
+          gap: 7,
+          paddingBottom:
+            20,
+          color:
+            "#607c89",
           fontSize: 10,
         }}
       >
-        <Activity size={13} />
+        <Radio size={13} />
 
-        METROPOLIS zone engine monitoring{" "}
-        {totalRoads} connected road segments across{" "}
-        {zones.length} simulated zones.
+        METROPOLIS zone intelligence module ·
+        simulated city operations active
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   KPI
+========================================================= */
+
+function ZoneKpi({
+  icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 12,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="kpi-value">
+        {value}
+      </div>
+
+      <div
+        className="kpi-change"
+        style={{
+          fontSize: 9,
+        }}
+      >
+        {detail}
       </div>
     </div>
   );
@@ -787,127 +1129,201 @@ export default function Zones() {
 
 /* =========================================================
    ZONE CARD
-   ========================================================= */
+========================================================= */
 
 function ZoneCard({
   zone,
+  vehicleCount,
   selected,
   onClick,
 }: {
-  zone: Zone;
+  zone: ZoneData;
+  vehicleCount: number;
   selected: boolean;
   onClick: () => void;
 }) {
+  const color =
+    trafficColor(
+      zone.trafficLevel,
+    );
+
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
         textAlign: "left",
-        padding: 16,
+        padding: 0,
         borderRadius: 9,
         border: selected
-          ? "1px solid rgba(24,201,239,.35)"
+          ? "1px solid rgba(22,201,237,.30)"
           : "1px solid rgba(100,160,190,.08)",
-        background: selected
-          ? "rgba(20,190,235,.06)"
-          : "rgba(5,20,32,.35)",
-        color: "inherit",
+        background:
+          selected
+            ? "rgba(20,190,235,.045)"
+            : "#061521",
+        color: "#d8edf3",
         cursor: "pointer",
+        overflow: "hidden",
       }}
     >
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
+          height: 4,
+          background: color,
+        }}
+      />
+
+      <div
+        style={{
+          padding: 15,
         }}
       >
         <div
           style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "center",
+            display:
+              "flex",
+            alignItems:
+              "center",
+            justifyContent:
+              "space-between",
           }}
         >
           <div
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background:
-                "rgba(20,190,235,.07)",
+              display:
+                "flex",
+              alignItems:
+                "center",
+              gap: 9,
             }}
           >
-            <MapPin size={17} />
-          </div>
-
-          <div>
-            <strong
-              style={{
-                fontSize: 13,
-              }}
-            >
-              {zone.name}
-            </strong>
-
             <div
-              className="muted"
               style={{
-                marginTop: 3,
-                fontSize: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 8,
+                display:
+                  "flex",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
+                background:
+                  `${color}12`,
+                color,
               }}
             >
-              {zone.description}
+              <MapPin size={18} />
+            </div>
+
+            <div>
+              <strong
+                style={{
+                  fontSize: 12,
+                }}
+              >
+                {zone.name}
+              </strong>
+
+              <div
+                className="muted"
+                style={{
+                  marginTop: 3,
+                  fontSize: 9,
+                }}
+              >
+                {zone.roads} monitored
+                roads
+              </div>
             </div>
           </div>
+
+          <ChevronRight
+            size={16}
+            style={{
+              opacity: 0.5,
+            }}
+          />
         </div>
 
-        <span
+        <div
+          className="muted"
           style={{
-            width: 7,
-            height: 7,
-            borderRadius: "50%",
-            background:
-              zone.traffic === "High"
-                ? "#ef6a78"
-                : zone.traffic === "Medium"
-                  ? "#e5b45b"
-                  : "#31d29a",
+            marginTop: 13,
+            fontSize: 9,
+            lineHeight: 1.5,
           }}
-        />
-      </div>
+        >
+          {zone.description}
+        </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-          marginTop: 15,
-        }}
-      >
-        <MiniValue
-          label="Vehicles"
-          value={zone.vehicles.toString()}
-        />
+        <div
+          style={{
+            display:
+              "grid",
+            gridTemplateColumns:
+              "1fr 1fr",
+            gap: 7,
+            marginTop: 13,
+          }}
+        >
+          <SmallZoneMetric
+            label="Population"
+            value={formatNumber(
+              zone.population,
+            )}
+          />
 
-        <MiniValue
-          label="Congestion"
-          value={`${zone.congestion}%`}
-        />
+          <SmallZoneMetric
+            label="Vehicles"
+            value={vehicleCount.toString()}
+          />
+        </div>
+
+        <div
+          style={{
+            display:
+              "flex",
+            alignItems:
+              "center",
+            justifyContent:
+              "space-between",
+            marginTop: 11,
+            paddingTop: 10,
+            borderTop:
+              "1px solid rgba(100,160,190,.07)",
+          }}
+        >
+          <span
+            style={{
+              color,
+              fontSize: 9,
+              fontWeight: 600,
+            }}
+          >
+            {zone.trafficLevel} Traffic
+          </span>
+
+          <span
+            className="muted"
+            style={{
+              fontSize: 9,
+            }}
+          >
+            {zone.incidents} incidents
+          </span>
+        </div>
       </div>
     </button>
   );
 }
 
 /* =========================================================
-   ZONE METRIC
-   ========================================================= */
+   MINI METRIC
+========================================================= */
 
-function ZoneMetric({
+function MiniMetric({
   icon,
   label,
   value,
@@ -919,60 +1335,52 @@ function ZoneMetric({
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 11,
-        padding: 13,
-        borderRadius: 8,
-        background: "rgba(5,20,32,.45)",
+        padding: 11,
+        borderRadius: 7,
         border:
-          "1px solid rgba(100,160,190,.08)",
+          "1px solid rgba(100,160,190,.07)",
+        background:
+          "rgba(5,20,32,.32)",
       }}
     >
       <div
         style={{
-          width: 30,
-          height: 30,
-          borderRadius: 7,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background:
-            "rgba(20,190,235,.07)",
+          color: "#55dfff",
         }}
       >
         {icon}
       </div>
 
-      <div>
-        <div
-          className="muted"
-          style={{
-            fontSize: 10,
-          }}
-        >
-          {label}
-        </div>
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 15,
+          fontWeight: 700,
+        }}
+      >
+        {value}
+      </div>
 
-        <strong
-          style={{
-            display: "block",
-            marginTop: 3,
-            fontSize: 13,
-          }}
-        >
-          {value}
-        </strong>
+      <div
+        className="muted"
+        style={{
+          marginTop: 3,
+          fontSize: 8,
+          textTransform:
+            "uppercase",
+        }}
+      >
+        {label}
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   MINI VALUE
-   ========================================================= */
+   INFO BLOCK
+========================================================= */
 
-function MiniValue({
+function InfoBlock({
   label,
   value,
 }: {
@@ -980,11 +1388,22 @@ function MiniValue({
   value: string;
 }) {
   return (
-    <div>
+    <div
+      style={{
+        padding: 11,
+        borderRadius: 7,
+        background:
+          "rgba(5,20,32,.35)",
+        border:
+          "1px solid rgba(100,160,190,.07)",
+      }}
+    >
       <div
         className="muted"
         style={{
-          fontSize: 9,
+          fontSize: 8,
+          textTransform:
+            "uppercase",
         }}
       >
         {label}
@@ -992,8 +1411,8 @@ function MiniValue({
 
       <div
         style={{
-          marginTop: 3,
-          fontSize: 12,
+          marginTop: 5,
+          fontSize: 11,
           fontWeight: 600,
         }}
       >
@@ -1004,44 +1423,163 @@ function MiniValue({
 }
 
 /* =========================================================
-   ZONE MAP MARKER
-   ========================================================= */
+   STATUS ROW
+========================================================= */
 
-function ZoneMarker({
-  left,
-  top,
-  type,
+function StatusRow({
+  label,
+  value,
+  valueColor,
 }: {
-  left: string;
-  top: string;
-  type: "car" | "bus" | "bike";
+  label: string;
+  value: string;
+  valueColor?: string;
 }) {
   return (
     <div
       style={{
-        position: "absolute",
-        left,
-        top,
-        width: 25,
-        height: 25,
-        borderRadius: "50%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "rgba(20,190,235,.12)",
-        border:
-          "1px solid rgba(20,190,235,.38)",
-        color: "#6eddf4",
+        display:
+          "flex",
+        justifyContent:
+          "space-between",
+        alignItems:
+          "center",
+        padding:
+          "10px 0",
+        borderBottom:
+          "1px solid rgba(100,160,190,.06)",
       }}
     >
-      {type === "bus" ? (
-        <span style={{ fontSize: 10 }}>B</span>
-      ) : type === "bike" ? (
-        <span style={{ fontSize: 10 }}>●</span>
-      ) : (
-        <CarFront size={12} />
-      )}
+      <span
+        className="muted"
+        style={{
+          fontSize: 9,
+        }}
+      >
+        {label}
+      </span>
+
+      <strong
+        style={{
+          color:
+            valueColor ||
+            "#c8e0e8",
+          fontSize: 10,
+        }}
+      >
+        {value}
+      </strong>
     </div>
   );
 }
+
+/* =========================================================
+   SMALL ZONE METRIC
+========================================================= */
+
+function SmallZoneMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        padding: 8,
+        borderRadius: 6,
+        background:
+          "rgba(5,20,32,.40)",
+      }}
+    >
+      <div
+        className="muted"
+        style={{
+          fontSize: 8,
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: 4,
+          fontSize: 10,
+          fontWeight: 600,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TABLE HEADER
+========================================================= */
+
+function TableHeader({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <th
+      style={{
+        padding:
+          "12px 14px",
+        textAlign:
+          "left",
+        color:
+          "#688493",
+        fontSize: 9,
+        fontWeight: 600,
+        textTransform:
+          "uppercase",
+        letterSpacing:
+          ".06em",
+        borderBottom:
+          "1px solid rgba(100,160,190,.08)",
+      }}
+    >
+      {children}
+    </th>
+  );
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function trafficColor(
+  level: ZoneLevel,
+) {
+  if (level === "High") {
+    return "#ef6b73";
+  }
+
+  if (level === "Medium") {
+    return "#e5b45b";
+  }
+
+  return "#31d29a";
+}
+
+function formatNumber(
+  value: number,
+) {
+  return new Intl.NumberFormat(
+    "en-IN",
+  ).format(value);
+}
+
+const tableCell: React.CSSProperties = {
+  padding:
+    "13px 14px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.06)",
+  fontSize: 10,
+  verticalAlign:
+    "middle",
+};

@@ -10,7 +10,7 @@ const { pool } = require("./config/db");
 // Routes
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const trafficRoutes = require("./routes/trafficRoutes");
-const incidentRoutes = require("./routes/incidentRoutes");
+const incidentRoutes = require("./routes/incident");
 const zoneRoutes = require("./routes/zoneRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 
@@ -126,24 +126,31 @@ const startServer = async () => {
 
         app.listen(PORT, () => {
             console.log(`Server running on: http://localhost:${PORT}`);
+
             console.log(
                 `Health check: http://localhost:${PORT}/api/health`
             );
+
             console.log(
                 `Vehicle API: http://localhost:${PORT}/api/vehicles`
             );
+
             console.log(
                 `Traffic API: http://localhost:${PORT}/api/traffic`
             );
+
             console.log(
                 `Incident API: http://localhost:${PORT}/api/incidents`
             );
+
             console.log(
                 `Zone API: http://localhost:${PORT}/api/zones`
             );
+
             console.log(
                 `Analytics API: http://localhost:${PORT}/api/analytics`
             );
+
             console.log("----------------------------------------");
         });
     } catch (error) {

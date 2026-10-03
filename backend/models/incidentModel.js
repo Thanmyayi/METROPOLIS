@@ -22,7 +22,7 @@ async function getAllIncidents() {
   return rows;
 }
 
-// Get one incident by ID
+// Get incident by ID
 async function getIncidentById(id) {
   const [rows] = await pool.query(
     `
@@ -99,7 +99,7 @@ async function getIncidentsByStatus(status) {
   return rows;
 }
 
-// Create a new incident
+// Create incident
 async function createIncident(incidentData) {
   const {
     incident_type,
@@ -142,7 +142,7 @@ async function createIncident(incidentData) {
   return result.insertId;
 }
 
-// Update an incident
+// Update incident
 async function updateIncident(id, incidentData) {
   const {
     incident_type,
@@ -191,7 +191,7 @@ async function updateIncident(id, incidentData) {
   return result.affectedRows;
 }
 
-// Delete an incident
+// Delete incident
 async function deleteIncident(id) {
   const [result] = await pool.query(
     `
