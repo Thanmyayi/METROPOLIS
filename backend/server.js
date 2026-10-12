@@ -4,18 +4,27 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-// Database
+// ==================================================
+// DATABASE
+// ==================================================
+
 const { pool } = require("./config/db");
 
-// Routes
+// ==================================================
+// ROUTES
+// ==================================================
+
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const trafficRoutes = require("./routes/trafficRoutes");
-const incidentRoutes = require("./routes/incident");
+const incidentRoutes = require("./routes/incidentRoutes");
 const zoneRoutes = require("./routes/zoneRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 
-const app = express();
+// ==================================================
+// APP CONFIGURATION
+// ==================================================
 
+const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ==================================================
@@ -23,10 +32,10 @@ const PORT = process.env.PORT || 5000;
 // ==================================================
 
 app.use(
-    cors({
-        origin: "http://localhost:5174",
-        credentials: true
-    })
+  cors({
+    origin: "http://localhost:5174",
+    credentials: true,
+  })
 );
 
 app.use(express.json());
@@ -37,38 +46,31 @@ app.use(express.urlencoded({ extended: true }));
 // ==================================================
 
 app.get("/", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "METROPOLIS Backend API is running",
-        version: "1.0.0",
-        status: "online"
-    });
+  res.status(200).json({
+    success: true,
+    message: "METROPOLIS Backend API is running",
+    version: "1.0.0",
+    status: "online",
+  });
 });
 
 // ==================================================
 // HEALTH CHECK
 // ==================================================
 
-app.get("/api/health", async (req, res) => {
-    try {
-        await pool.query("SELECT 1");
+app.get("/api/health", async (req, res, next) => {
+  try {
+    await pool.query("SELECT 1");
 
-        res.status(200).json({
-            success: true,
-            message: "METROPOLIS Backend and MySQL are working",
-            database: "connected",
-            server: "running"
-        });
-    } catch (error) {
-        console.error("Health check database error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "Backend is running but MySQL connection failed",
-            database: "disconnected",
-            error: error.message
-        });
-    }
+    res.status(200).json({
+      success: true,
+      message: "METROPOLIS Backend and MySQL are working",
+      database: "connected",
+      server: "running",
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // ==================================================
@@ -76,13 +78,9 @@ app.get("/api/health", async (req, res) => {
 // ==================================================
 
 app.use("/api/vehicles", vehicleRoutes);
-
 app.use("/api/traffic", trafficRoutes);
-
 app.use("/api/incidents", incidentRoutes);
-
 app.use("/api/zones", zoneRoutes);
-
 app.use("/api/analytics", analyticsRoutes);
 
 // ==================================================
@@ -90,11 +88,11 @@ app.use("/api/analytics", analyticsRoutes);
 // ==================================================
 
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "API endpoint not found",
-        path: req.originalUrl
-    });
+  res.status(404).json({
+    success: false,
+    message: "API endpoint not found",
+    path: req.originalUrl,
+  });
 });
 
 // ==================================================
@@ -102,66 +100,57 @@ app.use((req, res) => {
 // ==================================================
 
 app.use((err, req, res, next) => {
-    console.error("Server error:", err);
+  console.error("Server error:", err);
 
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || "Internal server error"
-    });
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal server error",
+  });
 });
 
 // ==================================================
 // START SERVER
 // ==================================================
 
-const startServer = async () => {
-    try {
-        // Test MySQL connection
-        await pool.query("SELECT 1");
+async function startServer() {
+  try {
+    await pool.query("SELECT 1");
 
-        console.log("----------------------------------------");
-        console.log("METROPOLIS Backend");
-        console.log("----------------------------------------");
-        console.log("MySQL database connected successfully");
+    console.log("----------------------------------------");
+    console.log("METROPOLIS Backend");
+    console.log("----------------------------------------");
+    console.log("MySQL database connected successfully");
 
-        app.listen(PORT, () => {
-            console.log(`Server running on: http://localhost:${PORT}`);
+    const server = app.listen(PORT, () => {
+      console.log(`Server running at http://localhost:${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/api/health`);
+      console.log(`Vehicle API: http://localhost:${PORT}/api/vehicles`);
+      console.log(`Traffic API: http://localhost:${PORT}/api/traffic`);
+      console.log(`Incident API: http://localhost:${PORT}/api/incidents`);
+      console.log(`Zone API: http://localhost:${PORT}/api/zones`);
+      console.log(`Analytics API: http://localhost:${PORT}/api/analytics`);
+      console.log("----------------------------------------");
+    });
 
-            console.log(
-                `Health check: http://localhost:${PORT}/api/health`
-            );
+    server.on("error", (error) => {
+      console.error("HTTP server error:", error.message);
+    });
+  } catch (error) {
+    console.error("----------------------------------------");
+    console.error("METROPOLIS Backend failed to start");
+    console.error("----------------------------------------");
+    console.error("Database connection or startup error:");
+    console.error(error.message);
+    console.error("----------------------------------------");
 
-            console.log(
-                `Vehicle API: http://localhost:${PORT}/api/vehicles`
-            );
+    process.exitCode = 1;
+  }
+}
 
-            console.log(
-                `Traffic API: http://localhost:${PORT}/api/traffic`
-            );
-
-            console.log(
-                `Incident API: http://localhost:${PORT}/api/incidents`
-            );
-
-            console.log(
-                `Zone API: http://localhost:${PORT}/api/zones`
-            );
-
-            console.log(
-                `Analytics API: http://localhost:${PORT}/api/analytics`
-            );
-
-            console.log("----------------------------------------");
-        });
-    } catch (error) {
-        console.error("----------------------------------------");
-        console.error("METROPOLIS Backend failed to start");
-        console.error("----------------------------------------");
-        console.error("MySQL database connection failed:");
-        console.error(error.message);
-        console.error("----------------------------------------");
-    }
-};
-
-// Start application
 startServer();
+
+module.exports = app;
