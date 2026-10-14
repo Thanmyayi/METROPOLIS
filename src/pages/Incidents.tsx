@@ -1,115 +1,180 @@
 import {
+  Activity,
   AlertTriangle,
-  CheckCircle2,
-  Clock3,
+  CarFront,
+  Clock,
   MapPin,
   Radio,
   ShieldAlert,
   Siren,
   TriangleAlert,
 } from "lucide-react";
+import { useMemo, useState } from "react";
 
-const incidents = [
-  {
-    id: "INC-001",
-    type: "Traffic Collision",
-    description:
-      "Simulated vehicle collision detected near the central junction.",
-    road: "MG Road",
-    zone: "Zone A",
-    severity: "High",
-    status: "Active",
-    time: "2 min ago",
-  },
-  {
-    id: "INC-002",
-    type: "Heavy Congestion",
-    description:
-      "Vehicle density has exceeded the configured congestion threshold.",
-    road: "Main Road",
-    zone: "Zone B",
-    severity: "Medium",
-    status: "Active",
-    time: "8 min ago",
-  },
-  {
-    id: "INC-003",
-    type: "Vehicle Breakdown",
-    description:
-      "Simulated vehicle has remained stationary for an extended period.",
-    road: "Park Road",
-    zone: "Zone B",
-    severity: "Low",
-    status: "Active",
-    time: "16 min ago",
-  },
-  {
-    id: "INC-004",
-    type: "Road Obstruction",
-    description:
-      "Temporary obstruction detected in the simulated road network.",
-    road: "Ring Road",
-    zone: "Zone C",
-    severity: "Medium",
-    status: "Resolved",
-    time: "42 min ago",
-  },
-  {
-    id: "INC-005",
-    type: "Traffic Signal Alert",
-    description:
-      "Traffic signal simulation generated an abnormal timing event.",
-    road: "Central Avenue",
-    zone: "Zone A",
-    severity: "Low",
-    status: "Resolved",
-    time: "1 hr ago",
-  },
-];
+import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
 
-const severityStyles = {
-  Critical: {
-    className: "status-high",
-    icon: <ShieldAlert size={13} />,
-  },
-  High: {
-    className: "status-high",
-    icon: <TriangleAlert size={13} />,
-  },
-  Medium: {
-    className: "status-medium",
-    icon: <AlertTriangle size={13} />,
-  },
-  Low: {
-    className: "status-low",
-    icon: <CheckCircle2 size={13} />,
-  },
+type IncidentStatus = "Active" | "Resolved";
+type IncidentSeverity = "High" | "Medium" | "Low";
+
+type Incident = {
+  id: string;
+  type: string;
+  location: string;
+  zone: string;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
+  vehicles: number;
+  time: string;
+  description: string;
 };
 
 export default function Incidents() {
-  const activeIncidents = incidents.filter(
-    (incident) => incident.status === "Active"
+  const { vehicles } = useVehicleSimulation();
+
+  const [statusFilter, setStatusFilter] = useState<
+    "All" | IncidentStatus
+  >("All");
+
+  const [severityFilter, setSeverityFilter] = useState<
+    "All" | IncidentSeverity
+  >("All");
+
+  const incidents = useMemo<Incident[]>(() => {
+    const stoppedVehicles = vehicles.filter(
+      (vehicle) => vehicle.status === "Stopped",
+    );
+
+    const generated: Incident[] = [];
+
+    if (stoppedVehicles.length > 0) {
+      const first = stoppedVehicles[0];
+
+      generated.push({
+        id: "INC-001",
+        type: "Vehicle Congestion",
+        location: first.road,
+        zone: first.zone,
+        severity:
+          stoppedVehicles.length >= 5
+            ? "High"
+            : stoppedVehicles.length >= 2
+              ? "Medium"
+              : "Low",
+        status: "Active",
+        vehicles: stoppedVehicles.length,
+        time: "Just now",
+        description:
+          "Multiple stopped vehicles detected in the simulated traffic network.",
+      });
+    }
+
+    if (vehicles.length > 0) {
+      const slowVehicles = vehicles.filter(
+        (vehicle) => vehicle.speed < 20,
+      );
+
+      if (slowVehicles.length > 0) {
+        const first = slowVehicles[0];
+
+        generated.push({
+          id: "INC-002",
+          type: "Slow Traffic",
+          location: first.road,
+          zone: first.zone,
+          severity:
+            slowVehicles.length >= 6
+              ? "High"
+              : slowVehicles.length >= 3
+                ? "Medium"
+                : "Low",
+          status: "Active",
+          vehicles: slowVehicles.length,
+          time: "2 min ago",
+          description:
+            "Low-speed vehicle activity detected in the monitored zone.",
+        });
+      }
+    }
+
+    if (vehicles.length >= 5) {
+      const first = vehicles[0];
+
+      generated.push({
+        id: "INC-003",
+        type: "Traffic Monitoring Alert",
+        location: first.road,
+        zone: first.zone,
+        severity: "Low",
+        status: "Resolved",
+        vehicles: vehicles.length,
+        time: "8 min ago",
+        description:
+          "Traffic conditions are being monitored by the digital twin engine.",
+      });
+    }
+
+    return generated;
+  }, [vehicles]);
+
+  const filteredIncidents = incidents.filter((incident) => {
+    const matchesStatus =
+      statusFilter === "All" ||
+      incident.status === statusFilter;
+
+    const matchesSeverity =
+      severityFilter === "All" ||
+      incident.severity === severityFilter;
+
+    return matchesStatus && matchesSeverity;
+  });
+
+  const activeCount = incidents.filter(
+    (incident) => incident.status === "Active",
   ).length;
 
-  const resolvedIncidents = incidents.filter(
-    (incident) => incident.status === "Resolved"
+  const highCount = incidents.filter(
+    (incident) => incident.severity === "High",
   ).length;
 
-  const highPriority = incidents.filter(
-    (incident) =>
-      incident.severity === "High" ||
-      incident.severity === "Critical"
+  const resolvedCount = incidents.filter(
+    (incident) => incident.status === "Resolved",
   ).length;
+
+  const getSeverityClass = (
+    severity: IncidentSeverity,
+  ) => {
+    if (severity === "High") {
+      return "status status-high";
+    }
+
+    if (severity === "Medium") {
+      return "status status-medium";
+    }
+
+    return "status status-low";
+  };
+
+  const getStatusClass = (
+    status: IncidentStatus,
+  ) => {
+    return status === "Active"
+      ? "status status-medium"
+      : "status status-low";
+  };
 
   return (
     <div className="metropolis-page">
       {/* HEADER */}
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">Incident Management</h1>
+          <h1 className="page-title">
+            Incident Intelligence
+          </h1>
 
           <p className="page-subtitle">
-            Monitor, analyze and manage simulated city incidents
+            Real-time simulated incident detection,
+            monitoring and response management
           </p>
         </div>
 
@@ -120,98 +185,53 @@ export default function Incidents() {
       </div>
 
       {/* KPI CARDS */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <Radio size={22} />
+        <IncidentCard
+          icon={<TriangleAlert size={21} />}
+          label="Total Incidents"
+          value={incidents.length.toString()}
+          description="Detected by simulation"
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Active Incidents
-          </div>
+        <IncidentCard
+          icon={<Siren size={21} />}
+          label="Active"
+          value={activeCount.toString()}
+          description="Currently requiring attention"
+        />
 
-          <div className="kpi-value">
-            {activeIncidents}
-          </div>
+        <IncidentCard
+          icon={<ShieldAlert size={21} />}
+          label="High Severity"
+          value={highCount.toString()}
+          description="Priority incidents"
+        />
 
-          <div className="kpi-change">
-            Requires monitoring
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <ShieldAlert size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            High Priority
-          </div>
-
-          <div className="kpi-value">
-            {highPriority}
-          </div>
-
-          <div className="kpi-change">
-            Priority incidents
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CheckCircle2 size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Resolved
-          </div>
-
-          <div className="kpi-value">
-            {resolvedIncidents}
-          </div>
-
-          <div className="kpi-change">
-            Successfully closed
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Clock3 size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Response Time
-          </div>
-
-          <div className="kpi-value">
-            04:28
-          </div>
-
-          <div className="kpi-change">
-            Average response
-          </div>
-        </div>
+        <IncidentCard
+          icon={<Activity size={21} />}
+          label="Resolved"
+          value={resolvedCount.toString()}
+          description="Previously monitored"
+        />
       </div>
 
-      {/* INCIDENT OVERVIEW */}
+      {/* OVERVIEW */}
+
       <div
         className="grid-2"
         style={{
           marginTop: 18,
-          alignItems: "stretch",
+          alignItems: "start",
         }}
       >
-        {/* INCIDENT DISTRIBUTION */}
-        <div className="panel">
+        {/* INCIDENT ENGINE */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Incident Distribution
+                Incident Detection Engine
               </h3>
 
               <p
@@ -221,42 +241,483 @@ export default function Incidents() {
                   fontSize: 12,
                 }}
               >
-                Current incidents by severity
+                Current digital twin monitoring status
               </p>
             </div>
 
-            <AlertTriangle size={18} />
+            <Radio size={18} />
           </div>
 
-          <div style={{ padding: 20 }}>
-            <IncidentLevel
-              label="Critical"
-              value={0}
-              total={incidents.length}
+          <div style={{ padding: 18 }}>
+            <IncidentStatusRow
+              icon={<Radio size={16} />}
+              title="Detection Engine"
+              value="Active"
+              good
             />
 
-            <IncidentLevel
+            <IncidentStatusRow
+              icon={<Activity size={16} />}
+              title="Vehicle Stream"
+              value="Connected"
+              good
+            />
+
+            <IncidentStatusRow
+              icon={<TriangleAlert size={16} />}
+              title="Incident Monitoring"
+              value="Running"
+              good
+            />
+
+            <IncidentStatusRow
+              icon={<CarFront size={16} />}
+              title="Vehicles Monitored"
+              value={vehicles.length.toString()}
+              good
+            />
+          </div>
+        </section>
+
+        {/* SEVERITY SUMMARY */}
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Severity Summary
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Current incident priority distribution
+              </p>
+            </div>
+
+            <ShieldAlert size={18} />
+          </div>
+
+          <div style={{ padding: 18 }}>
+            <SeverityRow
               label="High"
-              value={2}
+              value={
+                incidents.filter(
+                  (incident) =>
+                    incident.severity === "High",
+                ).length
+              }
               total={incidents.length}
             />
 
-            <IncidentLevel
+            <SeverityRow
               label="Medium"
-              value={2}
+              value={
+                incidents.filter(
+                  (incident) =>
+                    incident.severity === "Medium",
+                ).length
+              }
               total={incidents.length}
             />
 
-            <IncidentLevel
+            <SeverityRow
               label="Low"
-              value={1}
+              value={
+                incidents.filter(
+                  (incident) =>
+                    incident.severity === "Low",
+                ).length
+              }
               total={incidents.length}
             />
+          </div>
+        </section>
+      </div>
+
+      {/* FILTERS */}
+
+      <section
+        className="panel"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div
+          style={{
+            padding: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            className="muted"
+            style={{
+              fontSize: 10,
+              marginRight: 4,
+            }}
+          >
+            STATUS
+          </span>
+
+          <FilterButton
+            active={statusFilter === "All"}
+            onClick={() => setStatusFilter("All")}
+          >
+            All
+          </FilterButton>
+
+          <FilterButton
+            active={statusFilter === "Active"}
+            onClick={() =>
+              setStatusFilter("Active")
+            }
+          >
+            Active
+          </FilterButton>
+
+          <FilterButton
+            active={statusFilter === "Resolved"}
+            onClick={() =>
+              setStatusFilter("Resolved")
+            }
+          >
+            Resolved
+          </FilterButton>
+
+          <div
+            style={{
+              width: 1,
+              height: 24,
+              background:
+                "rgba(100,160,190,.12)",
+              margin: "0 6px",
+            }}
+          />
+
+          <span
+            className="muted"
+            style={{
+              fontSize: 10,
+              marginRight: 4,
+            }}
+          >
+            SEVERITY
+          </span>
+
+          <FilterButton
+            active={severityFilter === "All"}
+            onClick={() =>
+              setSeverityFilter("All")
+            }
+          >
+            All
+          </FilterButton>
+
+          <FilterButton
+            active={severityFilter === "High"}
+            onClick={() =>
+              setSeverityFilter("High")
+            }
+          >
+            High
+          </FilterButton>
+
+          <FilterButton
+            active={severityFilter === "Medium"}
+            onClick={() =>
+              setSeverityFilter("Medium")
+            }
+          >
+            Medium
+          </FilterButton>
+
+          <FilterButton
+            active={severityFilter === "Low"}
+            onClick={() =>
+              setSeverityFilter("Low")
+            }
+          >
+            Low
+          </FilterButton>
+        </div>
+      </section>
+
+      {/* INCIDENT REGISTRY */}
+
+      <section
+        className="panel"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              Incident Registry
+            </h3>
+
+            <p
+              className="muted"
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+              }}
+            >
+              {filteredIncidents.length} incidents
+              matching the selected filters
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <AlertTriangle size={15} />
+
+            <span className="status status-low">
+              MONITORING
+            </span>
           </div>
         </div>
 
-        {/* INCIDENT RESPONSE */}
-        <div className="panel">
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              minWidth: 950,
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  color: "#688493",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: ".06em",
+                }}
+              >
+                <th style={tableHeader}>
+                  Incident
+                </th>
+
+                <th style={tableHeader}>
+                  Type
+                </th>
+
+                <th style={tableHeader}>
+                  Location
+                </th>
+
+                <th style={tableHeader}>
+                  Zone
+                </th>
+
+                <th style={tableHeader}>
+                  Vehicles
+                </th>
+
+                <th style={tableHeader}>
+                  Severity
+                </th>
+
+                <th style={tableHeader}>
+                  Status
+                </th>
+
+                <th style={tableHeader}>
+                  Time
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filteredIncidents.length > 0 ? (
+                filteredIncidents.map(
+                  (incident) => (
+                    <tr key={incident.id}>
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 8,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent:
+                                "center",
+                              background:
+                                "rgba(239,106,120,.07)",
+                            }}
+                          >
+                            <TriangleAlert
+                              size={16}
+                            />
+                          </div>
+
+                          <div>
+                            <strong
+                              style={{
+                                fontSize: 11,
+                              }}
+                            >
+                              {incident.id}
+                            </strong>
+
+                            <div
+                              className="muted"
+                              style={{
+                                fontSize: 9,
+                                marginTop: 3,
+                              }}
+                            >
+                              Incident ID
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td style={tableCell}>
+                        <strong
+                          style={{
+                            fontSize: 11,
+                          }}
+                        >
+                          {incident.type}
+                        </strong>
+
+                        <div
+                          className="muted"
+                          style={{
+                            fontSize: 9,
+                            marginTop: 3,
+                            maxWidth: 230,
+                          }}
+                        >
+                          {incident.description}
+                        </div>
+                      </td>
+
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <MapPin size={13} />
+                          {incident.location}
+                        </div>
+                      </td>
+
+                      <td style={tableCell}>
+                        <span className="status status-medium">
+                          {incident.zone}
+                        </span>
+                      </td>
+
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <CarFront size={13} />
+                          {incident.vehicles}
+                        </div>
+                      </td>
+
+                      <td style={tableCell}>
+                        <span
+                          className={getSeverityClass(
+                            incident.severity,
+                          )}
+                        >
+                          {incident.severity}
+                        </span>
+                      </td>
+
+                      <td style={tableCell}>
+                        <span
+                          className={getStatusClass(
+                            incident.status,
+                          )}
+                        >
+                          {incident.status}
+                        </span>
+                      </td>
+
+                      <td style={tableCell}>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                          }}
+                        >
+                          <Clock size={13} />
+                          {incident.time}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )
+              ) : (
+                <tr>
+                  <td
+                    colSpan={8}
+                    style={{
+                      padding: "45px 20px",
+                      textAlign: "center",
+                      color: "#64808d",
+                      fontSize: 12,
+                    }}
+                  >
+                    No incidents found
+                    matching the selected
+                    filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* RESPONSE STATUS */}
+
+      <div
+        className="grid-2"
+        style={{
+          marginTop: 18,
+          alignItems: "start",
+        }}
+      >
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
@@ -270,321 +731,256 @@ export default function Incidents() {
                   fontSize: 12,
                 }}
               >
-                Current operational response
+                Automated incident response readiness
               </p>
             </div>
 
             <Siren size={18} />
           </div>
 
-          <div
-            style={{
-              padding: 20,
-              display: "grid",
-              gap: 12,
-            }}
-          >
-            <ResponseCard
-              title="Detection"
-              value="Automatic"
-              description="Simulation engine monitoring"
-              active
+          <div style={{ padding: 18 }}>
+            <ResponseRow
+              title="Incident Detection"
+              value="Online"
+              good
             />
 
-            <ResponseCard
-              title="Location Tracking"
-              value="Enabled"
-              description="Incident coordinates available"
-              active
+            <ResponseRow
+              title="Traffic Monitoring"
+              value="Active"
+              good
             />
 
-            <ResponseCard
-              title="Response Team"
-              value="Standby"
-              description="No manual dispatch required"
-              active
+            <ResponseRow
+              title="Vehicle Tracking"
+              value="Connected"
+              good
             />
 
-            <ResponseCard
-              title="System Status"
-              value="Operational"
-              description="Incident service functioning normally"
-              active
+            <ResponseRow
+              title="Alert Processing"
+              value="Ready"
+              good
             />
           </div>
-        </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Incident Summary
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Current digital twin statistics
+              </p>
+            </div>
+
+            <Activity size={18} />
+          </div>
+
+          <div style={{ padding: 18 }}>
+            <SummaryItem
+              label="Total Incidents"
+              value={incidents.length}
+            />
+
+            <SummaryItem
+              label="Active Incidents"
+              value={activeCount}
+            />
+
+            <SummaryItem
+              label="High Severity"
+              value={highCount}
+            />
+
+            <SummaryItem
+              label="Resolved Incidents"
+              value={resolvedCount}
+            />
+          </div>
+        </section>
       </div>
 
-      {/* INCIDENT TABLE */}
+      {/* FOOTER */}
+
       <div
-        className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 14,
+          paddingBottom: 20,
+          color: "#64808d",
+          fontSize: 10,
+        }}
       >
-        <div className="panel-header">
-          <div>
-            <h3 className="panel-title">
-              Incident Feed
-            </h3>
+        <Activity size={13} />
 
-            <p
-              className="muted"
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-              }}
-            >
-              Latest incidents detected by the METROPOLIS simulation
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontSize: 12,
-            }}
-          >
-            <span className="live-dot" />
-            Live feed
-          </div>
-        </div>
-
-        <div className="report-table-wrapper">
-          <table className="report-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Incident</th>
-                <th>Location</th>
-                <th>Severity</th>
-                <th>Status</th>
-                <th>Detected</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {incidents.map((incident) => {
-                const severity =
-                  severityStyles[
-                    incident.severity as keyof typeof severityStyles
-                  ];
-
-                return (
-                  <tr key={incident.id}>
-                    <td>
-                      <strong>{incident.id}</strong>
-                    </td>
-
-                    <td>
-                      <div>
-                        <strong>{incident.type}</strong>
-
-                        <div
-                          className="muted"
-                          style={{
-                            fontSize: 11,
-                            marginTop: 4,
-                            maxWidth: 300,
-                          }}
-                        >
-                          {incident.description}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <MapPin size={14} />
-
-                        <div>
-                          <div>{incident.road}</div>
-
-                          <div
-                            className="muted"
-                            style={{
-                              fontSize: 11,
-                              marginTop: 2,
-                            }}
-                          >
-                            {incident.zone}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`status ${severity.className}`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                        }}
-                      >
-                        {severity.icon}
-                        {incident.severity}
-                      </span>
-                    </td>
-
-                    <td>
-                      {incident.status === "Active" ? (
-                        <span
-                          className="status status-high"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                          }}
-                        >
-                          <span className="live-dot" />
-                          Active
-                        </span>
-                      ) : (
-                        <span
-                          className="status status-low"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                          }}
-                        >
-                          <CheckCircle2 size={12} />
-                          Resolved
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="muted">
-                      {incident.time}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* INCIDENT MAP PREVIEW */}
-      <div
-        className="panel"
-        style={{ marginTop: 18 }}
-      >
-        <div className="panel-header">
-          <div>
-            <h3 className="panel-title">
-              Incident Locations
-            </h3>
-
-            <p
-              className="muted"
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-              }}
-            >
-              Simulated incident locations across the digital twin
-            </p>
-          </div>
-
-          <MapPin size={18} />
-        </div>
-
-        <div
-          style={{
-            margin: 20,
-            height: 180,
-            borderRadius: 10,
-            border:
-              "1px solid rgba(80,160,195,.12)",
-            background:
-              "linear-gradient(135deg, rgba(8,31,48,.95), rgba(3,15,27,.95))",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          {/* ROAD LINES */}
-          <div
-            style={{
-              position: "absolute",
-              left: "8%",
-              right: "8%",
-              top: "50%",
-              height: 1,
-              background:
-                "rgba(45,180,220,.25)",
-              transform: "rotate(-8deg)",
-            }}
-          />
-
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "5%",
-              bottom: "5%",
-              width: 1,
-              background:
-                "rgba(45,180,220,.20)",
-              transform: "rotate(12deg)",
-            }}
-          />
-
-          {/* INCIDENT MARKERS */}
-          <IncidentMarker
-            left="27%"
-            top="38%"
-            severity="high"
-          />
-
-          <IncidentMarker
-            left="63%"
-            top="30%"
-            severity="medium"
-          />
-
-          <IncidentMarker
-            left="48%"
-            top="67%"
-            severity="low"
-          />
-
-          <IncidentMarker
-            left="78%"
-            top="66%"
-            severity="medium"
-          />
-
-          <div
-            style={{
-              position: "absolute",
-              bottom: 12,
-              left: 14,
-              fontSize: 10,
-              letterSpacing: ".08em",
-              color: "#7d9aaa",
-            }}
-          >
-            DIGITAL TWIN INCIDENT OVERLAY
-          </div>
-        </div>
+        METROPOLIS incident intelligence engine
+        continuously monitors simulated traffic
+        activity and generates alerts.
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   INCIDENT LEVEL
-   ========================================================= */
+   INCIDENT CARD
+========================================================= */
 
-function IncidentLevel({
+function IncidentCard({
+  icon,
+  label,
+  value,
+  description,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 14,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="kpi-value">
+        {value}
+      </div>
+
+      <div className="kpi-change">
+        {description}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   FILTER BUTTON
+========================================================= */
+
+function FilterButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        border: active
+          ? "1px solid rgba(20,190,235,.35)"
+          : "1px solid rgba(100,160,190,.10)",
+        background: active
+          ? "rgba(20,190,235,.09)"
+          : "rgba(100,160,190,.035)",
+        color: active
+          ? "#d8f8ff"
+          : "#78929e",
+        borderRadius: 7,
+        padding: "8px 14px",
+        fontSize: 10,
+        fontWeight: 600,
+        cursor: "pointer",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* =========================================================
+   INCIDENT STATUS ROW
+========================================================= */
+
+function IncidentStatusRow({
+  icon,
+  title,
+  value,
+  good,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  good: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 0",
+        borderBottom:
+          "1px solid rgba(100,160,190,.07)",
+      }}
+    >
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 7,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: good
+            ? "rgba(49,210,154,.07)"
+            : "rgba(239,106,120,.07)",
+        }}
+      >
+        {icon}
+      </div>
+
+      <div
+        style={{
+          flex: 1,
+          fontSize: 11,
+          fontWeight: 600,
+        }}
+      >
+        {title}
+      </div>
+
+      <span
+        className={
+          good
+            ? "status status-low"
+            : "status status-medium"
+        }
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* =========================================================
+   SEVERITY ROW
+========================================================= */
+
+function SeverityRow({
   label,
   value,
   total,
@@ -594,17 +990,23 @@ function IncidentLevel({
   total: number;
 }) {
   const percentage =
-    total === 0 ? 0 : (value / total) * 100;
+    total > 0
+      ? Math.round((value / total) * 100)
+      : 0;
 
-  const className =
-    label === "Critical" || label === "High"
-      ? "status-high"
+  const background =
+    label === "High"
+      ? "#ef6a78"
       : label === "Medium"
-        ? "status-medium"
-        : "status-low";
+        ? "#e5b45b"
+        : "#31d29a";
 
   return (
-    <div style={{ marginBottom: 19 }}>
+    <div
+      style={{
+        marginBottom: 18,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -612,146 +1014,150 @@ function IncidentLevel({
           marginBottom: 7,
         }}
       >
-        <span>{label}</span>
-
-        <strong>{value}</strong>
-      </div>
-
-      <div className="progress">
-        <div
-          className="progress-fill"
+        <span
           style={{
-            width: `${percentage}%`,
-          }}
-        />
-      </div>
-
-      <div style={{ marginTop: 6 }}>
-        <span className={`status ${className}`}>
-          {percentage.toFixed(0)}% of incidents
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/* =========================================================
-   RESPONSE CARD
-   ========================================================= */
-
-function ResponseCard({
-  title,
-  value,
-  description,
-  active,
-}: {
-  title: string;
-  value: string;
-  description: string;
-  active: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 15,
-        padding: 13,
-        borderRadius: 8,
-        border:
-          "1px solid rgba(100,160,190,.10)",
-        background: "rgba(5,20,32,.45)",
-      }}
-    >
-      <div>
-        <div
-          style={{
+            fontSize: 11,
             fontWeight: 600,
-            fontSize: 13,
           }}
         >
-          {title}
-        </div>
+          {label}
+        </span>
 
-        <div
+        <span
           className="muted"
           style={{
-            marginTop: 4,
-            fontSize: 11,
+            fontSize: 10,
           }}
         >
-          {description}
-        </div>
+          {value} incidents · {percentage}%
+        </span>
       </div>
 
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          fontSize: 12,
-          whiteSpace: "nowrap",
+          height: 7,
+          borderRadius: 20,
+          background:
+            "rgba(100,160,190,.10)",
+          overflow: "hidden",
         }}
       >
-        <span
+        <div
           style={{
-            width: 7,
-            height: 7,
-            borderRadius: "50%",
-            background: active
-              ? "#25d59b"
-              : "#77838c",
+            width: `${percentage}%`,
+            height: "100%",
+            borderRadius: 20,
+            background,
+            transition: "width .3s ease",
           }}
         />
-
-        {value}
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   INCIDENT MARKER
-   ========================================================= */
+   RESPONSE ROW
+========================================================= */
 
-function IncidentMarker({
-  left,
-  top,
-  severity,
+function ResponseRow({
+  title,
+  value,
+  good,
 }: {
-  left: string;
-  top: string;
-  severity: "high" | "medium" | "low";
+  title: string;
+  value: string;
+  good: boolean;
 }) {
-  const color =
-    severity === "high"
-      ? "#ff5d6c"
-      : severity === "medium"
-        ? "#f2b84b"
-        : "#25d59b";
-
   return (
     <div
       style={{
-        position: "absolute",
-        left,
-        top,
-        width: 22,
-        height: 22,
-        borderRadius: "50%",
-        transform: "translate(-50%, -50%)",
         display: "flex",
+        justifyContent: "space-between",
         alignItems: "center",
-        justifyContent: "center",
-        background: color,
-        boxShadow: `0 0 18px ${color}`,
+        padding: "12px 0",
+        borderBottom:
+          "1px solid rgba(100,160,190,.07)",
       }}
     >
-      <AlertTriangle
-        size={12}
-        color="#06111a"
-      />
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+        }}
+      >
+        {title}
+      </span>
+
+      <span
+        className={
+          good
+            ? "status status-low"
+            : "status status-medium"
+        }
+      >
+        {value}
+      </span>
     </div>
   );
 }
+
+/* =========================================================
+   SUMMARY ITEM
+========================================================= */
+
+function SummaryItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "12px 0",
+        borderBottom:
+          "1px solid rgba(100,160,190,.07)",
+      }}
+    >
+      <span
+        className="muted"
+        style={{
+          fontSize: 10,
+        }}
+      >
+        {label}
+      </span>
+
+      <strong
+        style={{
+          fontSize: 12,
+        }}
+      >
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
+
+const tableHeader: React.CSSProperties = {
+  textAlign: "left",
+  padding: "13px 16px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.08)",
+};
+
+const tableCell: React.CSSProperties = {
+  padding: "14px 16px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.06)",
+  fontSize: 11,
+};

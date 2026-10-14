@@ -1,204 +1,217 @@
-import { useState } from "react";
 import {
   Activity,
-  BrainCircuit,
   CarFront,
   CheckCircle2,
+  Clock3,
+  Gauge,
   Play,
   RotateCcw,
-  SlidersHorizontal,
-  Sparkles,
-  TrendingDown,
+  Settings2,
+  ShieldAlert,
+  TrafficCone,
   TrendingUp,
+  Users,
   Zap,
 } from "lucide-react";
+import { useState } from "react";
 
-const scenarioTemplates = [
+type Scenario = {
+  id: number;
+  name: string;
+  description: string;
+  duration: string;
+  vehicles: number;
+  trafficLevel: string;
+  impact: string;
+  icon: React.ReactNode;
+};
+
+const scenarios: Scenario[] = [
   {
-    name: "Peak Hour Simulation",
+    id: 1,
+    name: "Normal City Flow",
     description:
-      "Simulate increased vehicle activity during morning and evening peak hours.",
-    traffic: 25,
-    vehicles: 30,
-    congestion: 18,
+      "Simulate normal vehicle movement across all major city zones.",
+    duration: "10 min",
+    vehicles: 8,
+    trafficLevel: "Moderate",
+    impact: "Low",
+    icon: <CarFront size={18} />,
   },
   {
-    name: "Road Closure",
+    id: 2,
+    name: "Peak Hour Traffic",
     description:
-      "Simulate the effect of closing a major road on surrounding traffic.",
-    traffic: 40,
+      "Simulate increased traffic volume during morning or evening peak hours.",
+    duration: "15 min",
+    vehicles: 18,
+    trafficLevel: "High",
+    impact: "Medium",
+    icon: <TrafficCone size={18} />,
+  },
+  {
+    id: 3,
+    name: "Major Road Incident",
+    description:
+      "Simulate a road incident causing congestion and reduced vehicle speed.",
+    duration: "12 min",
+    vehicles: 14,
+    trafficLevel: "Critical",
+    impact: "High",
+    icon: <ShieldAlert size={18} />,
+  },
+  {
+    id: 4,
+    name: "Emergency Response",
+    description:
+      "Simulate emergency vehicle movement and operational response.",
+    duration: "8 min",
     vehicles: 10,
-    congestion: 35,
+    trafficLevel: "High",
+    impact: "High",
+    icon: <Zap size={18} />,
   },
   {
-    name: "Public Transport Increase",
+    id: 5,
+    name: "Low Traffic Period",
     description:
-      "Increase simulated public transport activity and evaluate congestion.",
-    traffic: -10,
-    vehicles: 15,
-    congestion: -12,
+      "Simulate low-density traffic conditions during off-peak hours.",
+    duration: "10 min",
+    vehicles: 5,
+    trafficLevel: "Low",
+    impact: "Low",
+    icon: <Gauge size={18} />,
   },
 ];
 
 export default function Scenarios() {
-  const [trafficChange, setTrafficChange] = useState(20);
-  const [vehicleChange, setVehicleChange] = useState(15);
-  const [congestionChange, setCongestionChange] = useState(10);
-  const [selectedTemplate, setSelectedTemplate] =
-    useState("Custom Scenario");
+  const [selectedScenario, setSelectedScenario] =
+    useState<Scenario | null>(null);
 
-  const [isRunning, setIsRunning] = useState(false);
-  const [hasResult, setHasResult] = useState(false);
+  const [runningScenario, setRunningScenario] =
+    useState<number | null>(null);
 
-  const runSimulation = () => {
-    setIsRunning(true);
-    setHasResult(false);
+  const [completedScenario, setCompletedScenario] =
+    useState<number | null>(null);
+
+  const handleRunScenario = (scenario: Scenario) => {
+    setSelectedScenario(scenario);
+    setRunningScenario(scenario.id);
+    setCompletedScenario(null);
 
     setTimeout(() => {
-      setIsRunning(false);
-      setHasResult(true);
-    }, 1200);
+      setRunningScenario(null);
+      setCompletedScenario(scenario.id);
+    }, 3000);
   };
 
-  const resetSimulation = () => {
-    setTrafficChange(20);
-    setVehicleChange(15);
-    setCongestionChange(10);
-    setSelectedTemplate("Custom Scenario");
-    setIsRunning(false);
-    setHasResult(false);
-  };
-
-  const applyTemplate = (
-    name: string,
-    traffic: number,
-    vehicles: number,
-    congestion: number
-  ) => {
-    setSelectedTemplate(name);
-    setTrafficChange(traffic);
-    setVehicleChange(vehicles);
-    setCongestionChange(congestion);
-    setHasResult(false);
+  const handleReset = () => {
+    setSelectedScenario(null);
+    setRunningScenario(null);
+    setCompletedScenario(null);
   };
 
   return (
     <div className="metropolis-page">
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">What-If Scenarios</h1>
+          <h1 className="page-title">
+            Traffic Scenarios
+          </h1>
 
           <p className="page-subtitle">
-            Simulate possible city conditions and analyze their impact
+            Simulate different urban traffic conditions
+            and evaluate operational impact
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          SIMULATION ENGINE
+          SIMULATION READY
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* =================================================
+          TOP STATUS
+      ================================================= */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <Activity size={22} />
+        <ScenarioStatusCard
+          icon={<Activity size={21} />}
+          label="Scenario Engine"
+          value={
+            runningScenario
+              ? "Running"
+              : "Ready"
+          }
+          status={
+            runningScenario
+              ? "running"
+              : "good"
+          }
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Active Scenario
-          </div>
+        <ScenarioStatusCard
+          icon={<CarFront size={21} />}
+          label="Simulated Vehicles"
+          value={
+            selectedScenario
+              ? selectedScenario.vehicles.toString()
+              : "8"
+          }
+          status="good"
+        />
 
-          <div
-            className="kpi-value"
-            style={{ fontSize: 21 }}
-          >
-            {selectedTemplate}
-          </div>
+        <ScenarioStatusCard
+          icon={<Gauge size={21} />}
+          label="Traffic Level"
+          value={
+            selectedScenario
+              ? selectedScenario.trafficLevel
+              : "Moderate"
+          }
+          status={
+            selectedScenario?.trafficLevel ===
+            "Critical"
+              ? "danger"
+              : selectedScenario?.trafficLevel ===
+                  "High"
+                ? "warning"
+                : "good"
+          }
+        />
 
-          <div className="kpi-change">
-            Simulation ready
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CarFront size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Vehicle Change
-          </div>
-
-          <div className="kpi-value">
-            {vehicleChange > 0 ? "+" : ""}
-            {vehicleChange}%
-          </div>
-
-          <div className="kpi-change">
-            Simulated vehicles
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <TrendingUp size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Traffic Change
-          </div>
-
-          <div className="kpi-value">
-            {trafficChange > 0 ? "+" : ""}
-            {trafficChange}%
-          </div>
-
-          <div className="kpi-change">
-            Traffic flow
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Zap size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Congestion Impact
-          </div>
-
-          <div className="kpi-value">
-            {congestionChange > 0 ? "+" : ""}
-            {congestionChange}%
-          </div>
-
-          <div className="kpi-change">
-            Predicted impact
-          </div>
-        </div>
+        <ScenarioStatusCard
+          icon={<Clock3 size={21} />}
+          label="Duration"
+          value={
+            selectedScenario
+              ? selectedScenario.duration
+              : "10 min"
+          }
+          status="good"
+        />
       </div>
 
-      {/* MAIN SIMULATION AREA */}
-      <div
-        className="grid-2"
-        style={{
-          marginTop: 18,
-          alignItems: "stretch",
-        }}
-      >
-        {/* SCENARIO CONTROLS */}
-        <div className="panel">
+      {/* =================================================
+          ACTIVE SCENARIO
+      ================================================= */}
+
+      {selectedScenario && (
+        <section
+          className="panel"
+          style={{
+            marginTop: 18,
+          }}
+        >
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Scenario Configuration
+                Active Scenario
               </h3>
 
               <p
@@ -208,358 +221,150 @@ export default function Scenarios() {
                   fontSize: 12,
                 }}
               >
-                Adjust simulation parameters
+                Current digital twin simulation
               </p>
             </div>
 
-            <SlidersHorizontal size={18} />
+            {runningScenario ? (
+              <span className="status status-medium">
+                RUNNING
+              </span>
+            ) : completedScenario ===
+              selectedScenario.id ? (
+              <span className="status status-low">
+                COMPLETED
+              </span>
+            ) : (
+              <span className="status status-low">
+                READY
+              </span>
+            )}
           </div>
 
-          <div style={{ padding: 20 }}>
-            <div className="report-field">
-              <label>Scenario Template</label>
-
-              <select
-                value={selectedTemplate}
-                onChange={(event) => {
-                  const value = event.target.value;
-
-                  if (value === "Custom Scenario") {
-                    setSelectedTemplate(value);
-                    return;
-                  }
-
-                  const template = scenarioTemplates.find(
-                    (item) => item.name === value
-                  );
-
-                  if (template) {
-                    applyTemplate(
-                      template.name,
-                      template.traffic,
-                      template.vehicles,
-                      template.congestion
-                    );
-                  }
+          <div
+            style={{
+              padding: 18,
+              display: "grid",
+              gridTemplateColumns:
+                "1fr auto",
+              gap: 20,
+              alignItems: "center",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
                 }}
               >
-                <option value="Custom Scenario">
-                  Custom Scenario
-                </option>
+                <div
+                  className="scenario-icon-large"
+                >
+                  {selectedScenario.icon}
+                </div>
 
-                {scenarioTemplates.map((template) => (
-                  <option
-                    key={template.name}
-                    value={template.name}
+                <div>
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: 17,
+                    }}
                   >
-                    {template.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                    {selectedScenario.name}
+                  </h2>
 
-            <ScenarioSlider
-              label="Traffic Flow Change"
-              value={trafficChange}
-              min={-50}
-              max={100}
-              unit="%"
-              onChange={(value) => {
-                setTrafficChange(value);
-                setSelectedTemplate("Custom Scenario");
-                setHasResult(false);
-              }}
-            />
-
-            <ScenarioSlider
-              label="Vehicle Activity Change"
-              value={vehicleChange}
-              min={-50}
-              max={100}
-              unit="%"
-              onChange={(value) => {
-                setVehicleChange(value);
-                setSelectedTemplate("Custom Scenario");
-                setHasResult(false);
-              }}
-            />
-
-            <ScenarioSlider
-              label="Expected Congestion Change"
-              value={congestionChange}
-              min={-50}
-              max={100}
-              unit="%"
-              onChange={(value) => {
-                setCongestionChange(value);
-                setSelectedTemplate("Custom Scenario");
-                setHasResult(false);
-              }}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 10,
-                marginTop: 22,
-              }}
-            >
-              <button
-                type="button"
-                className="report-action-button"
-                onClick={resetSimulation}
-              >
-                <RotateCcw size={15} />
-                Reset
-              </button>
-
-              <button
-                type="button"
-                className="report-generate-button"
-                onClick={runSimulation}
-                disabled={isRunning}
-                style={{
-                  opacity: isRunning ? 0.65 : 1,
-                  cursor: isRunning
-                    ? "wait"
-                    : "pointer",
-                }}
-              >
-                <Play size={15} />
-
-                {isRunning
-                  ? "Running..."
-                  : "Run Simulation"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* PREDICTION PANEL */}
-        <div className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                Predicted Impact
-              </h3>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 5,
-                  fontSize: 12,
-                }}
-              >
-                Simulation engine projection
-              </p>
-            </div>
-
-            <BrainCircuit size={18} />
-          </div>
-
-          <div style={{ padding: 20 }}>
-            {!hasResult && !isRunning && (
-              <div
-                style={{
-                  minHeight: 270,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  padding: 20,
-                }}
-              >
-                <div
-                  style={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background:
-                      "rgba(20,190,235,.08)",
-                    border:
-                      "1px solid rgba(20,190,235,.16)",
-                  }}
-                >
-                  <Sparkles size={25} />
+                  <p
+                    className="muted"
+                    style={{
+                      marginTop: 6,
+                      fontSize: 10,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {selectedScenario.description}
+                  </p>
                 </div>
-
-                <h3
-                  style={{
-                    marginTop: 15,
-                    fontSize: 15,
-                  }}
-                >
-                  Ready to Simulate
-                </h3>
-
-                <p
-                  className="muted"
-                  style={{
-                    marginTop: 7,
-                    fontSize: 12,
-                    maxWidth: 300,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Configure the scenario parameters and run
-                  the simulation to generate predicted results.
-                </p>
               </div>
-            )}
 
-            {isRunning && (
-              <div
-                style={{
-                  minHeight: 270,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  className="scenario-spinner"
-                />
-
-                <h3
-                  style={{
-                    marginTop: 18,
-                    fontSize: 15,
-                  }}
-                >
-                  Running Simulation
-                </h3>
-
-                <p
-                  className="muted"
-                  style={{
-                    marginTop: 7,
-                    fontSize: 12,
-                  }}
-                >
-                  Processing digital-twin conditions...
-                </p>
-              </div>
-            )}
-
-            {hasResult && (
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: 12,
-                    borderRadius: 8,
-                    background:
-                      "rgba(30,205,150,.07)",
-                    border:
-                      "1px solid rgba(30,205,150,.15)",
-                    marginBottom: 16,
-                  }}
-                >
-                  <CheckCircle2 size={17} />
-
-                  <div>
-                    <strong
-                      style={{ fontSize: 13 }}
-                    >
-                      Simulation completed
-                    </strong>
-
-                    <div
-                      className="muted"
-                      style={{
-                        marginTop: 3,
-                        fontSize: 11,
-                      }}
-                    >
-                      Predicted city response generated
-                    </div>
-                  </div>
-                </div>
-
-                <ImpactMetric
-                  label="Traffic Flow"
-                  value={trafficChange}
-                  suffix="%"
-                />
-
-                <ImpactMetric
-                  label="Vehicle Activity"
-                  value={vehicleChange}
-                  suffix="%"
-                />
-
-                <ImpactMetric
-                  label="Congestion"
-                  value={congestionChange}
-                  suffix="%"
-                  inverse
-                />
-
+              {runningScenario ===
+                selectedScenario.id && (
                 <div
                   style={{
                     marginTop: 18,
-                    padding: 14,
-                    borderRadius: 8,
-                    background:
-                      "rgba(20,190,235,.05)",
-                    border:
-                      "1px solid rgba(20,190,235,.12)",
                   }}
                 >
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 7,
+                      justifyContent:
+                        "space-between",
+                      marginBottom: 7,
                     }}
                   >
-                    <BrainCircuit size={16} />
-
-                    <strong
-                      style={{ fontSize: 13 }}
+                    <span
+                      className="muted"
+                      style={{
+                        fontSize: 9,
+                      }}
                     >
-                      AI Analysis
-                    </strong>
+                      Simulation progress
+                    </span>
+
+                    <span
+                      className="muted"
+                      style={{
+                        fontSize: 9,
+                      }}
+                    >
+                      Processing...
+                    </span>
                   </div>
 
-                  <p
-                    className="muted"
+                  <div
                     style={{
-                      marginTop: 8,
-                      fontSize: 12,
-                      lineHeight: 1.6,
+                      height: 7,
+                      borderRadius: 20,
+                      background:
+                        "rgba(100,160,190,.10)",
+                      overflow: "hidden",
                     }}
                   >
-                    The simulated scenario indicates that
-                    changes in vehicle activity may affect
-                    traffic flow and congestion across the
-                    monitored zones.
-                  </p>
+                    <div
+                      className="scenario-progress"
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              )}
+            </div>
 
-      {/* PREDEFINED SCENARIOS */}
-      <div
+            <button
+              type="button"
+              onClick={handleReset}
+              className="settings-secondary-button"
+            >
+              <RotateCcw size={14} />
+              Reset
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* =================================================
+          SCENARIO LIST
+      ================================================= */}
+
+      <section
         className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          marginTop: 18,
+        }}
       >
         <div className="panel-header">
           <div>
             <h3 className="panel-title">
-              Scenario Templates
+              Available Scenarios
             </h3>
 
             <p
@@ -569,287 +374,541 @@ export default function Scenarios() {
                 fontSize: 12,
               }}
             >
-              Quickly configure common city conditions
+              Select a scenario to run inside the
+              METROPOLIS digital twin
             </p>
           </div>
 
-          <Activity size={18} />
+          <Settings2 size={18} />
         </div>
 
         <div
           style={{
-            padding: 20,
+            padding: 18,
             display: "grid",
             gridTemplateColumns:
-              "repeat(auto-fit, minmax(230px, 1fr))",
+              "repeat(2, minmax(0, 1fr))",
             gap: 14,
           }}
         >
-          {scenarioTemplates.map((template) => (
-            <button
-              key={template.name}
-              type="button"
-              onClick={() =>
-                applyTemplate(
-                  template.name,
-                  template.traffic,
-                  template.vehicles,
-                  template.congestion
+          {scenarios.map((scenario) => (
+            <ScenarioCard
+              key={scenario.id}
+              scenario={scenario}
+              running={
+                runningScenario ===
+                scenario.id
+              }
+              completed={
+                completedScenario ===
+                scenario.id
+              }
+              onRun={() =>
+                handleRunScenario(
+                  scenario,
                 )
               }
-              style={{
-                textAlign: "left",
-                padding: 17,
-                borderRadius: 9,
-                border:
-                  selectedTemplate === template.name
-                    ? "1px solid rgba(20,200,240,.35)"
-                    : "1px solid rgba(100,160,190,.10)",
-                background:
-                  selectedTemplate === template.name
-                    ? "rgba(20,190,235,.07)"
-                    : "rgba(5,20,32,.45)",
-                color: "inherit",
-                cursor: "pointer",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div className="quick-report-icon">
-                  <Zap size={18} />
-                </div>
-
-                {selectedTemplate === template.name && (
-                  <CheckCircle2 size={17} />
-                )}
-              </div>
-
-              <h4
-                style={{
-                  marginTop: 14,
-                  fontSize: 14,
-                }}
-              >
-                {template.name}
-              </h4>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 7,
-                  fontSize: 12,
-                  lineHeight: 1.55,
-                }}
-              >
-                {template.description}
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginTop: 13,
-                }}
-              >
-                <MiniValue
-                  label="Traffic"
-                  value={`${template.traffic > 0 ? "+" : ""}${template.traffic}%`}
-                />
-
-                <MiniValue
-                  label="Vehicles"
-                  value={`${template.vehicles > 0 ? "+" : ""}${template.vehicles}%`}
-                />
-
-                <MiniValue
-                  label="Congestion"
-                  value={`${template.congestion > 0 ? "+" : ""}${template.congestion}%`}
-                />
-              </div>
-            </button>
+            />
           ))}
         </div>
+      </section>
+
+      {/* =================================================
+          SCENARIO IMPACT
+      ================================================= */}
+
+      <section
+        className="panel"
+        style={{
+          marginTop: 18,
+        }}
+      >
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">
+              Simulation Impact
+            </h3>
+
+            <p
+              className="muted"
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+              }}
+            >
+              Operational metrics affected by the
+              selected scenario
+            </p>
+          </div>
+
+          <TrendingUp size={18} />
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(3, minmax(0, 1fr))",
+            gap: 14,
+          }}
+        >
+          <ImpactCard
+            icon={<CarFront size={17} />}
+            title="Vehicle Volume"
+            value={
+              selectedScenario
+                ? `${selectedScenario.vehicles}`
+                : "8"
+            }
+            description="Simulated vehicles"
+          />
+
+          <ImpactCard
+            icon={<Gauge size={17} />}
+            title="Traffic Pressure"
+            value={
+              selectedScenario
+                ? selectedScenario.trafficLevel
+                : "Moderate"
+            }
+            description="Estimated traffic condition"
+          />
+
+          <ImpactCard
+            icon={<Users size={17} />}
+            title="Operational Impact"
+            value={
+              selectedScenario
+                ? selectedScenario.impact
+                : "Low"
+            }
+            description="Expected city impact"
+          />
+        </div>
+      </section>
+
+      {/* =================================================
+          FOOTER
+      ================================================= */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 14,
+          paddingBottom: 20,
+          color: "#64808d",
+          fontSize: 10,
+        }}
+      >
+        <Activity size={13} />
+
+        METROPOLIS scenario engine digitally simulates
+        traffic conditions without requiring physical
+        IoT hardware.
+      </div>
+
+      {/* =================================================
+          LOCAL STYLES
+      ================================================= */}
+
+      <style>{`
+        .scenario-icon-large {
+          width: 42px;
+          height: 42px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 9px;
+          color: #20c7df;
+          background: rgba(20,190,235,.08);
+          border: 1px solid rgba(20,190,235,.12);
+        }
+
+        .scenario-card {
+          padding: 17px;
+          border: 1px solid rgba(100,160,190,.09);
+          border-radius: 9px;
+          background: rgba(10,28,36,.28);
+          transition:
+            transform .2s ease,
+            border-color .2s ease,
+            background .2s ease;
+        }
+
+        .scenario-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(20,190,235,.2);
+          background: rgba(10,35,45,.38);
+        }
+
+        .scenario-card.selected {
+          border-color: rgba(20,190,235,.35);
+          background: rgba(20,190,235,.045);
+        }
+
+        .scenario-card-header {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .scenario-card-icon {
+          width: 34px;
+          height: 34px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 7px;
+          color: #82a4af;
+          background: rgba(100,160,190,.06);
+        }
+
+        .scenario-card-title {
+          font-size: 12px;
+          font-weight: 700;
+          color: #c2d5dc;
+        }
+
+        .scenario-card-description {
+          margin-top: 5px;
+          color: #5f7c88;
+          font-size: 9px;
+          line-height: 1.6;
+        }
+
+        .scenario-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+          margin-top: 15px;
+        }
+
+        .scenario-meta-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 5px 7px;
+          border-radius: 5px;
+          color: #718c97;
+          background: rgba(100,160,190,.05);
+          font-size: 9px;
+        }
+
+        .scenario-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 15px;
+        }
+
+        .scenario-run-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border: 1px solid rgba(20,190,235,.25);
+          border-radius: 6px;
+          background: rgba(20,190,235,.08);
+          color: #8ecbd6;
+          font-family: inherit;
+          font-size: 9px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all .2s ease;
+        }
+
+        .scenario-run-button:hover {
+          background: rgba(20,190,235,.16);
+          border-color: rgba(20,190,235,.45);
+        }
+
+        .scenario-run-button.running {
+          cursor: wait;
+          opacity: .65;
+        }
+
+        .scenario-run-button.completed {
+          border-color: rgba(49,210,154,.25);
+          background: rgba(49,210,154,.07);
+          color: #71d8b1;
+        }
+
+        .scenario-progress {
+          width: 100%;
+          height: 100%;
+          border-radius: 20px;
+          background: #20c7df;
+          animation: scenarioProgress 3s linear forwards;
+        }
+
+        @keyframes scenarioProgress {
+          from {
+            width: 0%;
+          }
+
+          to {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .scenario-card {
+            grid-column: span 2;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* =========================================================
+   SCENARIO STATUS CARD
+========================================================= */
+
+function ScenarioStatusCard({
+  icon,
+  label,
+  value,
+  status,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  status:
+    | "good"
+    | "warning"
+    | "danger"
+    | "running";
+}) {
+  const statusClass =
+    status === "good"
+      ? "status-low"
+      : status === "warning"
+        ? "status-medium"
+        : status === "danger"
+          ? "status-high"
+          : "status-medium";
+
+  return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 14,
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        className="kpi-value"
+        style={{
+          fontSize: 18,
+        }}
+      >
+        {value}
+      </div>
+
+      <div
+        style={{
+          marginTop: 7,
+        }}
+      >
+        <span
+          className={`status ${statusClass}`}
+        >
+          {status === "running"
+            ? "RUNNING"
+            : status === "good"
+              ? "READY"
+              : status === "warning"
+                ? "WATCH"
+                : "ALERT"}
+        </span>
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   SCENARIO SLIDER
-   ========================================================= */
+   SCENARIO CARD
+========================================================= */
 
-function ScenarioSlider({
-  label,
-  value,
-  min,
-  max,
-  unit,
-  onChange,
+function ScenarioCard({
+  scenario,
+  running,
+  completed,
+  onRun,
 }: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  unit: string;
-  onChange: (value: number) => void;
+  scenario: Scenario;
+  running: boolean;
+  completed: boolean;
+  onRun: () => void;
 }) {
   return (
-    <div style={{ marginTop: 22 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 10,
-          marginBottom: 9,
-        }}
-      >
-        <span style={{ fontSize: 13 }}>
-          {label}
-        </span>
+    <div
+      className={`scenario-card ${
+        running || completed
+          ? "selected"
+          : ""
+      }`}
+    >
+      <div className="scenario-card-header">
+        <div className="scenario-card-icon">
+          {scenario.icon}
+        </div>
 
-        <strong style={{ fontSize: 13 }}>
-          {value > 0 ? "+" : ""}
-          {value}
-          {unit}
-        </strong>
+        <div style={{ flex: 1 }}>
+          <div className="scenario-card-title">
+            {scenario.name}
+          </div>
+
+          <div className="scenario-card-description">
+            {scenario.description}
+          </div>
+        </div>
+
+        {completed && (
+          <CheckCircle2
+            size={16}
+            style={{
+              color: "#31d29a",
+              flexShrink: 0,
+            }}
+          />
+        )}
       </div>
 
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) =>
-          onChange(Number(event.target.value))
-        }
-        style={{
-          width: "100%",
-          accentColor: "#18c9ef",
-          cursor: "pointer",
-        }}
-      />
+      <div className="scenario-meta">
+        <div className="scenario-meta-item">
+          <Clock3 size={11} />
+          {scenario.duration}
+        </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 5,
-          fontSize: 10,
-          color: "#718693",
-        }}
-      >
-        <span>{min}%</span>
-        <span>0%</span>
-        <span>+{max}%</span>
+        <div className="scenario-meta-item">
+          <CarFront size={11} />
+          {scenario.vehicles} vehicles
+        </div>
+
+        <div className="scenario-meta-item">
+          <Gauge size={11} />
+          {scenario.trafficLevel}
+        </div>
+
+        <div className="scenario-meta-item">
+          <ShieldAlert size={11} />
+          {scenario.impact} impact
+        </div>
+      </div>
+
+      <div className="scenario-actions">
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={running}
+          className={`scenario-run-button ${
+            running
+              ? "running"
+              : completed
+                ? "completed"
+                : ""
+          }`}
+        >
+          {running ? (
+            <>
+              <Activity size={13} />
+              Running...
+            </>
+          ) : completed ? (
+            <>
+              <CheckCircle2 size={13} />
+              Completed
+            </>
+          ) : (
+            <>
+              <Play size={13} />
+              Run Scenario
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   IMPACT METRIC
-   ========================================================= */
+   IMPACT CARD
+========================================================= */
 
-function ImpactMetric({
-  label,
+function ImpactCard({
+  icon,
+  title,
   value,
-  suffix,
-  inverse = false,
+  description,
 }: {
-  label: string;
-  value: number;
-  suffix: string;
-  inverse?: boolean;
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  description: string;
 }) {
-  const positive = value > 0;
-
-  const isGood =
-    inverse ? !positive : positive;
-
   return (
     <div
       style={{
-        padding: "12px 0",
-        borderBottom:
+        padding: 16,
+        border:
           "1px solid rgba(100,160,190,.09)",
+        borderRadius: 9,
+        background:
+          "rgba(10,28,36,.32)",
       }}
     >
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          gap: 9,
+          color: "#7898a4",
         }}
       >
-        <span style={{ fontSize: 13 }}>
-          {label}
-        </span>
+        {icon}
 
         <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            fontWeight: 700,
+            fontSize: 10,
+            textTransform: "uppercase",
+            letterSpacing: ".05em",
           }}
         >
-          {positive ? (
-            <TrendingUp size={14} />
-          ) : (
-            <TrendingDown size={14} />
-          )}
-
-          {value > 0 ? "+" : ""}
-          {value}
-          {suffix}
+          {title}
         </span>
+      </div>
+
+      <div
+        style={{
+          marginTop: 13,
+          fontSize: 18,
+          fontWeight: 700,
+        }}
+      >
+        {value}
       </div>
 
       <div
         className="muted"
         style={{
-          fontSize: 10,
-          marginTop: 4,
+          marginTop: 7,
+          fontSize: 9,
         }}
       >
-        {isGood
-          ? "Potentially favorable impact"
-          : "Requires operational attention"}
+        {description}
       </div>
     </div>
-  );
-}
-
-/* =========================================================
-   MINI VALUE
-   ========================================================= */
-
-function MiniValue({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <span
-      style={{
-        fontSize: 10,
-        padding: "5px 7px",
-        borderRadius: 5,
-        background:
-          "rgba(100,160,190,.07)",
-        border:
-          "1px solid rgba(100,160,190,.10)",
-      }}
-    >
-      {label}: <strong>{value}</strong>
-    </span>
   );
 }
