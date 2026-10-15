@@ -1,196 +1,182 @@
 import {
   Activity,
   CarFront,
-  Gauge,
+  CircleGauge,
+  MapPin,
   Radio,
-  Route,
-  TrendingDown,
   TrendingUp,
+  TriangleAlert,
 } from "lucide-react";
+import { useMemo } from "react";
 
-const trafficZones = [
-  {
-    zone: "Zone A",
-    congestion: 72,
-    speed: 32,
-    vehicles: 48,
-    status: "High",
-  },
-  {
-    zone: "Zone B",
-    congestion: 58,
-    speed: 36,
-    vehicles: 35,
-    status: "Medium",
-  },
-  {
-    zone: "Zone C",
-    congestion: 41,
-    speed: 42,
-    vehicles: 27,
-    status: "Medium",
-  },
-  {
-    zone: "Zone D",
-    congestion: 29,
-    speed: 48,
-    vehicles: 18,
-    status: "Low",
-  },
-];
-
-const roads = [
-  {
-    road: "MG Road",
-    zone: "Zone A",
-    level: "High",
-    speed: 24,
-    vehicles: 21,
-    congestion: 78,
-  },
-  {
-    road: "Main Road",
-    zone: "Zone A",
-    level: "High",
-    speed: 28,
-    vehicles: 18,
-    congestion: 69,
-  },
-  {
-    road: "Central Avenue",
-    zone: "Zone B",
-    level: "Medium",
-    speed: 35,
-    vehicles: 15,
-    congestion: 54,
-  },
-  {
-    road: "Park Road",
-    zone: "Zone B",
-    level: "Medium",
-    speed: 38,
-    vehicles: 12,
-    congestion: 48,
-  },
-  {
-    road: "Ring Road",
-    zone: "Zone C",
-    level: "Low",
-    speed: 46,
-    vehicles: 10,
-    congestion: 31,
-  },
-];
+import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
 
 export default function Traffic() {
+  const { vehicles } = useVehicleSimulation();
+
+  const movingVehicles = useMemo(
+    () => vehicles.filter((vehicle) => vehicle.status === "Moving"),
+    [vehicles],
+  );
+
+  const stoppedVehicles = useMemo(
+    () => vehicles.filter((vehicle) => vehicle.status === "Stopped"),
+    [vehicles],
+  );
+
+  const averageSpeed = useMemo(() => {
+    if (vehicles.length === 0) {
+      return 0;
+    }
+
+    return Math.round(
+      vehicles.reduce((total, vehicle) => total + vehicle.speed, 0) /
+        vehicles.length,
+    );
+  }, [vehicles]);
+
+  const zoneData = useMemo(() => {
+    const zones: Record<
+      string,
+      {
+        vehicles: number;
+        moving: number;
+        stopped: number;
+        averageSpeed: number;
+      }
+    > = {};
+
+    vehicles.forEach((vehicle) => {
+      if (!zones[vehicle.zone]) {
+        zones[vehicle.zone] = {
+          vehicles: 0,
+          moving: 0,
+          stopped: 0,
+          averageSpeed: 0,
+        };
+      }
+
+      zones[vehicle.zone].vehicles += 1;
+
+      if (vehicle.status === "Moving") {
+        zones[vehicle.zone].moving += 1;
+      }
+
+      if (vehicle.status === "Stopped") {
+        zones[vehicle.zone].stopped += 1;
+      }
+
+      zones[vehicle.zone].averageSpeed += vehicle.speed;
+    });
+
+    Object.keys(zones).forEach((zone) => {
+      if (zones[zone].vehicles > 0) {
+        zones[zone].averageSpeed = Math.round(
+          zones[zone].averageSpeed / zones[zone].vehicles,
+        );
+      }
+    });
+
+    return zones;
+  }, [vehicles]);
+
+  const trafficLevel = useMemo(() => {
+    if (vehicles.length === 0) {
+      return "Low";
+    }
+
+    const stoppedPercentage =
+      (stoppedVehicles.length / vehicles.length) * 100;
+
+    if (stoppedPercentage >= 40) {
+      return "High";
+    }
+
+    if (stoppedPercentage >= 20) {
+      return "Moderate";
+    }
+
+    return "Low";
+  }, [vehicles.length, stoppedVehicles.length]);
+
+  const getTrafficClass = (level: string) => {
+    if (level === "High") {
+      return "status status-high";
+    }
+
+    if (level === "Moderate") {
+      return "status status-medium";
+    }
+
+    return "status status-low";
+  };
+
   return (
     <div className="metropolis-page">
       {/* HEADER */}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">Traffic Intelligence</h1>
 
           <p className="page-subtitle">
-            Monitor traffic flow, congestion and simulated road activity
+            Real-time simulated traffic monitoring and congestion analysis
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          LIVE TRAFFIC
+          TRAFFIC LIVE
         </div>
       </div>
 
       {/* KPI CARDS */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <Activity size={22} />
+        <TrafficCard
+          icon={<CarFront size={21} />}
+          label="Total Vehicles"
+          value={vehicles.length.toString()}
+          description="Currently simulated"
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Traffic Flow
-          </div>
+        <TrafficCard
+          icon={<Radio size={21} />}
+          label="Moving Vehicles"
+          value={movingVehicles.length.toString()}
+          description="Vehicles in motion"
+        />
 
-          <div className="kpi-value">78%</div>
+        <TrafficCard
+          icon={<CircleGauge size={21} />}
+          label="Average Speed"
+          value={`${averageSpeed} km/h`}
+          description="Across all vehicles"
+        />
 
-          <div className="kpi-change">
-            <TrendingUp size={13} />
-            6.2% from previous period
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Gauge size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Average Speed
-          </div>
-
-          <div className="kpi-value">32 km/h</div>
-
-          <div className="kpi-change">
-            <TrendingUp size={13} />
-            5% improvement
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <CarFront size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Active Vehicles
-          </div>
-
-          <div className="kpi-value">128</div>
-
-          <div className="kpi-change">
-            <TrendingUp size={13} />
-            12% activity increase
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Route size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Congested Roads
-          </div>
-
-          <div className="kpi-value">08</div>
-
-          <div className="kpi-change">
-            <TrendingDown size={13} />
-            2 roads improved
-          </div>
-        </div>
+        <TrafficCard
+          icon={<TriangleAlert size={21} />}
+          label="Traffic Level"
+          value={trafficLevel}
+          description="Current simulation status"
+        />
       </div>
 
-      {/* TRAFFIC CHART + ZONES */}
+      {/* TRAFFIC OVERVIEW */}
+
       <div
         className="grid-2"
         style={{
           marginTop: 18,
-          alignItems: "stretch",
+          alignItems: "start",
         }}
       >
-        {/* TRAFFIC FLOW */}
-        <div className="panel">
+        {/* CURRENT TRAFFIC STATUS */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
-              <h3 className="panel-title">
-                Traffic Flow — Today
-              </h3>
+              <h3 className="panel-title">Current Traffic Status</h3>
 
               <p
                 className="muted"
@@ -199,151 +185,115 @@ export default function Traffic() {
                   fontSize: 12,
                 }}
               >
-                Simulated traffic activity throughout the day
-              </p>
-            </div>
-
-            <TrendingUp size={18} />
-          </div>
-
-          <div
-            style={{
-              height: 270,
-              padding: "25px 20px 10px",
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 9,
-            }}
-          >
-            {[32, 44, 51, 39, 67, 61, 73, 58, 79, 65, 82, 74].map(
-              (height, index) => (
-                <div
-                  key={index}
-                  style={{
-                    flex: 1,
-                    height: `${height}%`,
-                    minWidth: 7,
-                    borderRadius: "5px 5px 2px 2px",
-                    background:
-                      "linear-gradient(180deg, #18c9ef, rgba(24,201,239,.18))",
-                    boxShadow:
-                      "0 0 12px rgba(24,201,239,.12)",
-                  }}
-                />
-              )
-            )}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "0 20px 18px",
-            }}
-          >
-            <span className="muted">08 AM</span>
-            <span className="muted">12 PM</span>
-            <span className="muted">04 PM</span>
-            <span className="muted">08 PM</span>
-          </div>
-        </div>
-
-        {/* ZONE CONGESTION */}
-        <div className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                Congestion by Zone
-              </h3>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 5,
-                  fontSize: 12,
-                }}
-              >
-                Current simulated congestion levels
+                Simulated city-wide traffic conditions
               </p>
             </div>
 
             <Activity size={18} />
           </div>
 
-          <div style={{ padding: 20 }}>
-            {trafficZones.map((item) => (
-              <div
-                key={item.zone}
+          <div style={{ padding: 18 }}>
+            <TrafficStatusRow
+              icon={<TrendingUp size={17} />}
+              title="Overall Traffic"
+              value={trafficLevel}
+              className={getTrafficClass(trafficLevel)}
+            />
+
+            <TrafficStatusRow
+              icon={<CarFront size={17} />}
+              title="Moving Vehicles"
+              value={`${movingVehicles.length} vehicles`}
+              className="status status-low"
+            />
+
+            <TrafficStatusRow
+              icon={<TriangleAlert size={17} />}
+              title="Stopped Vehicles"
+              value={`${stoppedVehicles.length} vehicles`}
+              className={
+                stoppedVehicles.length > 0
+                  ? "status status-medium"
+                  : "status status-low"
+              }
+            />
+
+            <TrafficStatusRow
+              icon={<CircleGauge size={17} />}
+              title="Average Speed"
+              value={`${averageSpeed} km/h`}
+              className="status status-low"
+            />
+
+            <TrafficStatusRow
+              icon={<Radio size={17} />}
+              title="Simulation Engine"
+              value="Active"
+              className="status status-low"
+            />
+          </div>
+        </section>
+
+        {/* SPEED MONITOR */}
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">Speed Monitoring</h3>
+
+              <p
+                className="muted"
                 style={{
-                  marginBottom: 20,
+                  marginTop: 5,
+                  fontSize: 12,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 10,
-                    marginBottom: 7,
-                  }}
-                >
-                  <span>{item.zone}</span>
+                Current vehicle speed distribution
+              </p>
+            </div>
 
-                  <strong>
-                    {item.congestion}%
-                  </strong>
-                </div>
-
-                <div className="progress">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${item.congestion}%`,
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 6,
-                  }}
-                >
-                  <span
-                    className={`status ${
-                      item.status === "High"
-                        ? "status-high"
-                        : item.status === "Medium"
-                          ? "status-medium"
-                          : "status-low"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-
-                  <span
-                    className="muted"
-                    style={{ fontSize: 11 }}
-                  >
-                    {item.vehicles} vehicles
-                  </span>
-                </div>
-              </div>
-            ))}
+            <CircleGauge size={18} />
           </div>
-        </div>
+
+          <div style={{ padding: 18 }}>
+            <SpeedBar
+              label="Low Speed"
+              value={
+                vehicles.filter((vehicle) => vehicle.speed < 20).length
+              }
+              total={vehicles.length}
+            />
+
+            <SpeedBar
+              label="Normal Speed"
+              value={
+                vehicles.filter(
+                  (vehicle) => vehicle.speed >= 20 && vehicle.speed < 50,
+                ).length
+              }
+              total={vehicles.length}
+            />
+
+            <SpeedBar
+              label="High Speed"
+              value={
+                vehicles.filter((vehicle) => vehicle.speed >= 50).length
+              }
+              total={vehicles.length}
+            />
+          </div>
+        </section>
       </div>
 
-      {/* TRAFFIC STATUS */}
-      <div
+      {/* ZONE TRAFFIC */}
+
+      <section
         className="panel"
         style={{ marginTop: 18 }}
       >
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">
-              Road Traffic Status
-            </h3>
+            <h3 className="panel-title">Traffic by Zone</h3>
 
             <p
               className="muted"
@@ -352,102 +302,136 @@ export default function Traffic() {
                 fontSize: 12,
               }}
             >
-              Live traffic conditions across monitored roads
+              Vehicle activity across simulated zones
             </p>
           </div>
 
-          <Radio size={18} />
+          <MapPin size={18} />
         </div>
 
-        <div className="report-table-wrapper">
-          <table className="report-table">
-            <thead>
-              <tr>
-                <th>Road</th>
-                <th>Zone</th>
-                <th>Traffic</th>
-                <th>Avg. Speed</th>
-                <th>Vehicles</th>
-                <th>Congestion</th>
-              </tr>
-            </thead>
+        <div style={{ padding: 18 }}>
+          {Object.keys(zoneData).length === 0 ? (
+            <div
+              className="muted"
+              style={{
+                padding: 25,
+                textAlign: "center",
+              }}
+            >
+              No vehicle data available.
+            </div>
+          ) : (
+            Object.entries(zoneData).map(([zone, data]) => {
+              const percentage =
+                vehicles.length > 0
+                  ? Math.round((data.vehicles / vehicles.length) * 100)
+                  : 0;
 
-            <tbody>
-              {roads.map((road) => (
-                <tr key={road.road}>
-                  <td>
-                    <strong>{road.road}</strong>
-                  </td>
+              const zoneTraffic =
+                data.stopped > data.moving
+                  ? "High"
+                  : data.stopped > 0
+                    ? "Moderate"
+                    : "Low";
 
-                  <td className="muted">
-                    {road.zone}
-                  </td>
+              return (
+                <div
+                  key={zone}
+                  style={{
+                    marginBottom: 22,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {zone}
+                      </div>
 
-                  <td>
-                    <span
-                      className={`status ${
-                        road.level === "High"
-                          ? "status-high"
-                          : road.level === "Medium"
-                            ? "status-medium"
-                            : "status-low"
-                      }`}
-                    >
-                      {road.level}
-                    </span>
-                  </td>
+                      <div
+                        className="muted"
+                        style={{
+                          fontSize: 10,
+                          marginTop: 3,
+                        }}
+                      >
+                        {data.moving} moving · {data.stopped} stopped ·{" "}
+                        {data.averageSpeed} km/h
+                      </div>
+                    </div>
 
-                  <td>
-                    {road.speed} km/h
-                  </td>
-
-                  <td>
-                    {road.vehicles}
-                  </td>
-
-                  <td>
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        minWidth: 130,
                       }}
                     >
-                      <div
-                        className="progress"
-                        style={{ flex: 1 }}
+                      <span className={getTrafficClass(zoneTraffic)}>
+                        {zoneTraffic}
+                      </span>
+
+                      <span
+                        className="muted"
+                        style={{
+                          fontSize: 11,
+                        }}
                       >
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${road.congestion}%`,
-                          }}
-                        />
-                      </div>
-
-                      <strong>
-                        {road.congestion}%
-                      </strong>
+                        {data.vehicles} vehicles
+                      </span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </div>
 
-      {/* TRAFFIC INSIGHTS */}
-      <div
+                  <div
+                    style={{
+                      height: 8,
+                      borderRadius: 20,
+                      background: "rgba(100,160,190,.10)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${percentage}%`,
+                        height: "100%",
+                        borderRadius: 20,
+                        background:
+                          zoneTraffic === "High"
+                            ? "#ef6a78"
+                            : zoneTraffic === "Moderate"
+                              ? "#e5b45b"
+                              : "#31d29a",
+                        transition: "width .3s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {/* LIVE TRAFFIC TABLE */}
+
+      <section
         className="panel"
         style={{ marginTop: 18 }}
       >
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">
-              Traffic Intelligence Summary
-            </h3>
+            <h3 className="panel-title">Live Traffic Monitor</h3>
 
             <p
               className="muted"
@@ -456,105 +440,299 @@ export default function Traffic() {
                 fontSize: 12,
               }}
             >
-              Automated observations from the simulated traffic network
+              Vehicle-level traffic information
             </p>
           </div>
 
-          <Gauge size={18} />
+          <span className="status status-low">LIVE</span>
         </div>
 
         <div
           style={{
-            padding: 20,
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 14,
+            overflowX: "auto",
           }}
         >
-          <InsightCard
-            title="Peak Traffic"
-            value="06:00 PM"
-            description="Highest simulated traffic activity occurs during the evening period."
-          />
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: 760,
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  color: "#688493",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: ".06em",
+                }}
+              >
+                <th style={tableHeader}>Vehicle</th>
+                <th style={tableHeader}>Road</th>
+                <th style={tableHeader}>Zone</th>
+                <th style={tableHeader}>Speed</th>
+                <th style={tableHeader}>Status</th>
+                <th style={tableHeader}>Traffic</th>
+              </tr>
+            </thead>
 
-          <InsightCard
-            title="Highest Congestion"
-            value="Zone A"
-            description="Central District currently records the highest congestion level."
-          />
+            <tbody>
+              {vehicles.slice(0, 10).map((vehicle) => {
+                const vehicleTraffic =
+                  vehicle.status === "Stopped"
+                    ? "High"
+                    : vehicle.speed < 20
+                      ? "Moderate"
+                      : "Low";
 
-          <InsightCard
-            title="Fastest Zone"
-            value="Zone C"
-            description="Residential Area currently has the highest average simulated speed."
-          />
+                return (
+                  <tr key={vehicle.id}>
+                    <td style={tableCell}>
+                      <strong>{vehicle.id}</strong>
+                    </td>
 
-          <InsightCard
-            title="Network Status"
-            value="Operational"
-            description="Traffic monitoring and simulation services are running normally."
-          />
+                    <td style={tableCell}>{vehicle.road}</td>
+
+                    <td style={tableCell}>{vehicle.zone}</td>
+
+                    <td style={tableCell}>{vehicle.speed} km/h</td>
+
+                    <td style={tableCell}>
+                      <span
+                        className={
+                          vehicle.status === "Moving"
+                            ? "status status-low"
+                            : "status status-medium"
+                        }
+                      >
+                        {vehicle.status}
+                      </span>
+                    </td>
+
+                    <td style={tableCell}>
+                      <span className={getTrafficClass(vehicleTraffic)}>
+                        {vehicleTraffic}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+      </section>
+
+      {/* FOOTER STATUS */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 14,
+          color: "#64808d",
+          fontSize: 10,
+        }}
+      >
+        <Activity size={13} />
+
+        METROPOLIS traffic engine is continuously analyzing simulated vehicle
+        movement and congestion.
+      </div>
+
+      <div
+        style={{
+          marginTop: 18,
+          paddingBottom: 20,
+          color: "#506b78",
+          fontSize: 10,
+        }}
+      >
+        Total vehicles: {vehicles.length} · Moving:{" "}
+        {movingVehicles.length} · Stopped: {stoppedVehicles.length} · Mode:
+        Digital Twin
       </div>
     </div>
   );
 }
 
 /* =========================================================
-   INSIGHT CARD
-   ========================================================= */
+   TRAFFIC CARD
+========================================================= */
 
-function InsightCard({
-  title,
+function TrafficCard({
+  icon,
+  label,
   value,
   description,
 }: {
-  title: string;
+  icon: React.ReactNode;
+  label: string;
   value: string;
   description: string;
 }) {
   return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 14,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="kpi-value">{value}</div>
+
+      <div className="kpi-change">{description}</div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TRAFFIC STATUS ROW
+========================================================= */
+
+function TrafficStatusRow({
+  icon,
+  title,
+  value,
+  className,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  className: string;
+}) {
+  return (
     <div
       style={{
-        padding: 16,
-        borderRadius: 9,
-        border:
-          "1px solid rgba(100,160,190,.10)",
-        background: "rgba(5,20,32,.45)",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "13px 0",
+        borderBottom: "1px solid rgba(100,160,190,.07)",
       }}
     >
       <div
-        className="muted"
         style={{
-          fontSize: 10,
-          textTransform: "uppercase",
-          letterSpacing: ".08em",
+          width: 32,
+          height: 32,
+          borderRadius: 7,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(20,190,235,.06)",
+        }}
+      >
+        {icon}
+      </div>
+
+      <div
+        style={{
+          flex: 1,
+          fontSize: 12,
+          fontWeight: 600,
         }}
       >
         {title}
       </div>
 
-      <div
-        style={{
-          marginTop: 8,
-          fontSize: 17,
-          fontWeight: 700,
-        }}
-      >
-        {value}
-      </div>
-
-      <p
-        className="muted"
-        style={{
-          marginTop: 7,
-          fontSize: 11,
-          lineHeight: 1.55,
-        }}
-      >
-        {description}
-      </p>
+      <span className={className}>{value}</span>
     </div>
   );
 }
+
+/* =========================================================
+   SPEED BAR
+========================================================= */
+
+function SpeedBar({
+  label,
+  value,
+  total,
+}: {
+  label: string;
+  value: number;
+  total: number;
+}) {
+  const percentage =
+    total > 0 ? Math.round((value / total) * 100) : 0;
+
+  return (
+    <div
+      style={{
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 7,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </span>
+
+        <span
+          className="muted"
+          style={{
+            fontSize: 11,
+          }}
+        >
+          {value} vehicles · {percentage}%
+        </span>
+      </div>
+
+      <div
+        style={{
+          height: 7,
+          borderRadius: 20,
+          background: "rgba(100,160,190,.10)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${percentage}%`,
+            height: "100%",
+            borderRadius: 20,
+            background:
+              label === "High Speed"
+                ? "#ef6a78"
+                : label === "Normal Speed"
+                  ? "#31d29a"
+                  : "#e5b45b",
+            transition: "width .3s ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
+
+const tableHeader: React.CSSProperties = {
+  textAlign: "left",
+  padding: "13px 16px",
+  borderBottom: "1px solid rgba(100,160,190,.08)",
+};
+
+const tableCell: React.CSSProperties = {
+  padding: "14px 16px",
+  borderBottom: "1px solid rgba(100,160,190,.06)",
+  fontSize: 11,
+};

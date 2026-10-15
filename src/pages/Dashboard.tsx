@@ -13,7 +13,12 @@ import { useMemo } from "react";
 import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
 
 export default function Dashboard() {
-  const { vehicles } = useVehicleSimulation();
+  const { vehicles, loading, error } =
+    useVehicleSimulation();
+
+  /* =========================================================
+     VEHICLE ANALYTICS
+  ========================================================= */
 
   const totalVehicles = vehicles.length;
 
@@ -32,26 +37,130 @@ export default function Dashboard() {
 
     return Math.round(
       vehicles.reduce(
-        (total, vehicle) => total + vehicle.speed,
+        (total, vehicle) => total + Number(vehicle.speed || 0),
         0,
       ) / vehicles.length,
     );
   }, [vehicles]);
 
+  /* =========================================================
+     ZONE ANALYTICS
+  ========================================================= */
+
   const zoneCounts = useMemo(() => {
     const counts: Record<string, number> = {};
 
     vehicles.forEach((vehicle) => {
-      counts[vehicle.zone] =
-        (counts[vehicle.zone] || 0) + 1;
+      const zone = vehicle.zone || "Unknown";
+
+      counts[zone] = (counts[zone] || 0) + 1;
     });
 
     return counts;
   }, [vehicles]);
 
+  /* =========================================================
+     ZONE TRAFFIC PERCENTAGES
+     
+     Calculated from simulated vehicle distribution.
+     No hard-coded traffic percentages.
+  ========================================================= */
+
+  const zoneTraffic = useMemo(() => {
+    const zones = ["Zone A", "Zone B", "Zone C"];
+
+    return zones.map((zone) => {
+      const count = zoneCounts[zone] || 0;
+
+      /*
+       * Estimate traffic intensity from:
+       * - number of vehicles
+       * - stopped vehicles
+       * - total active vehicles
+       */
+
+      const zoneVehicles = vehicles.filter(
+        (vehicle) => vehicle.zone === zone,
+      );
+
+      const zoneTotal = zoneVehicles.length;
+
+      const zoneStopped = zoneVehicles.filter(
+        (vehicle) => vehicle.status === "Stopped",
+      ).length;
+
+      if (zoneTotal === 0) {
+        return {
+          name: zone,
+          vehicles: 0,
+          percentage: 0,
+        };
+      }
+
+      const vehicleShare =
+        totalVehicles > 0
+          ? (zoneTotal / totalVehicles) * 60
+          : 0;
+
+      const stoppedShare =
+        zoneTotal > 0
+          ? (zoneStopped / zoneTotal) * 40
+          : 0;
+
+      const percentage = Math.min(
+        100,
+        Math.round(vehicleShare + stoppedShare),
+      );
+
+      return {
+        name: zone,
+        vehicles: count,
+        percentage,
+      };
+    });
+  }, [vehicles, zoneCounts, totalVehicles]);
+
+  /* =========================================================
+     INCIDENT SIMULATION
+     
+     Until MySQL/backend incident data is available,
+     derive a simple simulated attention count from
+     stopped vehicles.
+  ========================================================= */
+
+  const simulatedIncidents = useMemo(() => {
+    const attention = Math.min(
+      stoppedVehicles,
+      3,
+    );
+
+    const total = Math.max(
+      attention + 2,
+      Math.min(vehicles.length, 5),
+    );
+
+    return {
+      total,
+      attention,
+    };
+  }, [stoppedVehicles, vehicles.length]);
+
+  /* =========================================================
+     SYSTEM STATUS
+  ========================================================= */
+
+  const systemStatus =
+    loading
+      ? "Loading"
+      : error
+        ? "Simulation Mode"
+        : "Operational";
+
   return (
     <div className="metropolis-page">
-      {/* HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
       <div className="page-header">
         <div>
@@ -60,24 +169,54 @@ export default function Dashboard() {
           </h1>
 
           <p className="page-subtitle">
-            AI-enabled digital twin and smart city simulation command center
+            AI-enabled digital twin and smart city
+            simulation command center
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          SYSTEM LIVE
+          {loading
+            ? "LOADING"
+            : error
+              ? "SIMULATION"
+              : "SYSTEM LIVE"}
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* =====================================================
+          BACKEND / SIMULATION MESSAGE
+      ===================================================== */}
+
+      {error && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            borderRadius: 8,
+            border:
+              "1px solid rgba(229,180,91,.18)",
+            background:
+              "rgba(229,180,91,.05)",
+            color: "#d9b66b",
+            fontSize: 11,
+          }}
+        >
+          Backend data unavailable. METROPOLIS is
+          currently running with simulated vehicle data.
+        </div>
+      )}
+
+      {/* =====================================================
+          KPI CARDS
+      ===================================================== */}
 
       <div className="grid-4">
         <DashboardCard
           icon={<CarFront size={22} />}
           label="Active Vehicles"
           value={totalVehicles.toString()}
-          description="Simulated vehicles"
+          description="Vehicles in simulation"
         />
 
         <DashboardCard
@@ -91,18 +230,20 @@ export default function Dashboard() {
           icon={<CircleGauge size={22} />}
           label="Average Speed"
           value={`${averageSpeed} km/h`}
-          description="Across active vehicles"
+          description="Across simulated vehicles"
         />
 
         <DashboardCard
           icon={<AlertTriangle size={22} />}
           label="Incidents"
-          value="5"
-          description="2 requiring attention"
+          value={simulatedIncidents.total.toString()}
+          description={`${simulatedIncidents.attention} requiring attention`}
         />
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* =====================================================
+          MAIN CONTENT
+      ===================================================== */}
 
       <div
         className="grid-2"
@@ -111,7 +252,9 @@ export default function Dashboard() {
           alignItems: "start",
         }}
       >
-        {/* CITY STATUS */}
+        {/* ===================================================
+            CITY STATUS
+        =================================================== */}
 
         <section className="panel">
           <div className="panel-header">
@@ -138,22 +281,44 @@ export default function Dashboard() {
             <OperationRow
               icon={<ShieldCheck size={17} />}
               title="System Status"
-              value="Operational"
-              status="good"
+              value={systemStatus}
+              status={
+                loading
+                  ? "warning"
+                  : error
+                    ? "warning"
+                    : "good"
+              }
             />
 
             <OperationRow
               icon={<CarFront size={17} />}
               title="Vehicle Simulation"
-              value="Running"
-              status="good"
+              value={
+                vehicles.length > 0
+                  ? "Running"
+                  : "Waiting"
+              }
+              status={
+                vehicles.length > 0
+                  ? "good"
+                  : "warning"
+              }
             />
 
             <OperationRow
               icon={<Radio size={17} />}
               title="Real-Time Data Engine"
-              value="Connected"
-              status="good"
+              value={
+                error
+                  ? "Simulation"
+                  : "Connected"
+              }
+              status={
+                error
+                  ? "warning"
+                  : "good"
+              }
             />
 
             <OperationRow
@@ -166,13 +331,19 @@ export default function Dashboard() {
             <OperationRow
               icon={<AlertTriangle size={17} />}
               title="Incident Monitoring"
-              value="2 Attention"
-              status="warning"
+              value={`${simulatedIncidents.attention} Attention`}
+              status={
+                simulatedIncidents.attention > 0
+                  ? "warning"
+                  : "good"
+              }
             />
           </div>
         </section>
 
-        {/* TRAFFIC SUMMARY */}
+        {/* ===================================================
+            TRAFFIC SUMMARY
+        =================================================== */}
 
         <section className="panel">
           <div className="panel-header">
@@ -196,28 +367,21 @@ export default function Dashboard() {
           </div>
 
           <div style={{ padding: 18 }}>
-            <ZoneTraffic
-              name="Zone A"
-              vehicles={zoneCounts["Zone A"] || 0}
-              percentage={65}
-            />
-
-            <ZoneTraffic
-              name="Zone B"
-              vehicles={zoneCounts["Zone B"] || 0}
-              percentage={82}
-            />
-
-            <ZoneTraffic
-              name="Zone C"
-              vehicles={zoneCounts["Zone C"] || 0}
-              percentage={32}
-            />
+            {zoneTraffic.map((zone) => (
+              <ZoneTraffic
+                key={zone.name}
+                name={zone.name}
+                vehicles={zone.vehicles}
+                percentage={zone.percentage}
+              />
+            ))}
           </div>
         </section>
       </div>
 
-      {/* VEHICLE MONITOR */}
+      {/* =====================================================
+          VEHICLE MONITOR
+      ===================================================== */}
 
       <section
         className="panel"
@@ -297,51 +461,71 @@ export default function Dashboard() {
             </thead>
 
             <tbody>
-              {vehicles.slice(0, 6).map((vehicle) => (
-                <tr key={vehicle.id}>
-                  <td style={tableCell}>
-                    <strong>{vehicle.id}</strong>
-                  </td>
+              {vehicles
+                .slice(0, 6)
+                .map((vehicle) => (
+                  <tr key={vehicle.id}>
+                    <td style={tableCell}>
+                      <strong>
+                        {vehicle.id}
+                      </strong>
+                    </td>
 
-                  <td style={tableCell}>
-                    {vehicle.plate}
-                  </td>
+                    <td style={tableCell}>
+                      {vehicle.plate}
+                    </td>
 
-                  <td style={tableCell}>
-                    {vehicle.type}
-                  </td>
+                    <td style={tableCell}>
+                      {vehicle.type}
+                    </td>
 
-                  <td style={tableCell}>
-                    {vehicle.road}
-                  </td>
+                    <td style={tableCell}>
+                      {vehicle.road}
+                    </td>
 
-                  <td style={tableCell}>
-                    {vehicle.zone}
-                  </td>
+                    <td style={tableCell}>
+                      {vehicle.zone}
+                    </td>
 
-                  <td style={tableCell}>
-                    {vehicle.speed} km/h
-                  </td>
+                    <td style={tableCell}>
+                      {vehicle.speed} km/h
+                    </td>
 
-                  <td style={tableCell}>
-                    <span
-                      className={
-                        vehicle.status === "Moving"
-                          ? "status status-low"
-                          : "status status-medium"
-                      }
-                    >
-                      {vehicle.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    <td style={tableCell}>
+                      <span
+                        className={
+                          vehicle.status ===
+                          "Moving"
+                            ? "status status-low"
+                            : "status status-medium"
+                        }
+                      >
+                        {vehicle.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
+
+          {vehicles.length === 0 && (
+            <div
+              style={{
+                padding: 30,
+                textAlign: "center",
+                color: "#64808d",
+                fontSize: 12,
+              }}
+            >
+              No vehicle data available.
+            </div>
+          )}
         </div>
       </section>
 
-      {/* BOTTOM STATUS */}
+      {/* =====================================================
+          BOTTOM STATUS
+      ===================================================== */}
 
       <div
         style={{
@@ -355,8 +539,9 @@ export default function Dashboard() {
       >
         <Activity size={13} />
 
-        METROPOLIS simulation engine is continuously updating vehicle
-        positions and traffic conditions.
+        METROPOLIS simulation engine is continuously
+        updating vehicle positions and traffic
+        conditions.
       </div>
 
       <div
@@ -367,7 +552,9 @@ export default function Dashboard() {
           fontSize: 10,
         }}
       >
-        Stopped vehicles: {stoppedVehicles} · Active zones: 3 ·
+        Stopped vehicles: {stoppedVehicles} ·
+        Active zones:{" "}
+        {Object.keys(zoneCounts).length} ·
         Simulation mode: Digital Twin
       </div>
     </div>
@@ -376,7 +563,7 @@ export default function Dashboard() {
 
 /* =========================================================
    DASHBOARD CARD
-   ========================================================= */
+========================================================= */
 
 function DashboardCard({
   icon,
@@ -413,7 +600,7 @@ function DashboardCard({
 
 /* =========================================================
    OPERATION ROW
-   ========================================================= */
+========================================================= */
 
 function OperationRow({
   icon,
@@ -445,7 +632,8 @@ function OperationRow({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "rgba(20,190,235,.06)",
+          background:
+            "rgba(20,190,235,.06)",
         }}
       >
         {icon}
@@ -477,7 +665,7 @@ function OperationRow({
 
 /* =========================================================
    ZONE TRAFFIC
-   ========================================================= */
+========================================================= */
 
 function ZoneTraffic({
   name,
@@ -518,7 +706,8 @@ function ZoneTraffic({
         style={{
           height: 7,
           borderRadius: 20,
-          background: "rgba(100,160,190,.10)",
+          background:
+            "rgba(100,160,190,.10)",
           overflow: "hidden",
         }}
       >
@@ -533,12 +722,18 @@ function ZoneTraffic({
                 : percentage >= 40
                   ? "#e5b45b"
                   : "#31d29a",
+            transition:
+              "width .5s ease",
           }}
         />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
 
 const tableHeader: React.CSSProperties = {
   textAlign: "left",

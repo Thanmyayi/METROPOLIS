@@ -1,36 +1,33 @@
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
 dotenv.config();
 
-// ==================================================
+// ========================================
 // DATABASE
-// ==================================================
-
+// ========================================
 const { pool } = require("./config/db");
 
-// ==================================================
+// ========================================
 // ROUTES
-// ==================================================
-
+// ========================================
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const trafficRoutes = require("./routes/trafficRoutes");
 const incidentRoutes = require("./routes/incidentRoutes");
 const zoneRoutes = require("./routes/zoneRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 
-// ==================================================
+// ========================================
 // APP CONFIGURATION
-// ==================================================
-
+// ========================================
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ==================================================
+// ========================================
 // MIDDLEWARE
-// ==================================================
-
+// ========================================
 app.use(
   cors({
     origin: "http://localhost:5174",
@@ -41,10 +38,9 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ==================================================
+// ========================================
 // ROOT ROUTE
-// ==================================================
-
+// ========================================
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -54,10 +50,9 @@ app.get("/", (req, res) => {
   });
 });
 
-// ==================================================
+// ========================================
 // HEALTH CHECK
-// ==================================================
-
+// ========================================
 app.get("/api/health", async (req, res, next) => {
   try {
     await pool.query("SELECT 1");
@@ -73,20 +68,18 @@ app.get("/api/health", async (req, res, next) => {
   }
 });
 
-// ==================================================
+// ========================================
 // API ROUTES
-// ==================================================
-
+// ========================================
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/traffic", trafficRoutes);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/zones", zoneRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
-// ==================================================
+// ========================================
 // 404 HANDLER
-// ==================================================
-
+// ========================================
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -95,10 +88,9 @@ app.use((req, res) => {
   });
 });
 
-// ==================================================
+// ========================================
 // GLOBAL ERROR HANDLER
-// ==================================================
-
+// ========================================
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
 
@@ -112,12 +104,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ==================================================
+// ========================================
 // START SERVER
-// ==================================================
-
+// ========================================
 async function startServer() {
   try {
+    console.log("Checking MySQL database connection...");
+
     await pool.query("SELECT 1");
 
     console.log("----------------------------------------");
@@ -137,14 +130,18 @@ async function startServer() {
     });
 
     server.on("error", (error) => {
-      console.error("HTTP server error:", error.message);
+      console.error("HTTP server error:", error);
     });
   } catch (error) {
     console.error("----------------------------------------");
     console.error("METROPOLIS Backend failed to start");
     console.error("----------------------------------------");
     console.error("Database connection or startup error:");
-    console.error(error.message);
+    console.error(error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    console.error("Error details:", error.stack);
+    console.error("Underlying errors:", error.errors);
     console.error("----------------------------------------");
 
     process.exitCode = 1;

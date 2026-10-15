@@ -1,161 +1,215 @@
 import {
   Activity,
-  BrainCircuit,
-  Gauge,
-  Lightbulb,
-  TrendingDown,
+  BarChart3,
+  CarFront,
+  CircleGauge,
+  MapPin,
+  Radio,
   TrendingUp,
-  Zap,
 } from "lucide-react";
+import { useMemo } from "react";
 
-const zoneAnalytics = [
-  {
-    zone: "Zone A",
-    congestion: 72,
-    speed: 32,
-    vehicles: 48,
-    trend: "+8%",
-  },
-  {
-    zone: "Zone B",
-    congestion: 58,
-    speed: 36,
-    vehicles: 35,
-    trend: "-4%",
-  },
-  {
-    zone: "Zone C",
-    congestion: 41,
-    speed: 42,
-    vehicles: 27,
-    trend: "+3%",
-  },
-];
-
-const insights = [
-  {
-    title: "Congestion Pattern Detected",
-    description:
-      "Vehicle density is increasing around the central road network during peak hours.",
-    type: "Traffic",
-  },
-  {
-    title: "Average Speed Improving",
-    description:
-      "Average vehicle speed has increased across monitored roads compared with the previous period.",
-    type: "Performance",
-  },
-  {
-    title: "Zone A Requires Attention",
-    description:
-      "Zone A currently has the highest simulated congestion level in the digital twin.",
-    type: "Zone",
-  },
-];
+import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
 
 export default function Analytics() {
+  const { vehicles } = useVehicleSimulation();
+
+  const movingVehicles = vehicles.filter(
+    (vehicle) => vehicle.status === "Moving",
+  ).length;
+
+  const stoppedVehicles = vehicles.filter(
+    (vehicle) => vehicle.status === "Stopped",
+  ).length;
+
+  const averageSpeed = useMemo(() => {
+    if (vehicles.length === 0) {
+      return 0;
+    }
+
+    return Math.round(
+      vehicles.reduce(
+        (total, vehicle) => total + vehicle.speed,
+        0,
+      ) / vehicles.length,
+    );
+  }, [vehicles]);
+
+  const fastestVehicle = useMemo(() => {
+    if (vehicles.length === 0) {
+      return null;
+    }
+
+    return vehicles.reduce((fastest, vehicle) =>
+      vehicle.speed > fastest.speed
+        ? vehicle
+        : fastest,
+    );
+  }, [vehicles]);
+
+  const slowestVehicle = useMemo(() => {
+    if (vehicles.length === 0) {
+      return null;
+    }
+
+    return vehicles.reduce((slowest, vehicle) =>
+      vehicle.speed < slowest.speed
+        ? vehicle
+        : slowest,
+    );
+  }, [vehicles]);
+
+  const zoneData = useMemo(() => {
+    const data: Record<
+      string,
+      {
+        total: number;
+        moving: number;
+        stopped: number;
+        speed: number;
+      }
+    > = {};
+
+    vehicles.forEach((vehicle) => {
+      if (!data[vehicle.zone]) {
+        data[vehicle.zone] = {
+          total: 0,
+          moving: 0,
+          stopped: 0,
+          speed: 0,
+        };
+      }
+
+      data[vehicle.zone].total += 1;
+      data[vehicle.zone].speed += vehicle.speed;
+
+      if (vehicle.status === "Moving") {
+        data[vehicle.zone].moving += 1;
+      } else {
+        data[vehicle.zone].stopped += 1;
+      }
+    });
+
+    Object.keys(data).forEach((zone) => {
+      if (data[zone].total > 0) {
+        data[zone].speed = Math.round(
+          data[zone].speed /
+            data[zone].total,
+        );
+      }
+    });
+
+    return data;
+  }, [vehicles]);
+
+  const vehicleTypeData = useMemo(() => {
+    const data: Record<string, number> = {};
+
+    vehicles.forEach((vehicle) => {
+      data[vehicle.type] =
+        (data[vehicle.type] || 0) + 1;
+    });
+
+    return data;
+  }, [vehicles]);
+
+  const trafficScore = useMemo(() => {
+    if (vehicles.length === 0) {
+      return 0;
+    }
+
+    const movingPercentage =
+      (movingVehicles / vehicles.length) * 100;
+
+    return Math.round(
+      Math.max(
+        0,
+        Math.min(100, movingPercentage),
+      ),
+    );
+  }, [
+    movingVehicles,
+    vehicles.length,
+  ]);
+
   return (
     <div className="metropolis-page">
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
       <div className="page-header">
         <div>
-          <h1 className="page-title">AI Analytics</h1>
+          <h1 className="page-title">
+            Analytics
+          </h1>
+
           <p className="page-subtitle">
-            Analyze simulated city data and discover operational patterns
+            Smart-city traffic analytics and
+            simulation intelligence
           </p>
         </div>
 
         <div className="live-pill">
           <span className="live-dot" />
-          AI ANALYTICS ACTIVE
+          ANALYTICS LIVE
         </div>
       </div>
 
-      {/* KPI CARDS */}
+      {/* =================================================
+          KPI CARDS
+      ================================================= */}
+
       <div className="grid-4">
-        <div className="panel kpi-card">
-          <BrainCircuit size={22} />
+        <AnalyticsCard
+          icon={<CarFront size={21} />}
+          label="Tracked Vehicles"
+          value={vehicles.length.toString()}
+          description="Vehicles in simulation"
+        />
 
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            AI Insights
-          </div>
+        <AnalyticsCard
+          icon={<TrendingUp size={21} />}
+          label="Moving Rate"
+          value={`${trafficScore}%`}
+          description="Vehicles currently moving"
+        />
 
-          <div className="kpi-value">24</div>
+        <AnalyticsCard
+          icon={<CircleGauge size={21} />}
+          label="Average Speed"
+          value={`${averageSpeed} km/h`}
+          description="Fleet-wide average"
+        />
 
-          <div className="kpi-change">
-            ↑ 6 new insights
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Gauge size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Avg. Speed
-          </div>
-
-          <div className="kpi-value">32 km/h</div>
-
-          <div className="kpi-change">
-            ↑ 5.2%
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Activity size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Traffic Efficiency
-          </div>
-
-          <div className="kpi-value">78%</div>
-
-          <div className="kpi-change">
-            ↑ 4.8%
-          </div>
-        </div>
-
-        <div className="panel kpi-card">
-          <Zap size={22} />
-
-          <div
-            className="kpi-label"
-            style={{ marginTop: 14 }}
-          >
-            Prediction Accuracy
-          </div>
-
-          <div className="kpi-value">91%</div>
-
-          <div className="kpi-change">
-            Model confidence
-          </div>
-        </div>
+        <AnalyticsCard
+          icon={<MapPin size={21} />}
+          label="Active Zones"
+          value={Object.keys(
+            zoneData,
+          ).length.toString()}
+          description="Zones with traffic"
+        />
       </div>
 
-      {/* ANALYTICS OVERVIEW */}
+      {/* =================================================
+          TRAFFIC OVERVIEW
+      ================================================= */}
+
       <div
         className="grid-2"
         style={{
           marginTop: 18,
-          alignItems: "stretch",
+          alignItems: "start",
         }}
       >
-        {/* TRAFFIC TREND */}
-        <div className="panel">
+        {/* TRAFFIC PERFORMANCE */}
+
+        <section className="panel">
           <div className="panel-header">
             <div>
               <h3 className="panel-title">
-                Traffic Intelligence
+                Traffic Performance
               </h3>
 
               <p
@@ -165,117 +219,185 @@ export default function Analytics() {
                   fontSize: 12,
                 }}
               >
-                Simulated traffic activity over the current period
+                Current simulation performance
               </p>
             </div>
 
-            <TrendingUp size={18} />
+            <BarChart3 size={18} />
           </div>
 
-          <div
-            style={{
-              height: 260,
-              padding: "25px 20px 15px",
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 10,
-            }}
-          >
-            {[42, 55, 48, 67, 58, 72, 64, 81, 69, 76, 84, 73].map(
-              (height, index) => (
-                <div
-                  key={index}
-                  style={{
-                    flex: 1,
-                    height: `${height}%`,
-                    minWidth: 8,
-                    borderRadius: "5px 5px 2px 2px",
-                    background:
-                      "linear-gradient(180deg, #18c9ef, rgba(24,201,239,.22))",
-                    boxShadow:
-                      "0 0 12px rgba(24,201,239,.15)",
-                    opacity:
-                      index === 11 ? 1 : 0.75,
-                  }}
-                />
+          <div style={{ padding: 18 }}>
+            <AnalyticsMetric
+              label="Moving Vehicles"
+              value={movingVehicles}
+              total={vehicles.length}
+              suffix="vehicles"
+              percentage={
+                vehicles.length > 0
+                  ? Math.round(
+                      (movingVehicles /
+                        vehicles.length) *
+                        100,
+                    )
+                  : 0
+              }
+            />
+
+            <AnalyticsMetric
+              label="Stopped Vehicles"
+              value={stoppedVehicles}
+              total={vehicles.length}
+              suffix="vehicles"
+              percentage={
+                vehicles.length > 0
+                  ? Math.round(
+                      (stoppedVehicles /
+                        vehicles.length) *
+                        100,
+                    )
+                  : 0
+              }
+            />
+
+            <AnalyticsMetric
+              label="Average Speed"
+              value={averageSpeed}
+              total={60}
+              suffix="km/h"
+              percentage={Math.min(
+                100,
+                Math.round(
+                  (averageSpeed / 60) *
+                    100,
+                ),
+              )}
+            />
+          </div>
+        </section>
+
+        {/* VEHICLE TYPES */}
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Vehicle Distribution
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Vehicle types in simulation
+              </p>
+            </div>
+
+            <CarFront size={18} />
+          </div>
+
+          <div style={{ padding: 18 }}>
+            {Object.keys(
+              vehicleTypeData,
+            ).length === 0 ? (
+              <div
+                className="muted"
+                style={{
+                  textAlign: "center",
+                  padding: 30,
+                  fontSize: 11,
+                }}
+              >
+                No vehicle data available.
+              </div>
+            ) : (
+              Object.entries(
+                vehicleTypeData,
+              ).map(
+                ([type, count]) => {
+                  const percentage =
+                    vehicles.length > 0
+                      ? Math.round(
+                          (count /
+                            vehicles.length) *
+                            100,
+                        )
+                      : 0;
+
+                  return (
+                    <div
+                      key={type}
+                      style={{
+                        marginBottom: 18,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent:
+                            "space-between",
+                          marginBottom: 7,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {type}
+                        </span>
+
+                        <span
+                          className="muted"
+                          style={{
+                            fontSize: 10,
+                          }}
+                        >
+                          {count} ·{" "}
+                          {percentage}%
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          height: 7,
+                          borderRadius: 20,
+                          background:
+                            "rgba(100,160,190,.10)",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${percentage}%`,
+                            height: "100%",
+                            borderRadius: 20,
+                            background:
+                              "#31d29a",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                },
               )
             )}
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "0 20px 18px",
-            }}
-          >
-            <span className="muted">08 AM</span>
-            <span className="muted">12 PM</span>
-            <span className="muted">04 PM</span>
-            <span className="muted">08 PM</span>
-          </div>
-        </div>
-
-        {/* AI PERFORMANCE */}
-        <div className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                AI Model Performance
-              </h3>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 5,
-                  fontSize: 12,
-                }}
-              >
-                Current analytical engine status
-              </p>
-            </div>
-
-            <BrainCircuit size={18} />
-          </div>
-
-          <div style={{ padding: 20 }}>
-            <AnalyticsMetric
-              label="Traffic Prediction"
-              value="91%"
-              progress={91}
-            />
-
-            <AnalyticsMetric
-              label="Congestion Detection"
-              value="88%"
-              progress={88}
-            />
-
-            <AnalyticsMetric
-              label="Incident Pattern Analysis"
-              value="84%"
-              progress={84}
-            />
-
-            <AnalyticsMetric
-              label="Vehicle Flow Prediction"
-              value="93%"
-              progress={93}
-            />
-
-            <AnalyticsMetric
-              label="Zone Risk Detection"
-              value="86%"
-              progress={86}
-            />
-          </div>
-        </div>
+        </section>
       </div>
 
-      {/* ZONE ANALYTICS */}
-      <div
+      {/* =================================================
+          ZONE ANALYTICS
+      ================================================= */}
+
+      <section
         className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          marginTop: 18,
+        }}
       >
         <div className="panel-header">
           <div>
@@ -290,98 +412,270 @@ export default function Analytics() {
                 fontSize: 12,
               }}
             >
-              Compare simulated activity across city zones
+              Traffic performance across city zones
             </p>
           </div>
 
-          <Activity size={18} />
+          <MapPin size={18} />
         </div>
 
-        <div className="report-table-wrapper">
-          <table className="report-table">
+        <div
+          style={{
+            overflowX: "auto",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              minWidth: 720,
+              borderCollapse:
+                "collapse",
+            }}
+          >
             <thead>
-              <tr>
-                <th>Zone</th>
-                <th>Congestion</th>
-                <th>Avg. Speed</th>
-                <th>Vehicles</th>
-                <th>Trend</th>
+              <tr
+                style={{
+                  color: "#688493",
+                  fontSize: 10,
+                  textTransform:
+                    "uppercase",
+                  letterSpacing: ".06em",
+                }}
+              >
+                <th style={tableHeader}>
+                  Zone
+                </th>
+
+                <th style={tableHeader}>
+                  Vehicles
+                </th>
+
+                <th style={tableHeader}>
+                  Moving
+                </th>
+
+                <th style={tableHeader}>
+                  Stopped
+                </th>
+
+                <th style={tableHeader}>
+                  Avg Speed
+                </th>
+
+                <th style={tableHeader}>
+                  Condition
+                </th>
               </tr>
             </thead>
 
             <tbody>
-              {zoneAnalytics.map((item) => (
-                <tr key={item.zone}>
-                  <td>
-                    <strong>{item.zone}</strong>
-                  </td>
+              {Object.entries(
+                zoneData,
+              ).map(
+                ([zone, data]) => {
+                  const condition =
+                    data.stopped >
+                    data.moving
+                      ? "High"
+                      : data.stopped > 0
+                        ? "Moderate"
+                        : "Low";
 
-                  <td>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        minWidth: 150,
-                      }}
-                    >
-                      <div
-                        className="progress"
-                        style={{
-                          flex: 1,
-                        }}
+                  return (
+                    <tr key={zone}>
+                      <td
+                        style={
+                          tableCell
+                        }
                       >
-                        <div
-                          className="progress-fill"
-                          style={{
-                            width: `${item.congestion}%`,
-                          }}
-                        />
-                      </div>
+                        <strong>
+                          {zone}
+                        </strong>
+                      </td>
 
-                      <strong>
-                        {item.congestion}%
-                      </strong>
-                    </div>
-                  </td>
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {data.total}
+                      </td>
 
-                  <td>{item.speed} km/h</td>
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {data.moving}
+                      </td>
 
-                  <td>{item.vehicles}</td>
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {data.stopped}
+                      </td>
 
-                  <td>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                      }}
-                    >
-                      {item.trend.startsWith("+") ? (
-                        <TrendingUp size={14} />
-                      ) : (
-                        <TrendingDown size={14} />
-                      )}
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        {data.speed}{" "}
+                        km/h
+                      </td>
 
-                      {item.trend}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                      <td
+                        style={
+                          tableCell
+                        }
+                      >
+                        <span
+                          className={
+                            condition ===
+                            "High"
+                              ? "status status-high"
+                              : condition ===
+                                  "Moderate"
+                                ? "status status-medium"
+                                : "status status-low"
+                          }
+                        >
+                          {condition}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* =================================================
+          VEHICLE PERFORMANCE
+      ================================================= */}
+
+      <div
+        className="grid-2"
+        style={{
+          marginTop: 18,
+          alignItems: "start",
+        }}
+      >
+        {/* FASTEST */}
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Fastest Vehicle
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Highest current simulated speed
+              </p>
+            </div>
+
+            <TrendingUp size={18} />
+          </div>
+
+          <div style={{ padding: 20 }}>
+            {fastestVehicle ? (
+              <VehicleHighlight
+                vehicleId={
+                  fastestVehicle.id
+                }
+                road={
+                  fastestVehicle.road
+                }
+                zone={
+                  fastestVehicle.zone
+                }
+                speed={
+                  fastestVehicle.speed
+                }
+                status={
+                  fastestVehicle.status
+                }
+              />
+            ) : (
+              <EmptyState />
+            )}
+          </div>
+        </section>
+
+        {/* SLOWEST */}
+
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3 className="panel-title">
+                Slowest Vehicle
+              </h3>
+
+              <p
+                className="muted"
+                style={{
+                  marginTop: 5,
+                  fontSize: 12,
+                }}
+              >
+                Lowest current simulated speed
+              </p>
+            </div>
+
+            <Activity size={18} />
+          </div>
+
+          <div style={{ padding: 20 }}>
+            {slowestVehicle ? (
+              <VehicleHighlight
+                vehicleId={
+                  slowestVehicle.id
+                }
+                road={
+                  slowestVehicle.road
+                }
+                zone={
+                  slowestVehicle.zone
+                }
+                speed={
+                  slowestVehicle.speed
+                }
+                status={
+                  slowestVehicle.status
+                }
+              />
+            ) : (
+              <EmptyState />
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* AI INSIGHTS */}
-      <div
+      {/* =================================================
+          SYSTEM STATUS
+      ================================================= */}
+
+      <section
         className="panel"
-        style={{ marginTop: 18 }}
+        style={{
+          marginTop: 18,
+        }}
       >
         <div className="panel-header">
           <div>
             <h3 className="panel-title">
-              AI-Generated Insights
+              Analytics Engine Status
             </h3>
 
             <p
@@ -391,81 +685,95 @@ export default function Analytics() {
                 fontSize: 12,
               }}
             >
-              Patterns identified from simulated city activity
+              METROPOLIS intelligence services
             </p>
           </div>
 
-          <Lightbulb size={18} />
+          <Radio size={18} />
         </div>
 
         <div
           style={{
-            padding: 20,
+            padding: 18,
             display: "grid",
             gridTemplateColumns:
-              "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: 14,
+              "repeat(3, 1fr)",
+            gap: 12,
           }}
         >
-          {insights.map((insight) => (
-            <div
-              key={insight.title}
-              style={{
-                padding: 17,
-                borderRadius: 9,
-                background:
-                  "rgba(4,20,33,.65)",
-                border:
-                  "1px solid rgba(80,160,195,.12)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                }}
-              >
-                <BrainCircuit size={18} />
+          <SystemStatus
+            title="Vehicle Data"
+            value="Connected"
+          />
 
-                <span
-                  style={{
-                    fontSize: 10,
-                    padding: "4px 8px",
-                    borderRadius: 20,
-                    border:
-                      "1px solid rgba(24,201,239,.2)",
-                    background:
-                      "rgba(24,201,239,.06)",
-                  }}
-                >
-                  {insight.type}
-                </span>
-              </div>
+          <SystemStatus
+            title="Traffic Analysis"
+            value="Running"
+          />
 
-              <h4
-                style={{
-                  marginTop: 14,
-                  fontSize: 14,
-                }}
-              >
-                {insight.title}
-              </h4>
-
-              <p
-                className="muted"
-                style={{
-                  marginTop: 7,
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                }}
-              >
-                {insight.description}
-              </p>
-            </div>
-          ))}
+          <SystemStatus
+            title="Analytics Engine"
+            value="Operational"
+          />
         </div>
+      </section>
+
+      {/* FOOTER */}
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginTop: 14,
+          paddingBottom: 20,
+          color: "#64808d",
+          fontSize: 10,
+        }}
+      >
+        <Activity size={13} />
+
+        Analytics are generated from the live
+        METROPOLIS vehicle simulation engine.
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   ANALYTICS CARD
+========================================================= */
+
+function AnalyticsCard({
+  icon,
+  label,
+  value,
+  description,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  description: string;
+}) {
+  return (
+    <div className="panel kpi-card">
+      {icon}
+
+      <div
+        className="kpi-label"
+        style={{
+          marginTop: 14,
+        }}
+      >
+        {label}
+      </div>
+
+      <div className="kpi-value">
+        {value}
+      </div>
+
+      <div className="kpi-change">
+        {description}
       </div>
     </div>
   );
@@ -473,40 +781,268 @@ export default function Analytics() {
 
 /* =========================================================
    ANALYTICS METRIC
-   ========================================================= */
+========================================================= */
 
 function AnalyticsMetric({
   label,
   value,
-  progress,
+  total,
+  suffix,
+  percentage,
 }: {
   label: string;
-  value: string;
-  progress: number;
+  value: number;
+  total: number;
+  suffix: string;
+  percentage: number;
 }) {
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div
+      style={{
+        marginBottom: 20,
+      }}
+    >
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          gap: 10,
+          justifyContent:
+            "space-between",
           marginBottom: 7,
         }}
       >
-        <span>{label}</span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+          }}
+        >
+          {label}
+        </span>
 
-        <strong>{value}</strong>
+        <span
+          className="muted"
+          style={{
+            fontSize: 10,
+          }}
+        >
+          {value} {suffix}
+          {total > 0 &&
+            label !== "Average Speed" &&
+            ` / ${total}`}
+        </span>
       </div>
 
-      <div className="progress">
+      <div
+        style={{
+          height: 7,
+          borderRadius: 20,
+          background:
+            "rgba(100,160,190,.10)",
+          overflow: "hidden",
+        }}
+      >
         <div
-          className="progress-fill"
           style={{
-            width: `${progress}%`,
+            width: `${percentage}%`,
+            height: "100%",
+            borderRadius: 20,
+            background:
+              "#31d29a",
+            transition:
+              "width .3s ease",
           }}
         />
       </div>
     </div>
   );
 }
+
+/* =========================================================
+   VEHICLE HIGHLIGHT
+========================================================= */
+
+function VehicleHighlight({
+  vehicleId,
+  road,
+  zone,
+  speed,
+  status,
+}: {
+  vehicleId: string;
+  road: string;
+  zone: string;
+  speed: number;
+  status: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "auto 1fr auto",
+        gap: 15,
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: 9,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background:
+            "rgba(20,190,235,.06)",
+        }}
+      >
+        <CarFront size={21} />
+      </div>
+
+      <div>
+        <strong
+          style={{
+            fontSize: 13,
+          }}
+        >
+          {vehicleId}
+        </strong>
+
+        <div
+          className="muted"
+          style={{
+            marginTop: 5,
+            fontSize: 10,
+          }}
+        >
+          {road} · {zone}
+        </div>
+      </div>
+
+      <div
+        style={{
+          textAlign: "right",
+        }}
+      >
+        <strong
+          style={{
+            fontSize: 18,
+          }}
+        >
+          {speed}
+        </strong>
+
+        <div
+          className="muted"
+          style={{
+            fontSize: 9,
+          }}
+        >
+          km/h
+        </div>
+
+        <span
+          className={
+            status === "Moving"
+              ? "status status-low"
+              : "status status-medium"
+          }
+        >
+          {status}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   SYSTEM STATUS
+========================================================= */
+
+function SystemStatus({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div
+      style={{
+        padding: 15,
+        border:
+          "1px solid rgba(100,160,190,.08)",
+        borderRadius: 9,
+        background:
+          "rgba(100,160,190,.025)",
+      }}
+    >
+      <div
+        className="muted"
+        style={{
+          fontSize: 10,
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 7,
+          fontSize: 11,
+          fontWeight: 600,
+        }}
+      >
+        <span
+          className="live-dot"
+          style={{
+            width: 6,
+            height: 6,
+          }}
+        />
+
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function EmptyState() {
+  return (
+    <div
+      className="muted"
+      style={{
+        textAlign: "center",
+        padding: 25,
+        fontSize: 11,
+      }}
+    >
+      No vehicle data available.
+    </div>
+  );
+}
+
+/* =========================================================
+   TABLE STYLES
+========================================================= */
+
+const tableHeader: React.CSSProperties = {
+  textAlign: "left",
+  padding: "13px 16px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.08)",
+};
+
+const tableCell: React.CSSProperties = {
+  padding: "14px 16px",
+  borderBottom:
+    "1px solid rgba(100,160,190,.06)",
+  fontSize: 11,
+};

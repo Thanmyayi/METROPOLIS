@@ -1,22 +1,27 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getVehicles } from "../services/api";
 import { vehicles as baseVehicles } from "../data/vehicles";
 import type { VehicleData } from "../data/vehicles";
 
 /* =========================================================
    SIMULATED VEHICLE
-   ========================================================= */
+========================================================= */
 
 export interface SimulatedVehicle extends VehicleData {
   latitude: number;
   longitude: number;
   lastUpdated: string;
   routeIndex: number;
+
+  /* Backend-compatible fields */
+  vehicle_id?: string;
+  plate_number?: string;
+  vehicle_type?: string;
 }
 
 /* =========================================================
    HOOK RETURN TYPE
-   ========================================================= */
+========================================================= */
 
 interface UseVehicleSimulationReturn {
   vehicles: SimulatedVehicle[];
@@ -24,11 +29,11 @@ interface UseVehicleSimulationReturn {
   selectedVehicleId: string | null;
 
   setSelectedVehicleId: (
-    id: string | null
+    id: string | null,
   ) => void;
 
   selectVehicle: (
-    vehicleId: string
+    vehicleId: string,
   ) => void;
 
   clearVehicleSelection: () => void;
@@ -41,67 +46,99 @@ interface UseVehicleSimulationReturn {
 }
 
 /* =========================================================
+   DEFAULT COORDINATES
+========================================================= */
+
+const DEFAULT_LATITUDE = 12.9718;
+const DEFAULT_LONGITUDE = 77.5945;
+
+/* =========================================================
    FALLBACK VEHICLES
-   ========================================================= */
+========================================================= */
 
 const createFallbackVehicles =
   (): SimulatedVehicle[] => {
     return baseVehicles.map(
       (vehicle, index) => {
-        const vehicleWithCoordinates =
-          vehicle as VehicleData & {
-            latitude?: number;
-            longitude?: number;
-          };
+        /*
+         * Your vehicles.ts already stores:
+         *
+         * position: [latitude, longitude]
+         *
+         * Therefore use that first.
+         */
+
+        const latitude =
+          Number(
+            vehicle.position?.[0] ??
+              DEFAULT_LATITUDE,
+          );
+
+        const longitude =
+          Number(
+            vehicle.position?.[1] ??
+              DEFAULT_LONGITUDE,
+          );
 
         return {
           ...vehicle,
 
-          latitude:
-            Number(
-              vehicleWithCoordinates.latitude ??
-                12.9718
-            ),
+          latitude,
 
-          longitude:
-            Number(
-              vehicleWithCoordinates.longitude ??
-                77.5945
-            ),
+          longitude,
 
-          lastUpdated: "Just now",
+          lastUpdated:
+            "Just now",
 
           routeIndex: index,
         };
-      }
+      },
     );
   };
 
 /* =========================================================
    NORMALIZE BACKEND VEHICLE
-   ========================================================= */
+========================================================= */
 
 const normalizeVehicle = (
   vehicle: any,
-  index: number
+  index: number,
 ): SimulatedVehicle => {
+  /* -------------------------------------------------------
+     VEHICLE ID
+  ------------------------------------------------------- */
+
   const vehicleId =
     vehicle.vehicle_id ??
     vehicle.id ??
     `VH-${String(
-      index + 1
+      index + 1,
     ).padStart(3, "0")}`;
+
+  /* -------------------------------------------------------
+     PLATE
+  ------------------------------------------------------- */
 
   const plateNumber =
     vehicle.plate_number ??
     vehicle.number_plate ??
     vehicle.plate ??
-    "KA-01-XX-0000";
+    `KA-01-XX-${String(
+      index + 1,
+    ).padStart(4, "0")}`;
+
+  /* -------------------------------------------------------
+     VEHICLE TYPE
+  ------------------------------------------------------- */
 
   const vehicleType =
     vehicle.vehicle_type ??
     vehicle.type ??
     "car";
+
+  /* -------------------------------------------------------
+     MODEL
+  ------------------------------------------------------- */
 
   const vehicleModel =
     vehicle.model ??
@@ -109,389 +146,579 @@ const normalizeVehicle = (
     vehicle.name ??
     "Simulated Vehicle";
 
+  /* -------------------------------------------------------
+     ROAD
+  ------------------------------------------------------- */
+
   const roadName =
     vehicle.road ??
     vehicle.road_name ??
     "Main Road";
+
+  /* -------------------------------------------------------
+     ZONE
+  ------------------------------------------------------- */
 
   const zoneName =
     vehicle.zone ??
     vehicle.zone_name ??
     "Zone A";
 
+  /* -------------------------------------------------------
+     SPEED
+  ------------------------------------------------------- */
+
   const speed =
     Number(
-      vehicle.speed ?? 0
+      vehicle.speed ?? 0,
     );
+
+  /* -------------------------------------------------------
+     DIRECTION
+  ------------------------------------------------------- */
 
   const direction =
     vehicle.direction ??
     "North";
 
+  /* -------------------------------------------------------
+     STATUS
+  ------------------------------------------------------- */
+
   const status =
-    vehicle.status ??
-    "Moving";
+    vehicle.status ===
+    "Stopped"
+      ? "Stopped"
+      : "Moving";
+
+  /* -------------------------------------------------------
+     POSITION
+  ------------------------------------------------------- */
+
+  /*
+   * Backend can provide:
+   *
+   * latitude
+   * longitude
+   *
+   * OR:
+   *
+   * lat
+   * lng
+   *
+   * OR:
+   *
+   * position: [lat, lng]
+   */
 
   const latitude =
     Number(
       vehicle.latitude ??
         vehicle.lat ??
-        12.9718
+        vehicle.position?.[0] ??
+        DEFAULT_LATITUDE,
     );
 
   const longitude =
     Number(
       vehicle.longitude ??
         vehicle.lng ??
-        77.5945
+        vehicle.position?.[1] ??
+        DEFAULT_LONGITUDE,
     );
+
+  /* -------------------------------------------------------
+     LAST UPDATED
+  ------------------------------------------------------- */
 
   const lastUpdated =
     vehicle.last_updated ??
     vehicle.lastUpdated ??
     "Just now";
 
+  /* -------------------------------------------------------
+     RETURN NORMALIZED VEHICLE
+  ------------------------------------------------------- */
+
   return {
     ...vehicle,
 
-    /* Frontend ID */
+    /* Frontend fields */
+
     id: vehicleId,
 
-    /* Frontend plate */
     plate: plateNumber,
 
-    /* Frontend type */
     type: vehicleType,
 
-    /* Vehicle model */
     model: vehicleModel,
 
-    /* Road */
     road: roadName,
 
-    /* Zone */
     zone: zoneName,
 
-    /* Speed */
     speed,
 
-    /* Direction */
     direction,
 
-    /* Status */
     status,
 
-    /* Coordinates */
     latitude,
 
     longitude,
 
     /* Backend-compatible fields */
-    vehicle_id: vehicleId,
 
-    plate_number: plateNumber,
+    vehicle_id:
+      vehicleId,
 
-    vehicle_type: vehicleType,
+    plate_number:
+      plateNumber,
+
+    vehicle_type:
+      vehicleType,
 
     /* Simulation fields */
+
     lastUpdated,
 
-    routeIndex: index,
+    routeIndex:
+      index,
   } as SimulatedVehicle;
 };
 
 /* =========================================================
    MAIN HOOK
-   ========================================================= */
+========================================================= */
 
 export const useVehicleSimulation =
   (): UseVehicleSimulationReturn => {
     /* =====================================================
        VEHICLE STATE
-       ===================================================== */
+    ===================================================== */
 
     const [
       vehicles,
       setVehicles,
     ] =
-      useState<SimulatedVehicle[]>(
-        createFallbackVehicles()
+      useState<
+        SimulatedVehicle[]
+      >(
+        createFallbackVehicles(),
       );
 
     /* =====================================================
        SELECTED VEHICLE
-       ===================================================== */
+    ===================================================== */
 
     const [
       selectedVehicleId,
       setSelectedVehicleId,
     ] =
-      useState<string | null>(
-        null
-      );
+      useState<
+        string | null
+      >(null);
 
     /* =====================================================
-       LOADING STATE
-       ===================================================== */
+       LOADING
+    ===================================================== */
 
     const [
       loading,
       setLoading,
     ] =
-      useState<boolean>(true);
+      useState<boolean>(
+        true,
+      );
 
     /* =====================================================
-       ERROR STATE
-       ===================================================== */
+       ERROR
+    ===================================================== */
 
     const [
       error,
       setError,
     ] =
-      useState<string | null>(
-        null
-      );
+      useState<
+        string | null
+      >(null);
 
     /* =====================================================
        SELECT VEHICLE
-       ===================================================== */
+    ===================================================== */
 
-    const selectVehicle = (
-      vehicleId: string
-    ) => {
-      setSelectedVehicleId(
-        vehicleId
+    const selectVehicle =
+      useCallback(
+        (
+          vehicleId: string,
+        ) => {
+          setSelectedVehicleId(
+            vehicleId,
+          );
+        },
+        [],
       );
-    };
 
     /* =====================================================
-       CLEAR VEHICLE SELECTION
-       ===================================================== */
+       CLEAR SELECTION
+    ===================================================== */
 
     const clearVehicleSelection =
-      () => {
-        setSelectedVehicleId(
-          null
-        );
-      };
+      useCallback(
+        () => {
+          setSelectedVehicleId(
+            null,
+          );
+        },
+        [],
+      );
 
     /* =====================================================
-       LOAD VEHICLES FROM BACKEND
-       ===================================================== */
+       LOAD VEHICLES
+    ===================================================== */
 
     const refreshVehicles =
-      async () => {
-        try {
-          setLoading(true);
+      useCallback(
+        async () => {
+          try {
+            setLoading(true);
 
-          setError(null);
+            setError(null);
 
-          const response =
-            await getVehicles();
+            const response =
+              await getVehicles();
 
-          const backendVehicles =
-            response?.data ?? [];
+            const backendVehicles =
+              response?.data ??
+              [];
 
-          /* -----------------------------------------------
-             BACKEND DATA AVAILABLE
-             ----------------------------------------------- */
+            /* ---------------------------------------------
+               BACKEND DATA AVAILABLE
+            --------------------------------------------- */
 
-          if (
-            Array.isArray(
-              backendVehicles
-            ) &&
-            backendVehicles.length >
-              0
-          ) {
-            const normalizedVehicles =
-              backendVehicles.map(
-                (
-                  vehicle: any,
-                  index: number
-                ) =>
-                  normalizeVehicle(
-                    vehicle,
-                    index
-                  )
+            if (
+              Array.isArray(
+                backendVehicles,
+              ) &&
+              backendVehicles.length >
+                0
+            ) {
+              const normalizedVehicles =
+                backendVehicles.map(
+                  (
+                    vehicle: any,
+                    index: number,
+                  ) =>
+                    normalizeVehicle(
+                      vehicle,
+                      index,
+                    ),
+                );
+
+              setVehicles(
+                normalizedVehicles,
               );
 
+              return;
+            }
+
+            /* ---------------------------------------------
+               EMPTY BACKEND RESPONSE
+            --------------------------------------------- */
+
             setVehicles(
-              normalizedVehicles
+              createFallbackVehicles(),
+            );
+          } catch (err) {
+            console.error(
+              "Failed to load vehicles from backend:",
+              err,
             );
 
-            return;
+            setError(
+              "Backend vehicle data unavailable. Using simulation data.",
+            );
+
+            setVehicles(
+              createFallbackVehicles(),
+            );
+          } finally {
+            setLoading(false);
           }
-
-          /* -----------------------------------------------
-             EMPTY BACKEND RESPONSE
-             ----------------------------------------------- */
-
-          setVehicles(
-            createFallbackVehicles()
-          );
-        } catch (err) {
-          console.error(
-            "Failed to load vehicles from backend:",
-            err
-          );
-
-          setError(
-            "Backend vehicle data unavailable. Using simulation data."
-          );
-
-          setVehicles(
-            createFallbackVehicles()
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+        },
+        [],
+      );
 
     /* =====================================================
-       INITIAL BACKEND LOAD
-       ===================================================== */
+       INITIAL LOAD
+    ===================================================== */
 
-    useEffect(() => {
-      refreshVehicles();
-    }, []);
+    useEffect(
+      () => {
+        refreshVehicles();
+      },
+      [
+        refreshVehicles,
+      ],
+    );
 
     /* =====================================================
        LIVE VEHICLE SIMULATION
-       ===================================================== */
+    ===================================================== */
 
-    useEffect(() => {
-      if (
-        vehicles.length ===
-        0
-      ) {
-        return;
-      }
-
-      const interval =
-        setInterval(() => {
-          setVehicles(
-            (
-              currentVehicles
-            ) => {
-              return currentVehicles.map(
+    useEffect(
+      () => {
+        const interval =
+          window.setInterval(
+            () => {
+              setVehicles(
                 (
-                  vehicle
+                  currentVehicles,
                 ) => {
-                  /* -----------------------------------------
-                     STOPPED VEHICLE
-                     ----------------------------------------- */
-
                   if (
-                    vehicle.status
-                      ?.toLowerCase() ===
-                    "stopped"
+                    currentVehicles.length ===
+                    0
                   ) {
-                    return {
-                      ...vehicle,
-
-                      lastUpdated:
-                        "Just now",
-                    };
+                    return currentVehicles;
                   }
 
-                  /* -----------------------------------------
-                     MOVEMENT
-                     ----------------------------------------- */
+                  return currentVehicles.map(
+                    (
+                      vehicle,
+                    ) => {
+                      /* -----------------------------------
+                         STOPPED VEHICLE
+                      ----------------------------------- */
 
-                  const movement =
-                    0.00005;
+                      if (
+                        vehicle.status
+                          ?.toLowerCase() ===
+                        "stopped"
+                      ) {
+                        return {
+                          ...vehicle,
 
-                  let newLatitude =
-                    Number(
-                      vehicle.latitude
-                    );
+                          lastUpdated:
+                            "Just now",
+                        };
+                      }
 
-                  let newLongitude =
-                    Number(
-                      vehicle.longitude
-                    );
+                      /* -----------------------------------
+                         MOVEMENT
+                      ----------------------------------- */
 
-                  /* -----------------------------------------
-                     DIRECTION
-                     ----------------------------------------- */
+                      const movement =
+                        0.00005;
 
-                  switch (
-                    vehicle.direction?.toLowerCase()
-                  ) {
-                    case "north":
-                      newLatitude +=
-                        movement;
-                      break;
+                      let newLatitude =
+                        Number(
+                          vehicle.latitude,
+                        );
 
-                    case "south":
-                      newLatitude -=
-                        movement;
-                      break;
+                      let newLongitude =
+                        Number(
+                          vehicle.longitude,
+                        );
 
-                    case "east":
-                      newLongitude +=
-                        movement;
-                      break;
+                      /* -----------------------------------
+                         DIRECTION
+                      ----------------------------------- */
 
-                    case "west":
-                      newLongitude -=
-                        movement;
-                      break;
+                      switch (
+                        vehicle.direction?.toLowerCase()
+                      ) {
+                        case "north":
+                          newLatitude +=
+                            movement;
+                          break;
 
-                    default:
-                      newLongitude +=
-                        movement;
-                      break;
-                  }
+                        case "south":
+                          newLatitude -=
+                            movement;
+                          break;
 
-                  /* -----------------------------------------
-                     UPDATED VEHICLE
-                     ----------------------------------------- */
+                        case "east":
+                          newLongitude +=
+                            movement;
+                          break;
 
-                  return {
-                    ...vehicle,
+                        case "west":
+                          newLongitude -=
+                            movement;
+                          break;
 
-                    latitude:
-                      Number(
-                        newLatitude.toFixed(
-                          7
-                        )
-                      ),
+                        /*
+                         * For diagonal directions
+                         */
 
-                    longitude:
-                      Number(
-                        newLongitude.toFixed(
-                          7
-                        )
-                      ),
+                        case "north-east":
+                        case "northeast":
+                          newLatitude +=
+                            movement;
+                          newLongitude +=
+                            movement;
+                          break;
 
-                    lastUpdated:
-                      "Just now",
+                        case "north-west":
+                        case "northwest":
+                          newLatitude +=
+                            movement;
+                          newLongitude -=
+                            movement;
+                          break;
 
-                    routeIndex:
-                      vehicle.routeIndex +
-                      1,
-                  };
-                }
+                        case "south-east":
+                        case "southeast":
+                          newLatitude -=
+                            movement;
+                          newLongitude +=
+                            movement;
+                          break;
+
+                        case "south-west":
+                        case "southwest":
+                          newLatitude -=
+                            movement;
+                          newLongitude -=
+                            movement;
+                          break;
+
+                        default:
+                          newLongitude +=
+                            movement;
+                          break;
+                      }
+
+                      /* -----------------------------------
+                         KEEP SIMULATION WITHIN
+                         REASONABLE DIGITAL-TWIN AREA
+                      ----------------------------------- */
+
+                      if (
+                        newLatitude >
+                        13.1
+                      ) {
+                        newLatitude =
+                          12.9718;
+                      }
+
+                      if (
+                        newLatitude <
+                        12.85
+                      ) {
+                        newLatitude =
+                          12.9718;
+                      }
+
+                      if (
+                        newLongitude >
+                        77.75
+                      ) {
+                        newLongitude =
+                          77.5945;
+                      }
+
+                      if (
+                        newLongitude <
+                        77.45
+                      ) {
+                        newLongitude =
+                          77.5945;
+                      }
+
+                      /* -----------------------------------
+                         UPDATED VEHICLE
+                      ----------------------------------- */
+
+                      return {
+                        ...vehicle,
+
+                        latitude:
+                          Number(
+                            newLatitude.toFixed(
+                              7,
+                            ),
+                          ),
+
+                        longitude:
+                          Number(
+                            newLongitude.toFixed(
+                              7,
+                            ),
+                          ),
+
+                        /*
+                         * Keep position synchronized
+                         * with latitude/longitude.
+                         */
+
+                        position: [
+                          Number(
+                            newLatitude.toFixed(
+                              7,
+                            ),
+                          ),
+                          Number(
+                            newLongitude.toFixed(
+                              7,
+                            ),
+                          ),
+                        ],
+
+                        lastUpdated:
+                          "Just now",
+
+                        routeIndex:
+                          vehicle.routeIndex +
+                          1,
+                      };
+                    },
+                  );
+                },
               );
-            }
+            },
+            3000,
           );
-        }, 3000);
 
-      /* -----------------------------------------------
-         CLEANUP
-         ----------------------------------------------- */
-
-      return () => {
-        clearInterval(
-          interval
-        );
-      };
-    }, [vehicles.length]);
+        return () => {
+          window.clearInterval(
+            interval,
+          );
+        };
+      },
+      [],
+    );
 
     /* =====================================================
-       RETURN HOOK DATA
-       ===================================================== */
+       CLEAR INVALID SELECTION
+    ===================================================== */
+
+    useEffect(
+      () => {
+        if (
+          selectedVehicleId &&
+          !vehicles.some(
+            (
+              vehicle,
+            ) =>
+              vehicle.id.toLowerCase() ===
+              selectedVehicleId.toLowerCase(),
+          )
+        ) {
+          setSelectedVehicleId(
+            null,
+          );
+        }
+      },
+      [
+        vehicles,
+        selectedVehicleId,
+      ],
+    );
+
+    /* =====================================================
+       RETURN
+    ===================================================== */
 
     return {
       vehicles,
