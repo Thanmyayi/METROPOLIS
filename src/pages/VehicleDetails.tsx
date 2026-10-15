@@ -10,8 +10,11 @@ import {
   Route,
   Signal,
   Timer,
+  Database,
+  Gauge,
 } from "lucide-react";
-import { useEffect } from "react";
+
+import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
@@ -25,25 +28,32 @@ export default function VehicleDetails() {
 
   const {
     vehicles,
+    loading,
+    error,
     selectVehicle,
     clearVehicleSelection,
   } = useVehicleSimulation();
 
-  /*
-   * Find vehicle using the ID from:
-   *
-   * /vehicles/:vehicleId
-   */
-  const vehicle = vehicles.find(
-    (item) =>
-      item.id.toLowerCase() ===
-      vehicleId?.toLowerCase(),
-  );
+  /* =========================================================
+     FIND SELECTED VEHICLE
+  ========================================================= */
 
-  /*
-   * Keep selected vehicle state synchronized
-   * while this page is open.
-   */
+  const vehicle = useMemo(() => {
+    if (!vehicleId) {
+      return undefined;
+    }
+
+    return vehicles.find(
+      (item) =>
+        String(item.id).toLowerCase() ===
+        String(vehicleId).toLowerCase(),
+    );
+  }, [vehicles, vehicleId]);
+
+  /* =========================================================
+     SELECT VEHICLE
+  ========================================================= */
+
   useEffect(() => {
     if (vehicleId) {
       selectVehicle(vehicleId);
@@ -57,6 +67,70 @@ export default function VehicleDetails() {
     selectVehicle,
     clearVehicleSelection,
   ]);
+
+  /* =========================================================
+     LOADING
+  ========================================================= */
+
+  if (loading && !vehicle) {
+    return (
+      <div className="metropolis-page">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">
+              Vehicle Details
+            </h1>
+
+            <p className="page-subtitle">
+              Loading vehicle information from the
+              METROPOLIS vehicle intelligence engine...
+            </p>
+          </div>
+
+          <div className="live-pill">
+            <span className="live-dot" />
+            VEHICLE INTELLIGENCE
+          </div>
+        </div>
+
+        <section className="panel">
+          <div
+            style={{
+              padding: 60,
+              textAlign: "center",
+            }}
+          >
+            <Activity
+              size={40}
+              style={{
+                opacity: 0.55,
+                marginBottom: 14,
+                animation: "pulse 1.5s infinite",
+              }}
+            />
+
+            <h2
+              style={{
+                fontSize: 18,
+                marginBottom: 8,
+              }}
+            >
+              Loading vehicle
+            </h2>
+
+            <p
+              className="muted"
+              style={{
+                fontSize: 12,
+              }}
+            >
+              Fetching live simulated vehicle data...
+            </p>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   /* =========================================================
      VEHICLE NOT FOUND
@@ -73,7 +147,7 @@ export default function VehicleDetails() {
 
             <p className="page-subtitle">
               The requested vehicle could not be
-              found in the digital twin.
+              found in the METROPOLIS digital twin.
             </p>
           </div>
 
@@ -111,7 +185,7 @@ export default function VehicleDetails() {
               className="muted"
               style={{
                 fontSize: 12,
-                marginBottom: 22,
+                marginBottom: 8,
               }}
             >
               Vehicle ID{" "}
@@ -121,15 +195,24 @@ export default function VehicleDetails() {
               is not currently available.
             </p>
 
+            {error && (
+              <p
+                style={{
+                  color: "#e5b45b",
+                  fontSize: 11,
+                  marginBottom: 20,
+                }}
+              >
+                {error}
+              </p>
+            )}
+
             <button
               type="button"
-              onClick={() =>
-                navigate("/vehicles")
-              }
+              onClick={() => navigate("/vehicles")}
               style={backButton}
             >
               <ArrowLeft size={15} />
-
               Back to Vehicles
             </button>
           </div>
@@ -151,27 +234,78 @@ export default function VehicleDetails() {
     : "status-medium";
 
   /* =========================================================
+     VEHICLE TYPE
+  ========================================================= */
+
+  const vehicleType =
+    String(vehicle.type || "car")
+      .charAt(0)
+      .toUpperCase() +
+    String(vehicle.type || "car").slice(1);
+
+  /* =========================================================
      LOCATION
   ========================================================= */
 
-  const latitude =
-    Number(vehicle.latitude).toFixed(6);
+  const latitude = Number(
+    vehicle.latitude,
+  ).toFixed(6);
 
-  const longitude =
-    Number(vehicle.longitude).toFixed(6);
+  const longitude = Number(
+    vehicle.longitude,
+  ).toFixed(6);
 
   /* =========================================================
-     PAGE
+     TRAFFIC LEVEL
+  ========================================================= */
+
+  const trafficLevel =
+    vehicle.status?.toLowerCase() ===
+    "stopped"
+      ? "High"
+      : vehicle.speed < 20
+        ? "Moderate"
+        : "Low";
+
+  const trafficClass =
+    trafficLevel === "High"
+      ? "status-high"
+      : trafficLevel === "Moderate"
+        ? "status-medium"
+        : "status-low";
+
+  /* =========================================================
+     SPEED BAND
+  ========================================================= */
+
+  const speedBand =
+    vehicle.speed < 20
+      ? "Low"
+      : vehicle.speed < 50
+        ? "Normal"
+        : "High";
+
+  const speedBandClass =
+    speedBand === "High"
+      ? "status-high"
+      : speedBand === "Normal"
+        ? "status-low"
+        : "status-medium";
+
+  /* =========================================================
+     MAIN PAGE
   ========================================================= */
 
   return (
     <div className="metropolis-page">
+
       {/* =====================================================
           HEADER
       ===================================================== */}
 
       <div className="page-header">
         <div>
+
           <div
             style={{
               display: "flex",
@@ -195,10 +329,8 @@ export default function VehicleDetails() {
               className="muted"
               style={{
                 fontSize: 10,
-                textTransform:
-                  "uppercase",
-                letterSpacing:
-                  ".08em",
+                textTransform: "uppercase",
+                letterSpacing: ".08em",
               }}
             >
               Vehicle Registry
@@ -213,6 +345,7 @@ export default function VehicleDetails() {
             Detailed live information for the
             selected simulated vehicle
           </p>
+
         </div>
 
         <div className="live-pill">
@@ -222,7 +355,7 @@ export default function VehicleDetails() {
       </div>
 
       {/* =====================================================
-          TOP VEHICLE IDENTITY
+          VEHICLE IDENTITY
       ===================================================== */}
 
       <section
@@ -236,12 +369,14 @@ export default function VehicleDetails() {
             padding: 20,
             display: "flex",
             alignItems: "center",
-            justifyContent:
-              "space-between",
+            justifyContent: "space-between",
             gap: 20,
             flexWrap: "wrap",
           }}
         >
+
+          {/* VEHICLE BASIC INFO */}
+
           <div
             style={{
               display: "flex",
@@ -249,6 +384,7 @@ export default function VehicleDetails() {
               gap: 15,
             }}
           >
+
             <div
               style={{
                 width: 58,
@@ -256,8 +392,7 @@ export default function VehicleDetails() {
                 borderRadius: 12,
                 display: "flex",
                 alignItems: "center",
-                justifyContent:
-                  "center",
+                justifyContent: "center",
                 background:
                   "rgba(20,190,235,.08)",
                 border:
@@ -268,14 +403,13 @@ export default function VehicleDetails() {
             </div>
 
             <div>
+
               <div
                 className="muted"
                 style={{
                   fontSize: 9,
-                  textTransform:
-                    "uppercase",
-                  letterSpacing:
-                    ".08em",
+                  textTransform: "uppercase",
+                  letterSpacing: ".08em",
                 }}
               >
                 Vehicle ID
@@ -301,8 +435,11 @@ export default function VehicleDetails() {
                 {vehicle.model ||
                   "Simulated Vehicle"}
               </div>
+
             </div>
           </div>
+
+          {/* STATUS */}
 
           <div
             style={{
@@ -312,15 +449,27 @@ export default function VehicleDetails() {
               flexWrap: "wrap",
             }}
           >
+
             <span
               className={`status ${statusClass}`}
             >
               {vehicle.status}
             </span>
 
+            <span
+              className={`status ${trafficClass}`}
+            >
+              Traffic: {trafficLevel}
+            </span>
+
+            <span className="status status-medium">
+              {vehicleType}
+            </span>
+
             <span className="status status-medium">
               {vehicle.zone}
             </span>
+
           </div>
         </div>
       </section>
@@ -330,6 +479,7 @@ export default function VehicleDetails() {
       ===================================================== */}
 
       <div className="grid-4">
+
         <VehicleMetric
           icon={
             <CircleGauge size={21} />
@@ -360,7 +510,10 @@ export default function VehicleDetails() {
             <Route size={21} />
           }
           label="Road"
-          value={vehicle.road}
+          value={
+            vehicle.road ||
+            "N/A"
+          }
           description="Current road segment"
         />
 
@@ -369,9 +522,13 @@ export default function VehicleDetails() {
             <MapPin size={21} />
           }
           label="Zone"
-          value={vehicle.zone}
+          value={
+            vehicle.zone ||
+            "N/A"
+          }
           description="Current monitored zone"
         />
+
       </div>
 
       {/* =====================================================
@@ -385,12 +542,15 @@ export default function VehicleDetails() {
           alignItems: "start",
         }}
       >
+
         {/* ===================================================
             VEHICLE INFORMATION
         =================================================== */}
 
         <section className="panel">
+
           <div className="panel-header">
+
             <div>
               <h3 className="panel-title">
                 Vehicle Information
@@ -409,6 +569,7 @@ export default function VehicleDetails() {
             </div>
 
             <CarFront size={18} />
+
           </div>
 
           <div
@@ -416,6 +577,7 @@ export default function VehicleDetails() {
               padding: 18,
             }}
           >
+
             <DetailRow
               icon={
                 <CarFront size={15} />
@@ -429,10 +591,7 @@ export default function VehicleDetails() {
                 <Radio size={15} />
               }
               label="Vehicle Type"
-              value={
-                vehicle.type ||
-                "Car"
-              }
+              value={vehicleType}
             />
 
             <DetailRow
@@ -483,15 +642,18 @@ export default function VehicleDetails() {
                 statusClass
               }
             />
+
           </div>
         </section>
 
         {/* ===================================================
-            LOCATION INFORMATION
+            LIVE LOCATION
         =================================================== */}
 
         <section className="panel">
+
           <div className="panel-header">
+
             <div>
               <h3 className="panel-title">
                 Live Location
@@ -509,6 +671,7 @@ export default function VehicleDetails() {
             </div>
 
             <MapPin size={18} />
+
           </div>
 
           <div
@@ -516,6 +679,7 @@ export default function VehicleDetails() {
               padding: 18,
             }}
           >
+
             <DetailRow
               icon={
                 <Route size={15} />
@@ -566,8 +730,10 @@ export default function VehicleDetails() {
                 "Just now"
               }
             />
+
           </div>
         </section>
+
       </div>
 
       {/* =====================================================
@@ -580,7 +746,9 @@ export default function VehicleDetails() {
           marginTop: 18,
         }}
       >
+
         <div className="panel-header">
+
           <div>
             <h3 className="panel-title">
               Live Telemetry
@@ -599,6 +767,7 @@ export default function VehicleDetails() {
           </div>
 
           <Activity size={18} />
+
         </div>
 
         <div
@@ -610,9 +779,12 @@ export default function VehicleDetails() {
             gap: 12,
           }}
         >
+
           <TelemetryCard
             label="Speed"
-            value={`${vehicle.speed}`}
+            value={String(
+              vehicle.speed,
+            )}
             unit="km/h"
             icon={
               <CircleGauge size={16} />
@@ -647,11 +819,12 @@ export default function VehicleDetails() {
               <Route size={16} />
             }
           />
+
         </div>
       </section>
 
       {/* =====================================================
-          SYSTEM STATUS
+          VEHICLE TRAFFIC ANALYSIS
       ===================================================== */}
 
       <section
@@ -660,10 +833,12 @@ export default function VehicleDetails() {
           marginTop: 18,
         }}
       >
+
         <div className="panel-header">
+
           <div>
             <h3 className="panel-title">
-              Vehicle Tracking Status
+              Vehicle Traffic Analysis
             </h3>
 
             <p
@@ -673,11 +848,87 @@ export default function VehicleDetails() {
                 fontSize: 12,
               }}
             >
-              Digital twin tracking services
+              Current traffic interpretation for
+              this vehicle
             </p>
           </div>
 
-          <Signal size={18} />
+          <Gauge size={18} />
+
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(3, 1fr)",
+            gap: 12,
+          }}
+        >
+
+          <AnalysisCard
+            label="Traffic Level"
+            value={trafficLevel}
+            className={trafficClass}
+          />
+
+          <AnalysisCard
+            label="Movement"
+            value={
+              isMoving
+                ? "Active"
+                : "Stopped"
+            }
+            className={
+              isMoving
+                ? "status-low"
+                : "status-medium"
+            }
+          />
+
+          <AnalysisCard
+            label="Speed Band"
+            value={speedBand}
+            className={
+              speedBandClass
+            }
+          />
+
+        </div>
+      </section>
+
+      {/* =====================================================
+          DATA SOURCE
+      ===================================================== */}
+
+      <section
+        className="panel"
+        style={{
+          marginTop: 18,
+        }}
+      >
+
+        <div className="panel-header">
+
+          <div>
+            <h3 className="panel-title">
+              Vehicle Data Source
+            </h3>
+
+            <p
+              className="muted"
+              style={{
+                marginTop: 5,
+                fontSize: 12,
+              }}
+            >
+              Current METROPOLIS data pipeline
+            </p>
+          </div>
+
+          <Database size={18} />
+
         </div>
 
         <div
@@ -685,12 +936,17 @@ export default function VehicleDetails() {
             padding: 18,
           }}
         >
+
           <SystemRow
             icon={
-              <Signal size={16} />
+              <Database size={16} />
             }
             title="Vehicle Data Stream"
-            value="Connected"
+            value={
+              error
+                ? "Fallback"
+                : "Connected"
+            }
           />
 
           <SystemRow
@@ -716,6 +972,7 @@ export default function VehicleDetails() {
             title="Tracking Status"
             value="Live"
           />
+
         </div>
       </section>
 
@@ -740,6 +997,7 @@ export default function VehicleDetails() {
         continuously updates the selected
         vehicle's simulated position and status.
       </div>
+
     </div>
   );
 }
@@ -761,6 +1019,7 @@ function VehicleMetric({
 }) {
   return (
     <div className="panel kpi-card">
+
       {icon}
 
       <div
@@ -787,6 +1046,7 @@ function VehicleMetric({
       <div className="kpi-change">
         {description}
       </div>
+
     </div>
   );
 }
@@ -821,6 +1081,7 @@ function DetailRow({
           "1px solid rgba(100,160,190,.07)",
       }}
     >
+
       <div
         style={{
           width: 32,
@@ -828,8 +1089,7 @@ function DetailRow({
           borderRadius: 7,
           display: "flex",
           alignItems: "center",
-          justifyContent:
-            "center",
+          justifyContent: "center",
           background:
             "rgba(100,160,190,.045)",
           color: "#78929e",
@@ -844,6 +1104,7 @@ function DetailRow({
           flex: 1,
         }}
       >
+
         <div
           className="muted"
           style={{
@@ -880,7 +1141,9 @@ function DetailRow({
             {value}
           </div>
         )}
+
       </div>
+
     </div>
   );
 }
@@ -911,6 +1174,7 @@ function TelemetryCard({
           "1px solid rgba(100,160,190,.07)",
       }}
     >
+
       <div
         style={{
           display: "flex",
@@ -918,14 +1182,11 @@ function TelemetryCard({
           gap: 7,
           color: "#64808d",
           fontSize: 9,
-          textTransform:
-            "uppercase",
-          letterSpacing:
-            ".06em",
+          textTransform: "uppercase",
+          letterSpacing: ".06em",
         }}
       >
         {icon}
-
         {label}
       </div>
 
@@ -951,6 +1212,59 @@ function TelemetryCard({
           </span>
         )}
       </div>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   ANALYSIS CARD
+========================================================= */
+
+function AnalysisCard({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className: string;
+}) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        borderRadius: 9,
+        background:
+          "rgba(100,160,190,.035)",
+        border:
+          "1px solid rgba(100,160,190,.07)",
+      }}
+    >
+
+      <div
+        className="muted"
+        style={{
+          fontSize: 9,
+          textTransform: "uppercase",
+          letterSpacing: ".06em",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: 9,
+        }}
+      >
+        <span
+          className={`status ${className}`}
+        >
+          {value}
+        </span>
+      </div>
+
     </div>
   );
 }
@@ -979,6 +1293,7 @@ function SystemRow({
           "1px solid rgba(100,160,190,.07)",
       }}
     >
+
       <div
         style={{
           width: 32,
@@ -986,8 +1301,7 @@ function SystemRow({
           borderRadius: 7,
           display: "flex",
           alignItems: "center",
-          justifyContent:
-            "center",
+          justifyContent: "center",
           background:
             "rgba(49,210,154,.07)",
         }}
@@ -1008,6 +1322,7 @@ function SystemRow({
       <span className="status status-low">
         {value}
       </span>
+
     </div>
   );
 }

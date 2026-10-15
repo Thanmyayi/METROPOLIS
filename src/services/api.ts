@@ -11,53 +11,140 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+/* =========================================================
+   VEHICLE
+========================================================= */
+
 export interface Vehicle {
+  /* Frontend fields */
+
   id: string;
-  type: string;
-  zone: string;
-  speed: number;
-  direction?: string;
-  status: string;
-  location?: string;
+
   plate?: string;
+
+  type?: string;
+
+  model?: string;
+
+  road?: string;
+
+  zone?: string;
+
+  speed: number;
+
+  direction?: string;
+
+  status: string;
+
+  latitude?: number;
+
+  longitude?: number;
+
+  position?: [
+    number,
+    number,
+  ];
+
   lastUpdated?: string;
+
+  /* Backend-compatible fields */
+
+  vehicle_id?: string;
+
+  plate_number?: string;
+
+  number_plate?: string;
+
+  vehicle_type?: string;
+
+  road_name?: string;
+
+  zone_name?: string;
+
+  lat?: number;
+
+  lng?: number;
+
+  last_updated?: string;
+
+  vehicle_name?: string;
+
+  name?: string;
 }
+
+/* =========================================================
+   TRAFFIC
+========================================================= */
 
 export interface TrafficData {
   id?: number | string;
+
   zone?: string;
+
   level?: string;
+
   density?: number;
+
   averageSpeed?: number;
+
   vehicleCount?: number;
+
   status?: string;
 }
+
+/* =========================================================
+   INCIDENT
+========================================================= */
 
 export interface Incident {
   id: number | string;
+
   type: string;
+
   description: string;
+
   location: string;
+
   severity: string;
+
   status: string;
+
   timestamp?: string;
 }
 
+/* =========================================================
+   ZONE
+========================================================= */
+
 export interface Zone {
   id: number | string;
+
   name: string;
+
   status?: string;
+
   vehicleCount?: number;
+
   trafficLevel?: string;
+
   averageSpeed?: number;
 }
 
+/* =========================================================
+   ANALYTICS
+========================================================= */
+
 export interface AnalyticsData {
   totalVehicles?: number;
+
   movingVehicles?: number;
+
   stoppedVehicles?: number;
+
   averageSpeed?: number;
+
   incidents?: number;
+
   congestion?: number;
 }
 
@@ -69,37 +156,60 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(
-    `${API_BASE_URL}${endpoint}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      ...options,
-    },
-  );
+  try {
+    const response =
+      await fetch(
+        `${API_BASE_URL}${endpoint}`,
+        {
+          headers: {
+            "Content-Type":
+              "application/json",
 
-  const contentType =
-    response.headers.get("content-type");
+            ...options.headers,
+          },
 
-  const result = contentType?.includes(
-    "application/json",
-  )
-    ? await response.json()
-    : await response.text();
+          ...options,
+        },
+      );
 
-  if (!response.ok) {
-    const message =
-      typeof result === "object" &&
-      result?.message
-        ? result.message
-        : `API request failed: ${response.status}`;
+    const contentType =
+      response.headers.get(
+        "content-type",
+      );
 
-    throw new Error(message);
+    const result =
+      contentType?.includes(
+        "application/json",
+      )
+        ? await response.json()
+        : await response.text();
+
+    /* ---------------------------------------------
+       API ERROR
+    --------------------------------------------- */
+
+    if (!response.ok) {
+      const message =
+        typeof result ===
+          "object" &&
+        result?.message
+          ? result.message
+          : `API request failed: ${response.status}`;
+
+      throw new Error(
+        message,
+      );
+    }
+
+    return result as T;
+  } catch (error) {
+    console.error(
+      `API request failed: ${endpoint}`,
+      error,
+    );
+
+    throw error;
   }
-
-  return result as T;
 }
 
 /* =========================================================
@@ -109,8 +219,11 @@ async function apiRequest<T>(
 export async function checkBackendHealth() {
   return apiRequest<{
     success: boolean;
+
     message: string;
+
     database?: string;
+
     server?: string;
   }>("/health");
 }
@@ -119,55 +232,123 @@ export async function checkBackendHealth() {
    VEHICLES
 ========================================================= */
 
+/*
+ * GET ALL VEHICLES
+ *
+ * Expected backend response:
+ *
+ * {
+ *   success: true,
+ *   data: [...]
+ * }
+ */
+
 export async function getVehicles() {
   return apiRequest<{
     success: boolean;
+
     data: Vehicle[];
+
     message?: string;
+
+    error?: string;
   }>("/vehicles");
 }
+
+/*
+ * GET SINGLE VEHICLE
+ *
+ * Expected backend response:
+ *
+ * {
+ *   success: true,
+ *   data: {...}
+ * }
+ */
 
 export async function getVehicle(
   id: string,
 ) {
-  return apiRequest<Vehicle>(
-    `/vehicles/${id}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: Vehicle;
+
+    message?: string;
+
+    error?: string;
+  }>(
+    `/vehicles/${encodeURIComponent(
+      id,
+    )}`,
   );
 }
+
+/*
+ * CREATE VEHICLE
+ */
 
 export async function createVehicle(
   vehicle: Partial<Vehicle>,
 ) {
-  return apiRequest<Vehicle>(
-    "/vehicles",
-    {
-      method: "POST",
-      body: JSON.stringify(vehicle),
-    },
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: Vehicle;
+
+    message?: string;
+  }>("/vehicles", {
+    method: "POST",
+
+    body: JSON.stringify(
+      vehicle,
+    ),
+  });
 }
+
+/*
+ * UPDATE VEHICLE
+ */
 
 export async function updateVehicle(
   id: string,
   vehicle: Partial<Vehicle>,
 ) {
-  return apiRequest<Vehicle>(
-    `/vehicles/${id}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: Vehicle;
+
+    message?: string;
+  }>(
+    `/vehicles/${encodeURIComponent(
+      id,
+    )}`,
     {
       method: "PUT",
-      body: JSON.stringify(vehicle),
+
+      body: JSON.stringify(
+        vehicle,
+      ),
     },
   );
 }
+
+/*
+ * DELETE VEHICLE
+ */
 
 export async function deleteVehicle(
   id: string,
 ) {
   return apiRequest<{
     success: boolean;
+
     message: string;
   }>(
-    `/vehicles/${id}`,
+    `/vehicles/${encodeURIComponent(
+      id,
+    )}`,
     {
       method: "DELETE",
     },
@@ -179,16 +360,28 @@ export async function deleteVehicle(
 ========================================================= */
 
 export async function getTraffic() {
-  return apiRequest<TrafficData[]>(
-    "/traffic",
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: TrafficData[];
+
+    message?: string;
+  }>("/traffic");
 }
 
 export async function getTrafficByZone(
   zone: string,
 ) {
-  return apiRequest<TrafficData>(
-    `/traffic/${encodeURIComponent(zone)}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: TrafficData;
+
+    message?: string;
+  }>(
+    `/traffic/${encodeURIComponent(
+      zone,
+    )}`,
   );
 }
 
@@ -197,40 +390,69 @@ export async function getTrafficByZone(
 ========================================================= */
 
 export async function getIncidents() {
-  return apiRequest<Incident[]>(
-    "/incidents",
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: Incident[];
+
+    message?: string;
+  }>("/incidents");
 }
 
 export async function getIncident(
   id: string | number,
 ) {
-  return apiRequest<Incident>(
-    `/incidents/${id}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: Incident;
+
+    message?: string;
+  }>(
+    `/incidents/${encodeURIComponent(
+      String(id),
+    )}`,
   );
 }
 
 export async function createIncident(
   incident: Partial<Incident>,
 ) {
-  return apiRequest<Incident>(
-    "/incidents",
-    {
-      method: "POST",
-      body: JSON.stringify(incident),
-    },
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: Incident;
+
+    message?: string;
+  }>("/incidents", {
+    method: "POST",
+
+    body: JSON.stringify(
+      incident,
+    ),
+  });
 }
 
 export async function updateIncident(
   id: string | number,
   incident: Partial<Incident>,
 ) {
-  return apiRequest<Incident>(
-    `/incidents/${id}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: Incident;
+
+    message?: string;
+  }>(
+    `/incidents/${encodeURIComponent(
+      String(id),
+    )}`,
     {
       method: "PUT",
-      body: JSON.stringify(incident),
+
+      body: JSON.stringify(
+        incident,
+      ),
     },
   );
 }
@@ -240,9 +462,12 @@ export async function deleteIncident(
 ) {
   return apiRequest<{
     success: boolean;
+
     message: string;
   }>(
-    `/incidents/${id}`,
+    `/incidents/${encodeURIComponent(
+      String(id),
+    )}`,
     {
       method: "DELETE",
     },
@@ -254,16 +479,28 @@ export async function deleteIncident(
 ========================================================= */
 
 export async function getZones() {
-  return apiRequest<Zone[]>(
-    "/zones",
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: Zone[];
+
+    message?: string;
+  }>("/zones");
 }
 
 export async function getZone(
   id: string | number,
 ) {
-  return apiRequest<Zone>(
-    `/zones/${id}`,
+  return apiRequest<{
+    success: boolean;
+
+    data: Zone;
+
+    message?: string;
+  }>(
+    `/zones/${encodeURIComponent(
+      String(id),
+    )}`,
   );
 }
 
@@ -272,9 +509,13 @@ export async function getZone(
 ========================================================= */
 
 export async function getAnalytics() {
-  return apiRequest<AnalyticsData>(
-    "/analytics",
-  );
+  return apiRequest<{
+    success: boolean;
+
+    data: AnalyticsData;
+
+    message?: string;
+  }>("/analytics");
 }
 
 /* =========================================================
@@ -286,10 +527,13 @@ export async function runScenario(
 ) {
   return apiRequest<{
     success: boolean;
+
     message: string;
+
     scenario: string;
   }>("/analytics/scenario", {
     method: "POST",
+
     body: JSON.stringify({
       scenario,
     }),
@@ -297,7 +541,7 @@ export async function runScenario(
 }
 
 /* =========================================================
-   EXPORT DEFAULT API OBJECT
+   DEFAULT API OBJECT
 ========================================================= */
 
 const api = {
