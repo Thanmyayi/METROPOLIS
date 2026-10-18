@@ -26,13 +26,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* =================================================
-            MAIN METROPOLIS LAYOUT
-        ================================================= */}
-
         <Route element={<MainLayout />}>
-          {/* DASHBOARD */}
-
           <Route
             path="/"
             element={
@@ -45,111 +39,58 @@ export default function App() {
 
           <Route
             path="/dashboard"
-            element={
-              <Dashboard />
-            }
+            element={<Dashboard />}
           />
-
-          {/* LIVE MAP */}
 
           <Route
             path="/live-map"
-            element={
-              <LiveMap />
-            }
+            element={<LiveMap />}
           />
-
-          {/* VEHICLES */}
 
           <Route
             path="/vehicles"
-            element={
-              <Vehicles />
-            }
+            element={<Vehicles />}
           />
-
-          {/* =================================================
-              VEHICLE DETAILS
-              
-              Example:
-              /vehicles/VH-001
-              /vehicles/VH-002
-              /vehicles/VH-003
-          ================================================= */}
 
           <Route
             path="/vehicles/:vehicleId"
-            element={
-              <VehicleDetails />
-            }
+            element={<VehicleDetails />}
           />
-
-          {/* TRAFFIC */}
 
           <Route
             path="/traffic"
-            element={
-              <Traffic />
-            }
+            element={<Traffic />}
           />
-
-          {/* INCIDENTS */}
 
           <Route
             path="/incidents"
-            element={
-              <Incidents />
-            }
+            element={<Incidents />}
           />
-
-          {/* ZONES */}
 
           <Route
             path="/zones"
-            element={
-              <Zones />
-            }
+            element={<Zones />}
           />
-
-          {/* ANALYTICS */}
 
           <Route
             path="/analytics"
-            element={
-              <Analytics />
-            }
+            element={<Analytics />}
           />
-
-          {/* SCENARIOS */}
 
           <Route
             path="/scenarios"
-            element={
-              <Scenarios />
-            }
+            element={<Scenarios />}
           />
-
-          {/* REPORTS */}
 
           <Route
             path="/reports"
-            element={
-              <Reports />
-            }
+            element={<Reports />}
           />
-
-          {/* SETTINGS */}
 
           <Route
             path="/settings"
-            element={
-              <Settings />
-            }
+            element={<Settings />}
           />
-
-          {/* =================================================
-              UNKNOWN ROUTE
-          ================================================= */}
 
           <Route
             path="*"

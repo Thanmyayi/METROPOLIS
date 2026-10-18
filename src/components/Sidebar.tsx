@@ -1,22 +1,34 @@
 import {
   Activity,
   BarChart3,
-  Car,
+  CarFront,
+  ChevronRight,
+  CircleGauge,
   FileText,
-  Gauge,
   LayoutDashboard,
   Map,
   Radio,
-  Route,
   Settings,
-  TriangleAlert,
+  ShieldAlert,
+  SlidersHorizontal,
+  TrafficCone,
+  X,
+  Zap,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
 
-const navigationItems = [
+import {
+  NavLink,
+} from "react-router-dom";
+
+type SidebarProps = {
+  mobileOpen?: boolean;
+  onClose?: () => void;
+};
+
+const primaryNavigation = [
   {
     label: "Dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -28,23 +40,26 @@ const navigationItems = [
   {
     label: "Vehicles",
     path: "/vehicles",
-    icon: Car,
+    icon: CarFront,
   },
   {
     label: "Traffic",
     path: "/traffic",
-    icon: Activity,
+    icon: TrafficCone,
   },
   {
     label: "Incidents",
     path: "/incidents",
-    icon: TriangleAlert,
+    icon: ShieldAlert,
   },
   {
     label: "Zones",
     path: "/zones",
-    icon: Route,
+    icon: Radio,
   },
+];
+
+const intelligenceNavigation = [
   {
     label: "Analytics",
     path: "/analytics",
@@ -53,7 +68,7 @@ const navigationItems = [
   {
     label: "Scenarios",
     path: "/scenarios",
-    icon: Gauge,
+    icon: SlidersHorizontal,
   },
   {
     label: "Reports",
@@ -62,95 +77,283 @@ const navigationItems = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  mobileOpen = false,
+  onClose,
+}: SidebarProps) {
   return (
-    <aside className="sidebar">
-      {/* LOGO */}
+    <aside
+      className={`metro-sidebar ${
+        mobileOpen
+          ? "metro-sidebar-open"
+          : ""
+      }`}
+    >
 
-      <div className="logo-area">
-        <div className="logo-icon">
-          <Radio size={28} strokeWidth={1.8} />
+      {/* ===================================================
+          BRAND
+      =================================================== */}
+
+      <div className="metro-brand">
+
+        <div className="metro-brand-symbol">
+          <Activity
+            size={25}
+            strokeWidth={2.5}
+          />
+
+          <span />
         </div>
 
-        <div>
-          <h2>METROPOLIS</h2>
-          <span>AI DIGITAL TWIN</span>
-        </div>
-      </div>
+        <div className="metro-brand-copy">
 
-      {/* SYSTEM STATUS */}
+          <strong>
+            METROPOLIS
+          </strong>
 
-      <div className="sidebar-system-status">
-        <div className="system-status-header">
-          <span className="system-status-dot" />
-          <span>SYSTEM OPERATIONAL</span>
+          <span>
+            INTELLIGENT CITY TWIN
+          </span>
+
         </div>
 
-        <p>Simulation engine active</p>
+        <button
+          className="metro-sidebar-close"
+          onClick={onClose}
+          aria-label="Close navigation"
+        >
+          <X size={19} />
+        </button>
+
       </div>
 
-      {/* NAVIGATION */}
+      {/* ===================================================
+          LIVE SYSTEM STATUS
+      =================================================== */}
 
-      <div className="sidebar-section-title">
-        CITY OPERATIONS
+      <div className="metro-sidebar-status">
+
+        <div className="metro-status-icon">
+          <Zap
+            size={13}
+            fill="currentColor"
+          />
+        </div>
+
+        <div className="metro-status-copy">
+
+          <strong>
+            SYSTEM OPERATIONAL
+          </strong>
+
+          <span>
+            Simulation engine online
+          </span>
+
+        </div>
+
+        <span className="metro-status-light" />
+
       </div>
 
-      <nav className="sidebar-nav">
-        {navigationItems.map((item) => {
-          const Icon = item.icon;
+      {/* ===================================================
+          NAVIGATION
+      =================================================== */}
 
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === "/"}
-              className={({ isActive }) =>
-                `nav-item ${isActive ? "active" : ""}`
-              }
-            >
-              <Icon size={17} strokeWidth={1.8} />
+      <div className="metro-sidebar-scroll">
 
-              <span>{item.label}</span>
+        <div className="metro-nav-section">
 
-              {item.live && (
-                <span className="live-nav-indicator">
-                  <span />
-                  LIVE
-                </span>
-              )}
-            </NavLink>
-          );
-        })}
-      </nav>
+          <div className="metro-nav-heading">
+            COMMAND CENTER
+          </div>
 
-      {/* BOTTOM */}
+          <nav className="metro-nav">
 
-      <div className="sidebar-bottom">
+            {primaryNavigation.map(
+              ({
+                label,
+                path,
+                icon: Icon,
+                live,
+              }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  onClick={onClose}
+                  end={
+                    path ===
+                    "/dashboard"
+                  }
+                  className={({ isActive }) =>
+                    [
+                      "metro-nav-item",
+                      isActive
+                        ? "active"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  }
+                >
+
+                  <span className="metro-nav-icon">
+                    <Icon
+                      size={17}
+                      strokeWidth={1.8}
+                    />
+                  </span>
+
+                  <span className="metro-nav-label">
+                    {label}
+                  </span>
+
+                  {live && (
+                    <span className="metro-live-label">
+
+                      <span />
+
+                      LIVE
+
+                    </span>
+                  )}
+
+                  <ChevronRight
+                    className="metro-nav-arrow"
+                    size={14}
+                  />
+
+                </NavLink>
+              ),
+            )}
+
+          </nav>
+
+        </div>
+
+        <div className="metro-nav-section">
+
+          <div className="metro-nav-heading">
+            INTELLIGENCE
+          </div>
+
+          <nav className="metro-nav">
+
+            {intelligenceNavigation.map(
+              ({
+                label,
+                path,
+                icon: Icon,
+              }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    [
+                      "metro-nav-item",
+                      isActive
+                        ? "active"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  }
+                >
+
+                  <span className="metro-nav-icon">
+                    <Icon
+                      size={17}
+                      strokeWidth={1.8}
+                    />
+                  </span>
+
+                  <span className="metro-nav-label">
+                    {label}
+                  </span>
+
+                  <ChevronRight
+                    className="metro-nav-arrow"
+                    size={14}
+                  />
+
+                </NavLink>
+              ),
+            )}
+
+          </nav>
+
+        </div>
+
+      </div>
+
+      {/* ===================================================
+          SIDEBAR BOTTOM
+      =================================================== */}
+
+      <div className="metro-sidebar-bottom">
+
         <NavLink
           to="/settings"
+          onClick={onClose}
           className={({ isActive }) =>
-            `nav-item settings-nav ${
-              isActive ? "active" : ""
-            }`
+            [
+              "metro-nav-item",
+              "metro-settings-link",
+              isActive
+                ? "active"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")
           }
         >
-          <Settings size={17} strokeWidth={1.8} />
-          <span>Settings</span>
+
+          <span className="metro-nav-icon">
+            <Settings
+              size={17}
+              strokeWidth={1.8}
+            />
+          </span>
+
+          <span className="metro-nav-label">
+            Settings
+          </span>
+
+          <ChevronRight
+            className="metro-nav-arrow"
+            size={14}
+          />
+
         </NavLink>
 
-        {/* ADMIN */}
+        <div className="metro-admin-card">
 
-        <div className="sidebar-admin">
-          <div className="sidebar-admin-avatar">
+          <div className="metro-admin-avatar">
             M
           </div>
 
-          <div>
-            <strong>Metropolis Admin</strong>
-            <span>Control Center</span>
+          <div className="metro-admin-info">
+
+            <strong>
+              METROPOLIS ADMIN
+            </strong>
+
+            <span>
+              Control Center
+            </span>
+
           </div>
+
+          <CircleGauge
+            size={15}
+            className="metro-admin-indicator"
+          />
+
         </div>
+
       </div>
+
     </aside>
   );
 }

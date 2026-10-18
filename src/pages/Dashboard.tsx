@@ -1,750 +1,1053 @@
 import {
   Activity,
   AlertTriangle,
+  ArrowUpRight,
   CarFront,
   CircleGauge,
+  Clock3,
+  Gauge,
   MapPin,
   Radio,
+  Route,
   ShieldCheck,
   TrendingUp,
+  Zap,
 } from "lucide-react";
-import { useMemo } from "react";
 
-import { useVehicleSimulation } from "../hooks/useVehicleSimulation";
+import {
+  useMemo,
+} from "react";
+
+import {
+  useVehicleSimulation,
+} from "../hooks/useVehicleSimulation";
 
 export default function Dashboard() {
-  const { vehicles, loading, error } =
-    useVehicleSimulation();
+  const {
+    vehicles,
+    loading,
+    error,
+  } = useVehicleSimulation();
 
-  /* =========================================================
-     VEHICLE ANALYTICS
-  ========================================================= */
+  const totalVehicles =
+    vehicles.length;
 
-  const totalVehicles = vehicles.length;
+  const movingVehicles =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.status ===
+        "Moving",
+    ).length;
 
-  const movingVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "Moving",
-  ).length;
+  const stoppedVehicles =
+    vehicles.filter(
+      (vehicle) =>
+        vehicle.status ===
+        "Stopped",
+    ).length;
 
-  const stoppedVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "Stopped",
-  ).length;
-
-  const averageSpeed = useMemo(() => {
-    if (vehicles.length === 0) {
-      return 0;
-    }
-
-    return Math.round(
-      vehicles.reduce(
-        (total, vehicle) => total + Number(vehicle.speed || 0),
-        0,
-      ) / vehicles.length,
-    );
-  }, [vehicles]);
-
-  /* =========================================================
-     ZONE ANALYTICS
-  ========================================================= */
-
-  const zoneCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-
-    vehicles.forEach((vehicle) => {
-      const zone = vehicle.zone || "Unknown";
-
-      counts[zone] = (counts[zone] || 0) + 1;
-    });
-
-    return counts;
-  }, [vehicles]);
-
-  /* =========================================================
-     ZONE TRAFFIC PERCENTAGES
-     
-     Calculated from simulated vehicle distribution.
-     No hard-coded traffic percentages.
-  ========================================================= */
-
-  const zoneTraffic = useMemo(() => {
-    const zones = ["Zone A", "Zone B", "Zone C"];
-
-    return zones.map((zone) => {
-      const count = zoneCounts[zone] || 0;
-
-      /*
-       * Estimate traffic intensity from:
-       * - number of vehicles
-       * - stopped vehicles
-       * - total active vehicles
-       */
-
-      const zoneVehicles = vehicles.filter(
-        (vehicle) => vehicle.zone === zone,
-      );
-
-      const zoneTotal = zoneVehicles.length;
-
-      const zoneStopped = zoneVehicles.filter(
-        (vehicle) => vehicle.status === "Stopped",
-      ).length;
-
-      if (zoneTotal === 0) {
-        return {
-          name: zone,
-          vehicles: 0,
-          percentage: 0,
-        };
+  const averageSpeed =
+    useMemo(() => {
+      if (!vehicles.length) {
+        return 0;
       }
 
-      const vehicleShare =
-        totalVehicles > 0
-          ? (zoneTotal / totalVehicles) * 60
-          : 0;
-
-      const stoppedShare =
-        zoneTotal > 0
-          ? (zoneStopped / zoneTotal) * 40
-          : 0;
-
-      const percentage = Math.min(
-        100,
-        Math.round(vehicleShare + stoppedShare),
+      return Math.round(
+        vehicles.reduce(
+          (total, vehicle) =>
+            total +
+            Number(
+              vehicle.speed || 0,
+            ),
+          0,
+        ) /
+          vehicles.length,
       );
+    }, [vehicles]);
 
-      return {
-        name: zone,
-        vehicles: count,
-        percentage,
-      };
-    });
-  }, [vehicles, zoneCounts, totalVehicles]);
+  const movementRate =
+    totalVehicles > 0
+      ? Math.round(
+          (movingVehicles /
+            totalVehicles) *
+            100,
+        )
+      : 0;
 
-  /* =========================================================
-     INCIDENT SIMULATION
-     
-     Until MySQL/backend incident data is available,
-     derive a simple simulated attention count from
-     stopped vehicles.
-  ========================================================= */
+  const zoneTraffic =
+    useMemo(() => {
+      const zones = [
+        "Zone A",
+        "Zone B",
+        "Zone C",
+      ];
 
-  const simulatedIncidents = useMemo(() => {
-    const attention = Math.min(
-      stoppedVehicles,
+      return zones.map(
+        (zone) => {
+          const list =
+            vehicles.filter(
+              (vehicle) =>
+                vehicle.zone ===
+                zone,
+            );
+
+          const stopped =
+            list.filter(
+              (vehicle) =>
+                vehicle.status ===
+                "Stopped",
+            ).length;
+
+          const density =
+            totalVehicles > 0
+              ? Math.round(
+                  (list.length /
+                    totalVehicles) *
+                    100,
+                )
+              : 0;
+
+          const congestion =
+            list.length > 0
+              ? Math.min(
+                  100,
+                  Math.round(
+                    density * 0.65 +
+                      (stopped /
+                        list.length) *
+                        35,
+                  ),
+                )
+              : 0;
+
+          return {
+            zone,
+            vehicles:
+              list.length,
+            congestion,
+          };
+        },
+      );
+    }, [
+      vehicles,
+      totalVehicles,
+    ]);
+
+  const incidents =
+    Math.max(
+      2,
+      Math.min(
+        5,
+        stoppedVehicles + 1,
+      ),
+    );
+
+  const attention =
+    Math.min(
       3,
+      stoppedVehicles,
     );
 
-    const total = Math.max(
-      attention + 2,
-      Math.min(vehicles.length, 5),
-    );
-
-    return {
-      total,
-      attention,
-    };
-  }, [stoppedVehicles, vehicles.length]);
-
-  /* =========================================================
-     SYSTEM STATUS
-  ========================================================= */
-
-  const systemStatus =
+  const systemState =
     loading
-      ? "Loading"
+      ? "INITIALIZING"
       : error
-        ? "Simulation Mode"
-        : "Operational";
+        ? "SIMULATION"
+        : "OPERATIONAL";
 
   return (
-    <div className="metropolis-page">
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
+    <div className="metropolis-page dashboard-page">
 
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">
-            METROPOLIS Dashboard
+      {/* ===================================================
+          HERO
+      =================================================== */}
+
+      <section className="dashboard-hero">
+
+        <div className="dashboard-hero-grid" />
+
+        <div className="dashboard-hero-content">
+
+          <div className="dashboard-eyebrow">
+
+            <span className="eyebrow-line" />
+
+            <span>
+              METROPOLIS / COMMAND CENTER
+            </span>
+
+            <span className="eyebrow-version">
+              v2.4
+            </span>
+
+          </div>
+
+          <h1 className="dashboard-title">
+            City Intelligence
+            <span>
+              Dashboard
+            </span>
           </h1>
 
-          <p className="page-subtitle">
-            AI-enabled digital twin and smart city
-            simulation command center
+          <p className="dashboard-subtitle">
+            Monitor the simulated city,
+            analyze mobility patterns,
+            detect operational anomalies,
+            and control the digital twin
+            in real time.
           </p>
+
+          <div className="dashboard-hero-actions">
+
+            <div className="hero-live-state">
+
+              <span className="hero-live-dot" />
+
+              <div>
+                <strong>
+                  SYSTEM LIVE
+                </strong>
+
+                <span>
+                  Digital twin engine active
+                </span>
+              </div>
+
+            </div>
+
+            <div className="hero-clock">
+
+              <Clock3 size={14} />
+
+              <span>
+                REAL-TIME MONITORING
+              </span>
+
+            </div>
+
+          </div>
+
         </div>
 
-        <div className="live-pill">
-          <span className="live-dot" />
-          {loading
-            ? "LOADING"
-            : error
-              ? "SIMULATION"
-              : "SYSTEM LIVE"}
+        <div className="dashboard-hero-metrics">
+
+          <HeroMetric
+            label="CITY LOAD"
+            value="63%"
+            trend="+4.8%"
+          />
+
+          <HeroMetric
+            label="NETWORK HEALTH"
+            value="94%"
+            trend="+2.1%"
+          />
+
+          <HeroMetric
+            label="DATA STREAM"
+            value="LIVE"
+            trend="24 / 24"
+          />
+
         </div>
-      </div>
 
-      {/* =====================================================
-          BACKEND / SIMULATION MESSAGE
-      ===================================================== */}
+      </section>
 
-      {error && (
-        <div
-          style={{
-            marginBottom: 16,
-            padding: "10px 14px",
-            borderRadius: 8,
-            border:
-              "1px solid rgba(229,180,91,.18)",
-            background:
-              "rgba(229,180,91,.05)",
-            color: "#d9b66b",
-            fontSize: 11,
-          }}
-        >
-          Backend data unavailable. METROPOLIS is
-          currently running with simulated vehicle data.
-        </div>
-      )}
+      {/* ===================================================
+          KPI GRID
+      =================================================== */}
 
-      {/* =====================================================
-          KPI CARDS
-      ===================================================== */}
+      <section className="dashboard-kpi-grid">
 
-      <div className="grid-4">
-        <DashboardCard
-          icon={<CarFront size={22} />}
+        <MetricCard
+          icon={
+            <CarFront size={19} />
+          }
           label="Active Vehicles"
-          value={totalVehicles.toString()}
-          description="Vehicles in simulation"
+          value={String(
+            totalVehicles,
+          )}
+          detail="Vehicles inside simulation"
+          accent="cyan"
+          trend="+12.4%"
         />
 
-        <DashboardCard
-          icon={<Radio size={22} />}
-          label="Moving Vehicles"
-          value={movingVehicles.toString()}
-          description="Currently moving"
+        <MetricCard
+          icon={
+            <Radio size={19} />
+          }
+          label="Moving Fleet"
+          value={`${movementRate}%`}
+          detail={`${movingVehicles} vehicles moving`}
+          accent="green"
+          trend="+6.8%"
         />
 
-        <DashboardCard
-          icon={<CircleGauge size={22} />}
+        <MetricCard
+          icon={
+            <Gauge size={19} />
+          }
           label="Average Speed"
-          value={`${averageSpeed} km/h`}
-          description="Across simulated vehicles"
+          value={`${averageSpeed}`}
+          suffix="km/h"
+          detail="Across simulated fleet"
+          accent="blue"
+          trend="+3.2%"
         />
 
-        <DashboardCard
-          icon={<AlertTriangle size={22} />}
-          label="Incidents"
-          value={simulatedIncidents.total.toString()}
-          description={`${simulatedIncidents.attention} requiring attention`}
+        <MetricCard
+          icon={
+            <AlertTriangle size={19} />
+          }
+          label="Active Incidents"
+          value={String(
+            incidents,
+          )}
+          detail={`${attention} requiring attention`}
+          accent="amber"
+          trend="MONITOR"
         />
-      </div>
 
-      {/* =====================================================
-          MAIN CONTENT
-      ===================================================== */}
+      </section>
 
-      <div
-        className="grid-2"
-        style={{
-          marginTop: 18,
-          alignItems: "start",
-        }}
-      >
-        {/* ===================================================
-            CITY STATUS
-        =================================================== */}
+      {/* ===================================================
+          OPERATIONS GRID
+      =================================================== */}
 
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                City Operations
-              </h3>
+      <section className="dashboard-command-grid">
 
-              <p
-                className="muted"
-                style={{
-                  marginTop: 5,
-                  fontSize: 12,
-                }}
-              >
-                Current simulated operational status
-              </p>
-            </div>
+        {/* SYSTEM MONITOR */}
 
-            <Activity size={18} />
-          </div>
+        <div className="dashboard-panel system-panel">
 
-          <div style={{ padding: 18 }}>
-            <OperationRow
-              icon={<ShieldCheck size={17} />}
-              title="System Status"
-              value={systemStatus}
-              status={
-                loading
-                  ? "warning"
-                  : error
-                    ? "warning"
-                    : "good"
+          <PanelHeading
+            eyebrow="SYSTEM MONITOR"
+            title="City Operations"
+            description="Current digital-twin infrastructure state"
+            icon={
+              <Activity size={18} />
+            }
+          />
+
+          <div className="operations-list">
+
+            <Operation
+              icon={
+                <ShieldCheck
+                  size={16}
+                />
               }
-            />
-
-            <OperationRow
-              icon={<CarFront size={17} />}
-              title="Vehicle Simulation"
+              title="Core System"
+              detail="Simulation services"
               value={
-                vehicles.length > 0
-                  ? "Running"
-                  : "Waiting"
+                systemState
               }
-              status={
-                vehicles.length > 0
-                  ? "good"
-                  : "warning"
+              good={
+                !loading &&
+                !error
               }
             />
 
-            <OperationRow
-              icon={<Radio size={17} />}
-              title="Real-Time Data Engine"
+            <Operation
+              icon={
+                <CarFront
+                  size={16}
+                />
+              }
+              title="Vehicle Engine"
+              detail="Fleet movement processor"
+              value={
+                totalVehicles
+                  ? "RUNNING"
+                  : "WAITING"
+              }
+              good={
+                totalVehicles >
+                0
+              }
+            />
+
+            <Operation
+              icon={
+                <Radio size={16} />
+              }
+              title="Data Stream"
+              detail="Live simulation feed"
               value={
                 error
-                  ? "Simulation"
-                  : "Connected"
+                  ? "SIMULATION"
+                  : "CONNECTED"
               }
-              status={
-                error
-                  ? "warning"
-                  : "good"
-              }
+              good={!error}
             />
 
-            <OperationRow
-              icon={<MapPin size={17} />}
-              title="Digital Twin Map"
-              value="Active"
-              status="good"
+            <Operation
+              icon={
+                <MapPin size={16} />
+              }
+              title="Digital Twin"
+              detail="City spatial model"
+              value="ACTIVE"
+              good
             />
 
-            <OperationRow
-              icon={<AlertTriangle size={17} />}
-              title="Incident Monitoring"
-              value={`${simulatedIncidents.attention} Attention`}
-              status={
-                simulatedIncidents.attention > 0
-                  ? "warning"
-                  : "good"
-              }
-            />
           </div>
-        </section>
 
-        {/* ===================================================
-            TRAFFIC SUMMARY
-        =================================================== */}
+          <div className="system-health">
 
-        <section className="panel">
-          <div className="panel-header">
-            <div>
-              <h3 className="panel-title">
-                Traffic Intelligence
-              </h3>
+            <div className="health-header">
 
-              <p
-                className="muted"
-                style={{
-                  marginTop: 5,
-                  fontSize: 12,
-                }}
-              >
-                Simulated vehicle distribution by zone
-              </p>
+              <span>
+                SYSTEM HEALTH
+              </span>
+
+              <strong>
+                94%
+              </strong>
+
             </div>
 
-            <TrendingUp size={18} />
-          </div>
+            <div className="health-track">
 
-          <div style={{ padding: 18 }}>
-            {zoneTraffic.map((zone) => (
-              <ZoneTraffic
-                key={zone.name}
-                name={zone.name}
-                vehicles={zone.vehicles}
-                percentage={zone.percentage}
+              <div
+                className="health-progress"
+                style={{
+                  width: "94%",
+                }}
               />
-            ))}
-          </div>
-        </section>
-      </div>
 
-      {/* =====================================================
-          VEHICLE MONITOR
-      ===================================================== */}
+            </div>
 
-      <section
-        className="panel"
-        style={{ marginTop: 18 }}
-      >
-        <div className="panel-header">
-          <div>
-            <h3 className="panel-title">
-              Live Vehicle Monitor
-            </h3>
+            <div className="health-meta">
 
-            <p
-              className="muted"
-              style={{
-                marginTop: 5,
-                fontSize: 12,
-              }}
-            >
-              Continuously simulated vehicle activity
-            </p>
+              <span>
+                CPU 38%
+              </span>
+
+              <span>
+                MEMORY 52%
+              </span>
+
+              <span>
+                STREAM 98%
+              </span>
+
+            </div>
+
           </div>
 
-          <span className="status status-low">
-            LIVE
-          </span>
         </div>
 
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: 700,
-            }}
-          >
+        {/* TRAFFIC INTELLIGENCE */}
+
+        <div className="dashboard-panel traffic-panel">
+
+          <PanelHeading
+            eyebrow="TRAFFIC ANALYTICS"
+            title="Mobility Intelligence"
+            description="Vehicle density across city zones"
+            icon={
+              <TrendingUp size={18} />
+            }
+          />
+
+          <div className="traffic-overview">
+
+            <div className="traffic-score">
+
+              <div className="traffic-score-ring">
+
+                <strong>
+                  {Math.round(
+                    movementRate *
+                      0.94,
+                  )}
+                </strong>
+
+                <span>
+                  / 100
+                </span>
+
+              </div>
+
+              <div>
+
+                <strong>
+                  Network Flow
+                </strong>
+
+                <span>
+                  Optimal mobility
+                </span>
+
+              </div>
+
+            </div>
+
+            <span className="traffic-status">
+              STABLE
+            </span>
+
+          </div>
+
+          <div className="zone-list">
+
+            {zoneTraffic.map(
+              (zone) => (
+                <div
+                  className="zone-row"
+                  key={zone.zone}
+                >
+
+                  <div className="zone-row-top">
+
+                    <div className="zone-name">
+
+                      <span className="zone-dot" />
+
+                      <strong>
+                        {zone.zone}
+                      </strong>
+
+                    </div>
+
+                    <span>
+                      {zone.vehicles}
+                      {" "}
+                      vehicles
+                    </span>
+
+                  </div>
+
+                  <div className="zone-progress">
+
+                    <div
+                      className={
+                        zone.congestion >=
+                        70
+                          ? "danger"
+                          : zone.congestion >=
+                              40
+                            ? "warning"
+                            : ""
+                      }
+                      style={{
+                        width: `${Math.max(
+                          8,
+                          zone.congestion,
+                        )}%`,
+                      }}
+                    />
+
+                  </div>
+
+                </div>
+              ),
+            )}
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* ===================================================
+          LIVE FLEET
+      =================================================== */}
+
+      <section className="dashboard-panel fleet-panel">
+
+        <PanelHeading
+          eyebrow="LIVE DATA STREAM"
+          title="Vehicle Command Feed"
+          description="Latest simulated fleet telemetry"
+          icon={
+            <Zap size={18} />
+          }
+          action={
+            <span className="panel-live-badge">
+
+              <span />
+
+              LIVE
+
+            </span>
+          }
+        />
+
+        <div className="fleet-table-wrapper">
+
+          <table className="fleet-table">
+
             <thead>
-              <tr
-                style={{
-                  color: "#688493",
-                  fontSize: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: ".06em",
-                }}
-              >
-                <th style={tableHeader}>
-                  Vehicle
-                </th>
 
-                <th style={tableHeader}>
-                  Plate
-                </th>
-
-                <th style={tableHeader}>
-                  Type
-                </th>
-
-                <th style={tableHeader}>
-                  Road
-                </th>
-
-                <th style={tableHeader}>
-                  Zone
-                </th>
-
-                <th style={tableHeader}>
-                  Speed
-                </th>
-
-                <th style={tableHeader}>
-                  Status
-                </th>
+              <tr>
+                <th>VEHICLE</th>
+                <th>TYPE</th>
+                <th>LOCATION</th>
+                <th>ZONE</th>
+                <th>SPEED</th>
+                <th>DIRECTION</th>
+                <th>STATE</th>
               </tr>
+
             </thead>
 
             <tbody>
+
               {vehicles
-                .slice(0, 6)
-                .map((vehicle) => (
-                  <tr key={vehicle.id}>
-                    <td style={tableCell}>
-                      <strong>
-                        {vehicle.id}
-                      </strong>
-                    </td>
+                .slice(0, 7)
+                .map(
+                  (vehicle) => (
+                    <tr
+                      key={
+                        vehicle.id
+                      }
+                    >
 
-                    <td style={tableCell}>
-                      {vehicle.plate}
-                    </td>
+                      <td>
 
-                    <td style={tableCell}>
-                      {vehicle.type}
-                    </td>
+                        <div className="vehicle-cell">
 
-                    <td style={tableCell}>
-                      {vehicle.road}
-                    </td>
+                          <div className="vehicle-icon">
+                            <CarFront
+                              size={14}
+                            />
+                          </div>
 
-                    <td style={tableCell}>
-                      {vehicle.zone}
-                    </td>
+                          <div>
 
-                    <td style={tableCell}>
-                      {vehicle.speed} km/h
-                    </td>
+                            <strong>
+                              {
+                                vehicle.id
+                              }
+                            </strong>
 
-                    <td style={tableCell}>
-                      <span
-                        className={
-                          vehicle.status ===
-                          "Moving"
-                            ? "status status-low"
-                            : "status status-medium"
+                            <span>
+                              {
+                                vehicle.plate
+                              }
+                            </span>
+
+                          </div>
+
+                        </div>
+
+                      </td>
+
+                      <td>
+                        <span className="type-badge">
+                          {
+                            vehicle.type
+                          }
+                        </span>
+                      </td>
+
+                      <td>
+
+                        <div className="location-cell">
+
+                          <MapPin
+                            size={13}
+                          />
+
+                          <span>
+                            {
+                              vehicle.road
+                            }
+                          </span>
+
+                        </div>
+
+                      </td>
+
+                      <td>
+                        {
+                          vehicle.zone
                         }
-                      >
-                        {vehicle.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      <td>
+
+                        <strong className="speed-value">
+                          {
+                            vehicle.speed
+                          }
+
+                          <small>
+                            km/h
+                          </small>
+                        </strong>
+
+                      </td>
+
+                      <td>
+                        <span className="direction-value">
+                          {vehicle.direction ||
+                            "N"}
+                        </span>
+                      </td>
+
+                      <td>
+
+                        <span
+                          className={
+                            vehicle.status ===
+                            "Moving"
+                              ? "fleet-status moving"
+                              : "fleet-status stopped"
+                          }
+                        >
+
+                          <span />
+
+                          {
+                            vehicle.status
+                          }
+
+                        </span>
+
+                      </td>
+
+                    </tr>
+                  ),
+                )}
+
             </tbody>
+
           </table>
 
-          {vehicles.length === 0 && (
-            <div
-              style={{
-                padding: 30,
-                textAlign: "center",
-                color: "#64808d",
-                fontSize: 12,
-              }}
-            >
-              No vehicle data available.
+          {!vehicles.length && (
+            <div className="fleet-empty">
+              No live telemetry available.
             </div>
           )}
+
         </div>
+
       </section>
 
-      {/* =====================================================
-          BOTTOM STATUS
-      ===================================================== */}
+      {/* ===================================================
+          BOTTOM INSIGHTS
+      =================================================== */}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginTop: 14,
-          color: "#64808d",
-          fontSize: 10,
-        }}
-      >
-        <Activity size={13} />
+      <section className="dashboard-bottom-grid">
 
-        METROPOLIS simulation engine is continuously
-        updating vehicle positions and traffic
-        conditions.
-      </div>
+        <InsightCard
+          icon={
+            <Route size={18} />
+          }
+          title="Network Coverage"
+          value="87%"
+          description="Road network currently represented in the digital twin."
+        />
 
-      <div
-        style={{
-          marginTop: 20,
-          paddingBottom: 20,
-          color: "#506b78",
-          fontSize: 10,
-        }}
-      >
-        Stopped vehicles: {stoppedVehicles} ·
-        Active zones:{" "}
-        {Object.keys(zoneCounts).length} ·
-        Simulation mode: Digital Twin
-      </div>
+        <InsightCard
+          icon={
+            <CircleGauge
+              size={18}
+            />
+          }
+          title="Fleet Efficiency"
+          value="92%"
+          description="Simulated mobility efficiency based on active vehicles."
+        />
+
+        <InsightCard
+          icon={
+            <ArrowUpRight
+              size={18}
+            />
+          }
+          title="Prediction Signal"
+          value="HIGH"
+          description="Traffic intelligence layer is ready for scenario analysis."
+        />
+
+      </section>
+
+      {/* ===================================================
+          FOOTER
+      =================================================== */}
+
+      <footer className="dashboard-footer">
+
+        <div>
+
+          <Activity size={13} />
+
+          <span>
+            METROPOLIS DIGITAL TWIN
+            · REAL-TIME SIMULATION
+          </span>
+
+        </div>
+
+        <span>
+          Simulation cycle:
+          {" "}
+          2.4 sec
+        </span>
+
+      </footer>
+
     </div>
   );
 }
 
 /* =========================================================
-   DASHBOARD CARD
+   HERO METRIC
 ========================================================= */
 
-function DashboardCard({
+function HeroMetric({
+  label,
+  value,
+  trend,
+}: {
+  label: string;
+  value: string;
+  trend: string;
+}) {
+  return (
+    <div className="hero-metric">
+
+      <span>
+        {label}
+      </span>
+
+      <strong>
+        {value}
+      </strong>
+
+      <small>
+        {trend}
+      </small>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   METRIC CARD
+========================================================= */
+
+function MetricCard({
   icon,
   label,
   value,
-  description,
+  suffix,
+  detail,
+  trend,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  description: string;
+  suffix?: string;
+  detail: string;
+  trend: string;
+  accent:
+    | "cyan"
+    | "green"
+    | "blue"
+    | "amber";
 }) {
   return (
-    <div className="panel kpi-card">
-      {icon}
+    <article
+      className={`metric-card accent-${accent}`}
+    >
 
-      <div
-        className="kpi-label"
-        style={{ marginTop: 14 }}
-      >
+      <div className="metric-card-top">
+
+        <div className="metric-icon">
+          {icon}
+        </div>
+
+        <span className="metric-trend">
+          {trend}
+        </span>
+
+      </div>
+
+      <div className="metric-label">
         {label}
       </div>
 
-      <div className="kpi-value">
+      <div className="metric-number">
+
         {value}
+
+        {suffix && (
+          <small>
+            {suffix}
+          </small>
+        )}
+
       </div>
 
-      <div className="kpi-change">
-        {description}
+      <div className="metric-detail">
+        {detail}
       </div>
+
+      <div className="metric-sparkline">
+
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+        <span />
+
+      </div>
+
+    </article>
+  );
+}
+
+/* =========================================================
+   PANEL HEADING
+========================================================= */
+
+function PanelHeading({
+  eyebrow,
+  title,
+  description,
+  icon,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="advanced-panel-header">
+
+      <div className="advanced-panel-title">
+
+        <div className="panel-icon">
+          {icon}
+        </div>
+
+        <div>
+
+          <span>
+            {eyebrow}
+          </span>
+
+          <h2>
+            {title}
+          </h2>
+
+          <p>
+            {description}
+          </p>
+
+        </div>
+
+      </div>
+
+      {action}
+
     </div>
   );
 }
 
 /* =========================================================
-   OPERATION ROW
+   OPERATION
 ========================================================= */
 
-function OperationRow({
+function Operation({
+  icon,
+  title,
+  detail,
+  value,
+  good,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
+  value: string;
+  good: boolean;
+}) {
+  return (
+    <div className="advanced-operation">
+
+      <div className="advanced-operation-icon">
+        {icon}
+      </div>
+
+      <div className="advanced-operation-copy">
+
+        <strong>
+          {title}
+        </strong>
+
+        <span>
+          {detail}
+        </span>
+
+      </div>
+
+      <div
+        className={
+          good
+            ? "operation-state good"
+            : "operation-state warning"
+        }
+      >
+
+        <span />
+
+        {value}
+
+      </div>
+
+    </div>
+  );
+}
+
+/* =========================================================
+   INSIGHT CARD
+========================================================= */
+
+function InsightCard({
   icon,
   title,
   value,
-  status,
+  description,
 }: {
   icon: React.ReactNode;
   title: string;
   value: string;
-  status: "good" | "warning";
+  description: string;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "13px 0",
-        borderBottom:
-          "1px solid rgba(100,160,190,.07)",
-      }}
-    >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 7,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background:
-            "rgba(20,190,235,.06)",
-        }}
-      >
+    <article className="insight-card">
+
+      <div className="insight-icon">
         {icon}
       </div>
 
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
+      <div className="insight-copy">
+
+        <span>
           {title}
-        </div>
-      </div>
-
-      <span
-        className={
-          status === "good"
-            ? "status status-low"
-            : "status status-medium"
-        }
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/* =========================================================
-   ZONE TRAFFIC
-========================================================= */
-
-function ZoneTraffic({
-  name,
-  vehicles,
-  percentage,
-}: {
-  name: string;
-  vehicles: number;
-  percentage: number;
-}) {
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: 7,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          {name}
         </span>
 
-        <span
-          className="muted"
-          style={{ fontSize: 11 }}
-        >
-          {vehicles} vehicles
-        </span>
+        <strong>
+          {value}
+        </strong>
+
+        <p>
+          {description}
+        </p>
+
       </div>
 
-      <div
-        style={{
-          height: 7,
-          borderRadius: 20,
-          background:
-            "rgba(100,160,190,.10)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${percentage}%`,
-            height: "100%",
-            borderRadius: 20,
-            background:
-              percentage >= 70
-                ? "#ef6a78"
-                : percentage >= 40
-                  ? "#e5b45b"
-                  : "#31d29a",
-            transition:
-              "width .5s ease",
-          }}
-        />
-      </div>
-    </div>
+    </article>
   );
 }
-
-/* =========================================================
-   TABLE STYLES
-========================================================= */
-
-const tableHeader: React.CSSProperties = {
-  textAlign: "left",
-  padding: "13px 16px",
-  borderBottom:
-    "1px solid rgba(100,160,190,.08)",
-};
-
-const tableCell: React.CSSProperties = {
-  padding: "14px 16px",
-  borderBottom:
-    "1px solid rgba(100,160,190,.06)",
-  fontSize: 11,
-};

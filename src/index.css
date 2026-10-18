@@ -1,24 +1,34 @@
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+html {
   width: 100%;
   min-height: 100%;
   margin: 0;
   padding: 0;
-}
-
-html {
-  background: #020914;
+  background: #02070d;
+  color-scheme: dark;
 }
 
 body {
+  width: 100%;
   min-height: 100vh;
-  background: #020914;
-  color: #d8edf5;
+  margin: 0;
+  padding: 0;
+
+  background:
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(15, 105, 145, 0.08),
+      transparent 28%
+    ),
+    #02070d;
+
+  color: #d9edf7;
+
   font-family:
     Inter,
     ui-sans-serif,
@@ -27,6 +37,14 @@ body {
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 button,
@@ -40,346 +58,685 @@ button {
   border: 0;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* =========================================================
-   APP LAYOUT
-   ========================================================= */
-
-.app-layout {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  background: #020914;
+img,
+svg,
+canvas {
+  max-width: 100%;
 }
 
-.main-area {
-  flex: 1;
+::selection {
+  background: rgba(31, 218, 238, 0.25);
+  color: #ffffff;
+}
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #030b13;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #163246;
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #214a61;
+}
+
+/* =========================================================
+   APP SHELL
+========================================================= */
+
+.metro-shell {
+  position: relative;
+
+  display: flex;
+
+  width: 100%;
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 70% 20%,
+      rgba(11, 123, 159, 0.035),
+      transparent 30%
+    ),
+    #02070d;
+
+  overflow-x: hidden;
+}
+
+.metro-main {
+  position: relative;
+
+  width: calc(100% - 244px);
+
   min-width: 0;
   min-height: 100vh;
-  margin-left: 184px;
-  background: #020914;
+
+  margin-left: 244px;
 }
 
-.main-content {
+.metro-content {
   width: 100%;
-  min-height: 100vh;
+  min-width: 0;
+}
+
+/* =========================================================
+   TOP BAR
+========================================================= */
+
+.metro-topbar {
+  position: sticky;
+
+  top: 0;
+
+  z-index: 900;
+
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding:
+    0 26px;
+
+  border-bottom:
+    1px solid
+    rgba(96, 154, 184, 0.1);
+
+  background:
+    rgba(3, 11, 19, 0.88);
+
+  backdrop-filter:
+    blur(18px);
+
+  -webkit-backdrop-filter:
+    blur(18px);
+}
+
+.metro-topbar-left,
+.metro-topbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.metro-topbar-left {
+  gap: 12px;
+}
+
+.metro-topbar-right {
+  gap: 9px;
+}
+
+.metro-command-mark {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(30, 211, 231, 0.16);
+
+  border-radius: 8px;
+
+  color: #28d7e9;
+
+  background:
+    rgba(22, 195, 218, 0.055);
+}
+
+.metro-breadcrumb {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color: #50697a;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+}
+
+.metro-breadcrumb strong {
+  color: #274152;
+}
+
+.metro-breadcrumb-current {
+  color: #91aebe;
+}
+
+.metro-system-chip {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  height: 30px;
+
+  padding:
+    0 10px;
+
+  border:
+    1px solid
+    rgba(42, 221, 167, 0.13);
+
+  border-radius: 7px;
+
+  background:
+    rgba(35, 215, 167, 0.035);
+
+  color: #668d84;
+
+  font-size: 7px;
+  font-weight: 800;
+
+  letter-spacing: 0.06em;
+}
+
+.metro-system-chip strong {
+  color: #48d9ae;
+}
+
+.metro-system-pulse {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #34d6a4;
+
+  box-shadow:
+    0 0 9px
+    rgba(52, 214, 164, 0.9);
+
+  animation:
+    metroPulse 1.7s infinite;
+}
+
+.metro-topbar-icon {
+  position: relative;
+
+  width: 31px;
+  height: 31px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(94, 145, 170, 0.11);
+
+  border-radius: 7px;
+
+  color: #6d8797;
+
+  background:
+    rgba(255, 255, 255, 0.018);
+
+  cursor: pointer;
+
+  transition:
+    0.2s ease;
+}
+
+.metro-topbar-icon:hover {
+  color: #bfeef8;
+
+  border-color:
+    rgba(42, 211, 232, 0.22);
+
+  background:
+    rgba(28, 204, 225, 0.045);
+}
+
+.metro-notification-dot {
+  position: absolute;
+
+  top: 6px;
+  right: 6px;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #f4b955;
+
+  box-shadow:
+    0 0 7px
+    rgba(244, 185, 85, 0.8);
+}
+
+.metro-user {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin-left: 5px;
+
+  padding-left: 10px;
+
+  border-left:
+    1px solid
+    rgba(85, 139, 165, 0.1);
+}
+
+.metro-user-avatar {
+  width: 30px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  border:
+    1px solid
+    rgba(30, 211, 231, 0.2);
+
+  border-radius: 8px;
+
+  color: #31d9eb;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(25, 204, 224, 0.16),
+      rgba(25, 204, 224, 0.04)
+    );
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.metro-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metro-user-info strong {
+  color: #a8c3d0;
+
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.metro-user-info span {
+  margin-top: 2px;
+
+  color: #4e6878;
+
+  font-size: 6px;
+
+  letter-spacing: 0.08em;
+}
+
+.metro-mobile-menu {
+  display: none;
+
+  width: 32px;
+  height: 32px;
+
+  place-items: center;
+
+  color: #91b1c1;
+
+  background:
+    rgba(255, 255, 255, 0.03);
+
+  border:
+    1px solid
+    rgba(100, 150, 175, 0.1);
+
+  border-radius: 7px;
 }
 
 /* =========================================================
    SIDEBAR
-   ========================================================= */
+========================================================= */
 
-.sidebar {
+.metro-sidebar {
   position: fixed;
+
   left: 0;
   top: 0;
   bottom: 0;
 
-  width: 184px;
+  z-index: 1100;
 
-  z-index: 1000;
+  width: 244px;
 
   display: flex;
   flex-direction: column;
 
+  border-right:
+    1px solid
+    rgba(76, 142, 175, 0.12);
+
   background:
     linear-gradient(
       180deg,
-      rgba(5, 20, 34, 0.99),
-      rgba(3, 14, 25, 0.99)
+      #06111c 0%,
+      #040c15 55%,
+      #030911 100%
     );
 
-  border-right: 1px solid rgba(75, 140, 177, 0.11);
-
   box-shadow:
-    15px 0 40px rgba(0, 0, 0, 0.12);
-
-  overflow: hidden;
+    18px 0 60px
+    rgba(0, 0, 0, 0.2);
 }
 
-/* =========================================================
-   LOGO
-   ========================================================= */
-
-.logo-area {
-  height: 78px;
+.metro-brand {
+  height: 76px;
 
   display: flex;
   align-items: center;
 
-  gap: 9px;
+  gap: 11px;
 
-  padding: 0 17px;
+  padding:
+    0 18px;
 
-  flex-shrink: 0;
-
-  border-bottom: 1px solid rgba(77, 141, 177, 0.07);
+  border-bottom:
+    1px solid
+    rgba(82, 143, 170, 0.08);
 }
 
-.logo-icon {
-  width: 35px;
-  height: 35px;
+.metro-brand-symbol {
+  position: relative;
+
+  width: 39px;
+  height: 39px;
 
   display: grid;
   place-items: center;
 
   flex-shrink: 0;
 
-  color: #28dded;
+  border:
+    1px solid
+    rgba(31, 220, 235, 0.19);
 
-  filter:
-    drop-shadow(
-      0 0 7px rgba(23, 218, 235, 0.4)
+  border-radius: 10px;
+
+  color: #2ce0ef;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(26, 218, 234, 0.13),
+      rgba(26, 218, 234, 0.025)
     );
+
+  box-shadow:
+    inset 0 0 20px
+    rgba(31, 213, 232, 0.04),
+    0 0 25px
+    rgba(23, 201, 223, 0.05);
 }
 
-.logo-area h2 {
-  margin: 0;
+.metro-brand-symbol span {
+  position: absolute;
 
-  color: #eafaff;
+  right: 6px;
+  bottom: 6px;
+
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #32d7a4;
+
+  box-shadow:
+    0 0 7px
+    rgba(50, 215, 164, 0.9);
+}
+
+.metro-brand-copy {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.metro-brand-copy strong {
+  color: #e4f7fc;
 
   font-size: 15px;
-  line-height: 1;
+  font-weight: 900;
 
-  font-weight: 800;
-
-  letter-spacing: 0.8px;
+  letter-spacing: 0.06em;
 }
 
-.logo-area span {
-  display: block;
-
+.metro-brand-copy span {
   margin-top: 5px;
 
-  color: #617b8f;
+  color: #587284;
 
-  font-size: 7px;
+  font-size: 6px;
+  font-weight: 800;
 
-  letter-spacing: 0.25px;
-
-  white-space: nowrap;
+  letter-spacing: 0.15em;
 }
 
-/* =========================================================
-   SYSTEM STATUS
-   ========================================================= */
-
-.sidebar-system-status {
-  margin: 0;
-
-  padding: 10px 10px 9px;
-
-  border-bottom: 1px solid rgba(74, 142, 178, 0.07);
-
-  background: rgba(16, 210, 180, 0.025);
+.metro-sidebar-close {
+  display: none;
 }
 
-.system-status-header {
+.metro-sidebar-status {
   display: flex;
   align-items: center;
 
-  gap: 6px;
+  gap: 9px;
 
-  color: #20dfac;
+  margin:
+    14px 13px 8px;
 
-  font-size: 9px;
+  padding:
+    11px;
 
-  font-weight: 600;
+  border:
+    1px solid
+    rgba(42, 218, 170, 0.1);
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(29, 209, 164, 0.045),
+      rgba(29, 209, 164, 0.012)
+    );
 }
 
-.system-status-dot {
-  width: 6px;
-  height: 6px;
+.metro-status-icon {
+  width: 25px;
+  height: 25px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  color: #32d9aa;
+
+  border-radius: 7px;
+
+  background:
+    rgba(37, 214, 167, 0.07);
+}
+
+.metro-status-copy {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  flex: 1;
+}
+
+.metro-status-copy strong {
+  color: #69dcb9;
+
+  font-size: 7px;
+  font-weight: 900;
+
+  letter-spacing: 0.06em;
+}
+
+.metro-status-copy span {
+  margin-top: 3px;
+
+  color: #466b70;
+
+  font-size: 6px;
+}
+
+.metro-status-light {
+  width: 5px;
+  height: 5px;
 
   flex-shrink: 0;
 
   border-radius: 50%;
 
-  background: #20dfac;
+  background: #31d5a2;
 
   box-shadow:
-    0 0 8px rgba(32, 223, 172, 0.8);
+    0 0 8px
+    rgba(49, 213, 162, 0.85);
 
-  animation: metropolisStatusPulse 2s infinite;
+  animation:
+    metroPulse 1.8s infinite;
 }
 
-.sidebar-system-status p {
-  margin: 5px 0 0;
+.metro-sidebar-scroll {
+  flex: 1;
 
-  color: #526b7c;
+  min-height: 0;
 
-  font-size: 8px;
+  overflow-y: auto;
+
+  padding:
+    7px 11px 12px;
 }
 
-/* =========================================================
-   SECTION TITLE
-   ========================================================= */
-
-.sidebar-section-title {
-  padding: 10px 14px 5px;
-
-  color: #50677a;
-
-  font-size: 8px;
-
-  font-weight: 700;
-
-  letter-spacing: 0.16em;
+.metro-nav-section {
+  margin-bottom: 18px;
 }
 
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
+.metro-nav-heading {
+  padding:
+    8px 9px 7px;
 
-.sidebar-nav {
-  padding: 4px 10px;
+  color: #40596a;
 
+  font-size: 7px;
+  font-weight: 900;
+
+  letter-spacing: 0.18em;
+}
+
+.metro-nav {
   display: flex;
   flex-direction: column;
 
   gap: 3px;
-
-  overflow-y: auto;
 }
 
-.nav-item {
+.metro-nav-item {
+  position: relative;
+
   width: 100%;
   min-height: 39px;
 
   display: flex;
   align-items: center;
 
-  gap: 12px;
+  gap: 10px;
 
-  padding: 0 11px;
+  padding:
+    0 10px;
 
-  border: 1px solid transparent;
+  border:
+    1px solid
+    transparent;
 
   border-radius: 8px;
 
-  color: #7d93a6;
-
-  background: transparent;
-
-  font-size: 11px;
-
-  font-weight: 500;
-
-  text-decoration: none;
-
-  cursor: pointer;
+  color: #6f8798;
 
   transition:
-    background 0.2s ease,
     color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
     transform 0.2s ease;
+
+  cursor: pointer;
 }
 
-.nav-item svg {
-  flex-shrink: 0;
+.metro-nav-item:hover {
+  color: #c7e8f0;
+
+  background:
+    rgba(28, 182, 210, 0.045);
+
+  border-color:
+    rgba(40, 204, 228, 0.06);
+
+  transform:
+    translateX(1px);
 }
 
-.nav-item:hover {
-  color: #d8f7ff;
-
-  background: rgba(24, 158, 185, 0.08);
-
-  transform: translateX(1px);
-}
-
-.nav-item.active {
-  color: #dffaff;
+.metro-nav-item.active {
+  color: #d9fbff;
 
   background:
     linear-gradient(
       90deg,
-      rgba(17, 197, 216, 0.26),
-      rgba(17, 197, 216, 0.12)
+      rgba(17, 201, 222, 0.17),
+      rgba(17, 201, 222, 0.045)
     );
 
   border-color:
-    rgba(22, 205, 222, 0.08);
+    rgba(35, 210, 229, 0.12);
 
   box-shadow:
-    inset 3px 0 0 #13c9dc,
-    0 0 25px rgba(14, 190, 213, 0.05);
+    inset 2px 0 0 #24d7e9;
 }
 
-.nav-item.active svg {
-  color: #20dce9;
+.metro-nav-item.active .metro-nav-icon {
+  color: #27ddec;
+
+  background:
+    rgba(29, 215, 235, 0.08);
 }
 
-/* =========================================================
-   LIVE INDICATOR
-   ========================================================= */
-
-.live-nav-indicator {
-  margin-left: auto;
-
-  display: flex;
-  align-items: center;
-
-  gap: 4px;
-
-  color: #20dfac;
-
-  font-size: 7px;
-
-  font-weight: 600;
-}
-
-.live-nav-indicator span {
-  width: 5px;
-  height: 5px;
-
-  border-radius: 50%;
-
-  background: #20dfac;
-
-  box-shadow:
-    0 0 7px rgba(32, 223, 172, 0.8);
-
-  animation: metropolisStatusPulse 1.6s infinite;
-}
-
-/* =========================================================
-   SIDEBAR BOTTOM
-   ========================================================= */
-
-.sidebar-bottom {
-  margin-top: auto;
-
-  padding: 8px 10px 10px;
-
-  border-top: 1px solid rgba(74, 142, 178, 0.08);
-}
-
-.settings-nav {
-  margin-bottom: 8px;
-}
-
-/* =========================================================
-   ADMIN
-   ========================================================= */
-
-.sidebar-admin {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  padding: 9px;
-
-  border-radius: 9px;
-
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.sidebar-admin-avatar {
+.metro-nav-icon {
   width: 28px;
   height: 28px;
 
@@ -388,119 +745,295 @@ a {
 
   flex-shrink: 0;
 
+  color: #658092;
+
   border-radius: 7px;
 
-  color: #19d9e8;
-
-  background: rgba(20, 210, 230, 0.1);
-
-  font-size: 11px;
-
-  font-weight: 800;
+  transition:
+    0.2s ease;
 }
 
-.sidebar-admin div:last-child {
+.metro-nav-label {
+  flex: 1;
+
   min-width: 0;
-}
-
-.sidebar-admin strong,
-.sidebar-admin span {
-  display: block;
 
   overflow: hidden;
 
   white-space: nowrap;
 
   text-overflow: ellipsis;
+
+  font-size: 10px;
+  font-weight: 650;
 }
 
-.sidebar-admin strong {
-  color: #a8bfce;
+.metro-nav-arrow {
+  flex-shrink: 0;
 
-  font-size: 8px;
+  color: #334b5c;
 
-  font-weight: 600;
+  opacity: 0;
+
+  transition:
+    0.2s ease;
 }
 
-.sidebar-admin span {
-  margin-top: 2px;
+.metro-nav-item:hover
+  .metro-nav-arrow,
+.metro-nav-item.active
+  .metro-nav-arrow {
+  opacity: 1;
 
-  color: #536b7c;
+  color: #4c9bad;
+}
+
+.metro-live-label {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  color: #4fd9b1;
+
+  font-size: 6px;
+  font-weight: 900;
+
+  letter-spacing: 0.05em;
+}
+
+.metro-live-label span {
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #34d5a3;
+
+  box-shadow:
+    0 0 7px
+    rgba(52, 213, 163, 0.8);
+}
+
+.metro-sidebar-bottom {
+  padding:
+    10px 11px 12px;
+
+  border-top:
+    1px solid
+    rgba(76, 142, 175, 0.09);
+}
+
+.metro-settings-link {
+  margin-bottom: 9px;
+}
+
+.metro-admin-card {
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding:
+    10px;
+
+  border:
+    1px solid
+    rgba(81, 141, 168, 0.08);
+
+  border-radius: 9px;
+
+  background:
+    rgba(255, 255, 255, 0.018);
+}
+
+.metro-admin-avatar {
+  width: 29px;
+  height: 29px;
+
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  border:
+    1px solid
+    rgba(35, 213, 233, 0.18);
+
+  border-radius: 7px;
+
+  color: #31dbea;
+
+  background:
+    rgba(29, 208, 229, 0.07);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.metro-admin-info {
+  min-width: 0;
+
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.metro-admin-info strong {
+  overflow: hidden;
+
+  color: #8faab8;
 
   font-size: 7px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.metro-admin-info span {
+  margin-top: 3px;
+
+  color: #4d6574;
+
+  font-size: 6px;
+}
+
+.metro-admin-indicator {
+  color: #31d6a6;
 }
 
 /* =========================================================
-   ANIMATION
-   ========================================================= */
+   MOBILE SIDEBAR
+========================================================= */
 
-@keyframes metropolisStatusPulse {
-  0% {
+.metro-mobile-overlay {
+  display: none;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+  .metro-sidebar {
+    width: 214px;
+  }
+
+  .metro-main {
+    width: calc(100% - 214px);
+    margin-left: 214px;
+  }
+}
+
+@media (max-width: 800px) {
+  .metro-sidebar {
+    width: 244px;
+
+    transform:
+      translateX(-100%);
+
+    transition:
+      transform 0.25s ease;
+
+    box-shadow:
+      20px 0 60px
+      rgba(0, 0, 0, 0.45);
+  }
+
+  .metro-sidebar-open {
+    transform:
+      translateX(0);
+  }
+
+  .metro-sidebar-close {
+    display: grid;
+
+    place-items: center;
+
+    margin-left: auto;
+
+    width: 30px;
+    height: 30px;
+
+    color: #6d8998;
+
+    background:
+      transparent;
+  }
+
+  .metro-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .metro-mobile-menu {
+    display: grid;
+  }
+
+  .metro-mobile-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1050;
+
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    background:
+      rgba(0, 0, 0, 0.58);
+
+    backdrop-filter:
+      blur(2px);
+  }
+
+  .metro-topbar {
+    padding:
+      0 16px;
+  }
+
+  .metro-system-chip,
+  .metro-user-info {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .metro-breadcrumb {
+    display: none;
+  }
+
+  .metro-topbar {
+    height: 56px;
+  }
+
+  .metro-topbar-right {
+    gap: 5px;
+  }
+
+  .metro-user {
+    margin-left: 0;
+    padding-left: 5px;
+  }
+}
+
+/* =========================================================
+   GLOBAL ANIMATION
+========================================================= */
+
+@keyframes metroPulse {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
 
   50% {
     opacity: 0.45;
-    transform: scale(0.8);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media (max-width: 900px) {
-  .sidebar {
-    width: 70px;
-  }
-
-  .main-area {
-    margin-left: 70px;
-  }
-
-  .logo-area {
-    justify-content: center;
-    padding: 0;
-  }
-
-  .logo-area > div:last-child {
-    display: none;
-  }
-
-  .sidebar-system-status {
-    display: none;
-  }
-
-  .sidebar-section-title {
-    display: none;
-  }
-
-  .nav-item {
-    justify-content: center;
-    padding: 0;
-    gap: 0;
-  }
-
-  .nav-item > span:not(.live-nav-indicator) {
-    display: none;
-  }
-
-  .sidebar-admin {
-    justify-content: center;
-    padding: 7px;
-  }
-
-  .sidebar-admin > div:last-child {
-    display: none;
-  }
-
-  .live-nav-indicator {
-    display: none;
+    transform: scale(0.75);
   }
 }
