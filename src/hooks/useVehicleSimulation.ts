@@ -29,6 +29,7 @@ interface UseVehicleSimulationReturn {
 }
 
 const LOCAL_VEHICLES_KEY = "metropolis_manual_vehicles";
+const VEHICLES_UPDATED_EVENT = "metropolis:vehicles-updated";
 const DEFAULT_LATITUDE = 12.9718;
 const DEFAULT_LONGITUDE = 77.5945;
 
@@ -76,7 +77,7 @@ function readManualVehicles(): SimulatedVehicle[] {
     const saved = localStorage.getItem(LOCAL_VEHICLES_KEY);
     if (!saved) return [];
 
-    const parsed = JSON.parse(saved);
+    const parsed: unknown = JSON.parse(saved);
     if (!Array.isArray(parsed)) return [];
 
     return parsed.map((vehicle, index) =>
@@ -92,31 +93,54 @@ function saveManualVehicles(vehicles: SimulatedVehicle[]) {
     localStorage.setItem(LOCAL_VEHICLES_KEY, JSON.stringify(vehicles));
   } catch (error) {
     console.error("Could not save manual vehicles locally:", error);
+    throw new Error("Could not save the vehicle in local storage.");
   }
 }
 
-function normalizeBackendVehicle(vehicle: any, index: number): SimulatedVehicle {
+function normalizeBackendVehicle(
+  vehicle: any,
+  index: number,
+): SimulatedVehicle {
   const id = String(
-    vehicle.vehicle_id ?? vehicle.id ?? `VH-${String(index + 1).padStart(3, "0")}`,
+    vehicle.vehicle_id ??
+      vehicle.id ??
+      `VH-${String(index + 1).padStart(3, "0")}`,
   );
 
-  const typeValue = String(vehicle.vehicle_type ?? vehicle.type ?? "car").toLowerCase();
+  const typeValue = String(
+    vehicle.vehicle_type ?? vehicle.type ?? "car",
+  ).toLowerCase();
+
   const type: VehicleData["type"] =
     typeValue === "bus" || typeValue === "bike" ? typeValue : "car";
 
   const latitude = Number(
-    vehicle.latitude ?? vehicle.lat ?? vehicle.position?.[0] ?? DEFAULT_LATITUDE,
+    vehicle.latitude ??
+      vehicle.lat ??
+      vehicle.position?.[0] ??
+      DEFAULT_LATITUDE,
   );
+
   const longitude = Number(
-    vehicle.longitude ?? vehicle.lng ?? vehicle.position?.[1] ?? DEFAULT_LONGITUDE,
+    vehicle.longitude ??
+      vehicle.lng ??
+      vehicle.position?.[1] ??
+      DEFAULT_LONGITUDE,
   );
 
   return toSimulatedVehicle(
     {
       id,
-      plate: String(vehicle.plate_number ?? vehicle.number_plate ?? vehicle.plate ?? ""),
+      plate: String(
+        vehicle.plate_number ??
+          vehicle.number_plate ??
+          vehicle.plate ??
+          "",
+      ),
       type,
-      model: String(vehicle.model ?? vehicle.vehicle_name ?? vehicle.name ?? "Vehicle"),
+      model: String(
+        vehicle.model ?? vehicle.vehicle_name ?? vehicle.name ?? "Vehicle",
+      ),
       road: String(vehicle.road ?? vehicle.road_name ?? "Unknown Road"),
       zone: String(vehicle.zone ?? vehicle.zone_name ?? "Zone A"),
       speed: Number(vehicle.speed ?? 0),
@@ -125,7 +149,9 @@ function normalizeBackendVehicle(vehicle: any, index: number): SimulatedVehicle 
       position: [latitude, longitude],
       latitude,
       longitude,
-      lastUpdated: String(vehicle.last_updated ?? vehicle.lastUpdated ?? "Just now"),
+      lastUpdated: String(
+        vehicle.last_updated ?? vehicle.lastUpdated ?? "Just now",
+      ),
       routeIndex: index,
       vehicle_id: vehicle.vehicle_id,
       plate_number: vehicle.plate_number,
@@ -135,12 +161,43 @@ function normalizeBackendVehicle(vehicle: any, index: number): SimulatedVehicle 
   );
 }
 
+function mergeVehicles(
+  existing: SimulatedVehicle[],
+  manual: SimulatedVehicle[],
+): SimulatedVehicle[] {
+  const manualById = new Map(manual.map((vehicle) => [vehicle.id, vehicle]));
+  const result: SimulatedVehicle[] = [];
+  const seen = new Set<string>();
+
+  for (const vehicle of existing) {
+    const updatedManual = manualById.get(vehicle.id);
+    const item = updatedManual ?? vehicle;
+
+    if (!seen.has(item.id)) {
+      result.push(item);
+      seen.add(item.id);
+    }
+  }
+
+  for (const vehicle of manual) {
+    if (!seen.has(vehicle.id)) {
+      result.push(vehicle);
+      seen.add(vehicle.id);
+    }
+  }
+
+  return result;
+}
+
 export function useVehicleSimulation(): UseVehicleSimulationReturn {
   const [vehicles, setVehicles] = useState<SimulatedVehicle[]>(() => [
     ...createFallbackVehicles(),
     ...readManualVehicles(),
   ]);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+
+  const [selectedVehicleId, setSelectedVehicleId] =
+    useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,77 +209,122 @@ export function useVehicleSimulation(): UseVehicleSimulationReturn {
 
       if (Array.isArray(data) && data.length > 0) {
         const backendVehicles = data.map(normalizeBackendVehicle);
-        const backendIds = new Set(backendVehicles.map((vehicle) => vehicle.id));
-
-        const combined = [
-          ...backendVehicles,
-          ...manualVehicles.filter((vehicle) => !backendIds.has(vehicle.id)),
-        ];
-
-        setVehicles(combined);
-        setError(null);
+        setVehicles(mergeVehicles(backendVehicles, manualVehicles));
       } else {
-        setVehicles([...createFallbackVehicles(), ...manualVehicles]);
-        setError(null);
+        setVehicles(
+          mergeVehicles(createFallbackVehicles(), manualVehicles),
+        );
       }
+
+      setError(null);
     } catch {
-      setVehicles([...createFallbackVehicles(), ...readManualVehicles()]);
+      setVehicles(
+        mergeVehicles(createFallbackVehicles(), readManualVehicles()),
+      );
       setError("Backend vehicle data unavailable. Using simulation data.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const addVehicle = useCallback((input: NewVehicleInput): SimulatedVehicle => {
-    const manualVehicles = readManualVehicles();
-    const currentVehicles = vehicles;
+  const addVehicle = useCallback(
+    (input: NewVehicleInput): SimulatedVehicle => {
+      const manualVehicles = readManualVehicles();
+      const requestedId = input.id?.trim();
 
-    const requestedId = input.id?.trim();
-    const nextNumber = [...currentVehicles, ...manualVehicles].reduce(
-      (maximum, vehicle) => {
-        const match = vehicle.id.match(/VH-(\d+)/i);
-        return match ? Math.max(maximum, Number(match[1])) : maximum;
-      },
-      0,
-    ) + 1;
+      const nextNumber = [...vehicles, ...manualVehicles].reduce(
+        (maximum, vehicle) => {
+          const match = vehicle.id.match(/VH-(\d+)/i);
+          return match ? Math.max(maximum, Number(match[1])) : maximum;
+        },
+        0,
+      ) + 1;
 
-    const id = requestedId || `VH-${String(nextNumber).padStart(3, "0")}`;
+      const id =
+        requestedId || `VH-${String(nextNumber).padStart(3, "0")}`;
 
-    if (
-      [...currentVehicles, ...manualVehicles].some(
+      const normalizedPlate = input.plate.trim().toUpperCase();
+
+      if (!normalizedPlate) {
+        throw new Error("Enter a vehicle number plate.");
+      }
+
+      const duplicate = [...vehicles, ...manualVehicles].some(
         (vehicle) =>
           vehicle.id.toLowerCase() === id.toLowerCase() ||
-          vehicle.plate.toLowerCase() === input.plate.trim().toLowerCase(),
-      )
-    ) {
-      throw new Error("A vehicle with this ID or number plate already exists.");
-    }
+          vehicle.plate.trim().toUpperCase() === normalizedPlate,
+      );
 
-    const newVehicle = toSimulatedVehicle(
-      {
-        ...input,
-        id,
-        plate: input.plate.trim().toUpperCase(),
-        latitude: input.position[0],
-        longitude: input.position[1],
-        position: input.position,
-        lastUpdated: "Just now",
-        routeIndex: currentVehicles.length,
-      },
-      currentVehicles.length,
-    );
+      if (duplicate) {
+        throw new Error(
+          "A vehicle with this ID or number plate already exists.",
+        );
+      }
 
-    const updatedManualVehicles = [...manualVehicles, newVehicle];
-    saveManualVehicles(updatedManualVehicles);
-    setVehicles((current) => [...current, newVehicle]);
+      const newVehicle = toSimulatedVehicle(
+        {
+          ...input,
+          id,
+          plate: normalizedPlate,
+          latitude: input.position[0],
+          longitude: input.position[1],
+          position: input.position,
+          lastUpdated: new Date().toLocaleTimeString(),
+          routeIndex: vehicles.length,
+        },
+        vehicles.length,
+      );
 
-    return newVehicle;
-  }, [vehicles]);
+      // Save first so other components can read the new vehicle.
+      const updatedManualVehicles = [...manualVehicles, newVehicle];
+      saveManualVehicles(updatedManualVehicles);
+
+      // Update this hook instance.
+      setVehicles((current) =>
+        mergeVehicles(current, [newVehicle]),
+      );
+
+      // Notify other hook instances in the same browser tab.
+      window.dispatchEvent(new Event(VEHICLES_UPDATED_EVENT));
+
+      return newVehicle;
+    },
+    [vehicles],
+  );
 
   useEffect(() => {
     void refreshVehicles();
   }, [refreshVehicles]);
 
+  // Synchronize separately mounted components when a vehicle is added.
+  useEffect(() => {
+    const syncManualVehicles = () => {
+      const manualVehicles = readManualVehicles();
+
+      setVehicles((current) =>
+        mergeVehicles(current, manualVehicles),
+      );
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === LOCAL_VEHICLES_KEY || event.key === null) {
+        syncManualVehicles();
+      }
+    };
+
+    window.addEventListener(VEHICLES_UPDATED_EVENT, syncManualVehicles);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener(
+        VEHICLES_UPDATED_EVENT,
+        syncManualVehicles,
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
+  // Simulate movement and keep the map position in sync with coordinates.
   useEffect(() => {
     const timer = window.setInterval(() => {
       setVehicles((currentVehicles) =>

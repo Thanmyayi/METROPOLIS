@@ -3,6 +3,7 @@ import {
   Bell,
   Menu,
   Search,
+  X,
 } from "lucide-react";
 import {
   useState,

@@ -1,34 +1,53 @@
 import {
   Activity,
+  AlertTriangle,
   ArrowUpRight,
-  Bell,
   CarFront,
-  ChevronRight,
   CircleGauge,
   Clock3,
+  Gauge,
   MapPin,
-  Navigation,
   Plus,
   Radio,
-  Search,
-  ShieldAlert,
-  Signal,
-  SlidersHorizontal,
-  Truck,
+  Route,
+  ShieldCheck,
+  TrendingUp,
   X,
+  Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
-
+import { useMemo, useState, type FormEvent } from "react";
 import {
   useVehicleSimulation,
   type NewVehicleInput,
 } from "../hooks/useVehicleSimulation";
 
-type VehicleStatus = "Moving" | "Stopped";
-type VehicleType = "car" | "bus" | "bike";
+type VehicleForm = {
+  id: string;
+  plate: string;
+  type: "car" | "bus" | "bike";
+  model: string;
+  road: string;
+  zone: string;
+  speed: string;
+  direction: string;
+  status: "Moving" | "Stopped";
+  latitude: string;
+  longitude: string;
+};
 
-const DEFAULT_POSITION: [number, number] = [12.9718, 77.5945];
+const initialForm: VehicleForm = {
+  id: "",
+  plate: "",
+  type: "car",
+  model: "",
+  road: "",
+  zone: "Zone A",
+  speed: "30",
+  direction: "North",
+  status: "Moving",
+  latitude: "12.9718",
+  longitude: "77.5945",
+};
 
 export default function Dashboard() {
   const {
@@ -36,36 +55,12 @@ export default function Dashboard() {
     loading,
     error,
     addVehicle,
-    selectVehicle: selectFromHook,
-    selectedVehicleId: hookSelectedVehicleId,
-    setSelectedVehicleId: setHookSelectedVehicleId,
   } = useVehicleSimulation();
 
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [form, setForm] = useState<VehicleForm>(initialForm);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-
-  const [form, setForm] = useState({
-    id: "",
-    type: "car" as VehicleType,
-    plate: "",
-    model: "Sedan",
-    road: "MG Road",
-    zone: "Zone A",
-    speed: "30",
-    direction: "North",
-    status: "Moving" as VehicleStatus,
-    latitude: String(DEFAULT_POSITION[0]),
-    longitude: String(DEFAULT_POSITION[1]),
-  });
-
-  useEffect(() => {
-    if (hookSelectedVehicleId) {
-      setSelectedVehicleId(hookSelectedVehicleId);
-    }
-  }, [hookSelectedVehicleId]);
 
   const totalVehicles = vehicles.length;
 
@@ -81,83 +76,72 @@ export default function Dashboard() {
     if (!vehicles.length) return 0;
 
     return Math.round(
-      vehicles.reduce((sum, vehicle) => sum + Number(vehicle.speed || 0), 0) /
-        vehicles.length,
+      vehicles.reduce(
+        (total, vehicle) => total + Number(vehicle.speed || 0),
+        0,
+      ) / vehicles.length,
     );
   }, [vehicles]);
 
-  const filteredVehicles = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const movementRate =
+    totalVehicles > 0
+      ? Math.round((movingVehicles / totalVehicles) * 100)
+      : 0;
 
-    if (!query) return vehicles;
+  const zoneTraffic = useMemo(() => {
+    const zones = ["Zone A", "Zone B", "Zone C"];
 
-    return vehicles.filter((vehicle) =>
-      [
-        vehicle.id,
-        vehicle.plate,
-        vehicle.type,
-        vehicle.road,
-        vehicle.zone,
-        vehicle.model,
-      ].some((value) => String(value ?? "").toLowerCase().includes(query)),
-    );
-  }, [vehicles, search]);
+    return zones.map((zone) => {
+      const list = vehicles.filter((vehicle) => vehicle.zone === zone);
+      const stopped = list.filter(
+        (vehicle) => vehicle.status === "Stopped",
+      ).length;
 
-  const selectedVehicle =
-    vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ??
-    filteredVehicles[0] ??
-    vehicles[0] ??
-    null;
+      const density =
+        totalVehicles > 0
+          ? Math.round((list.length / totalVehicles) * 100)
+          : 0;
 
-  const zoneData = useMemo(() => {
-    const map: Record<string, number> = {};
+      const congestion =
+        list.length > 0
+          ? Math.min(
+              100,
+              Math.round(
+                density * 0.65 + (stopped / list.length) * 35,
+              ),
+            )
+          : 0;
 
-    vehicles.forEach((vehicle) => {
-      const zone = vehicle.zone || "Central District";
-      map[zone] = (map[zone] || 0) + 1;
+      return { zone, vehicles: list.length, congestion };
     });
+  }, [vehicles, totalVehicles]);
 
-    return Object.entries(map)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 4);
-  }, [vehicles]);
+  const incidents = Math.max(2, Math.min(5, stoppedVehicles + 1));
+  const attention = Math.min(3, stoppedVehicles);
 
   const systemState = loading
-    ? "Synchronizing"
+    ? "INITIALIZING"
     : error
-      ? "Simulation"
-      : "Operational";
+      ? "SIMULATION"
+      : "OPERATIONAL";
 
-  function selectVehicle(id: string) {
-    setSelectedVehicleId(id);
-    setHookSelectedVehicleId(id);
-    selectFromHook(id);
-  }
-
-  function updateForm<K extends keyof typeof form>(
-    key: K,
-    value: (typeof form)[K],
-  ) {
-    setForm((current) => ({ ...current, [key]: value }));
-  }
-
-  function openAddModal() {
+  function openVehicleModal() {
+    setForm(initialForm);
     setFormError("");
     setSuccessMessage("");
-    setForm({
-      id: "",
-      type: "car",
-      plate: "",
-      model: "Sedan",
-      road: "MG Road",
-      zone: "Zone A",
-      speed: "30",
-      direction: "North",
-      status: "Moving",
-      latitude: String(DEFAULT_POSITION[0]),
-      longitude: String(DEFAULT_POSITION[1]),
-    });
-    setAddModalOpen(true);
+    setIsVehicleModalOpen(true);
+  }
+
+  function closeVehicleModal() {
+    setIsVehicleModalOpen(false);
+    setFormError("");
+  }
+
+  function updateForm<K extends keyof VehicleForm>(
+    key: K,
+    value: VehicleForm[K],
+  ) {
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
   function handleAddVehicle(event: FormEvent<HTMLFormElement>) {
@@ -166,26 +150,47 @@ export default function Dashboard() {
     setSuccessMessage("");
 
     const plate = form.plate.trim().toUpperCase();
-    const customId = form.id.trim().toUpperCase();
+    const model = form.model.trim();
+    const road = form.road.trim();
     const speed = Number(form.speed);
     const latitude = Number(form.latitude);
     const longitude = Number(form.longitude);
 
-    if (!plate || !form.road.trim() || !form.zone.trim()) {
-      setFormError("Please fill in the number plate, road, and zone.");
+    if (!plate || !model || !road) {
+      setFormError("Please fill in the number plate, model and road.");
+      return;
+    }
+
+    if (
+      vehicles.some(
+        (vehicle) => vehicle.plate.trim().toUpperCase() === plate,
+      )
+    ) {
+      setFormError("This number plate already exists in the current fleet.");
+      return;
+    }
+
+    if (
+      form.id.trim() &&
+      vehicles.some(
+        (vehicle) =>
+          vehicle.id.toLowerCase() === form.id.trim().toLowerCase(),
+      )
+    ) {
+      setFormError("This vehicle ID already exists in the current fleet.");
       return;
     }
 
     if (!Number.isFinite(speed) || speed < 0 || speed > 300) {
-      setFormError("Enter a valid speed between 0 and 300 km/h.");
+      setFormError("Speed must be between 0 and 300 km/h.");
       return;
     }
 
     if (
       !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude) ||
       latitude < -90 ||
       latitude > 90 ||
+      !Number.isFinite(longitude) ||
       longitude < -180 ||
       longitude > 180
     ) {
@@ -193,24 +198,13 @@ export default function Dashboard() {
       return;
     }
 
-    if (
-      vehicles.some(
-        (vehicle) =>
-          vehicle.plate.trim().toUpperCase() === plate ||
-          (customId && vehicle.id.toUpperCase() === customId),
-      )
-    ) {
-      setFormError("This vehicle ID or number plate already exists.");
-      return;
-    }
-
     const newVehicle: NewVehicleInput = {
-      ...(customId ? { id: customId } : {}),
-      type: form.type,
+      ...(form.id.trim() ? { id: form.id.trim() } : {}),
       plate,
-      model: form.model.trim() || defaultModel(form.type),
-      road: form.road.trim(),
-      zone: form.zone.trim(),
+      type: form.type,
+      model,
+      road,
+      zone: form.zone,
       speed: form.status === "Stopped" ? 0 : speed,
       direction: form.direction,
       status: form.status,
@@ -220,523 +214,580 @@ export default function Dashboard() {
     try {
       const created = addVehicle(newVehicle);
 
-      selectVehicle(created.id);
-      setSearch("");
-      setAddModalOpen(false);
-      setSuccessMessage(`${created.plate} was added successfully.`);
+      setSuccessMessage(`Vehicle ${created.id} added successfully.`);
+      setForm(initialForm);
+      setIsVehicleModalOpen(false);
     } catch (err) {
       setFormError(
         err instanceof Error
           ? err.message
-          : "Unable to add this vehicle.",
+          : "Unable to add this vehicle. Please try again.",
       );
     }
   }
 
   return (
-    <div className="metro-dashboard">
-      <header className="metro-dashboard-header">
-        <div className="metro-breadcrumb">
-          <span className="metro-eyebrow">METROPOLIS</span>
-          <ChevronRight size={14} />
-          <span>Live City Dashboard</span>
-        </div>
+    <div className="metropolis-page dashboard-page">
+      {/* HERO */}
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-grid" />
 
-        <div className="metro-header-search">
-          <Search size={18} />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by number plate, vehicle ID, road or zone..."
-          />
-          <button
-            type="button"
-            className="metro-search-filter"
-            aria-label="Search filters"
-            title="Search filters"
-          >
-            <SlidersHorizontal size={17} />
-          </button>
-        </div>
-
-        <div className="metro-header-actions">
-          <div className="metro-header-status">
-            <span className="metro-live-dot" />
-            <div>
-              <strong>{systemState}</strong>
-              <small>Simulation engine</small>
-            </div>
+        <div className="dashboard-hero-content">
+          <div className="dashboard-eyebrow">
+            <span className="eyebrow-line" />
+            <span>METROPOLIS / COMMAND CENTER</span>
+            <span className="eyebrow-version">v2.4</span>
           </div>
 
-          <div className="metro-header-divider" />
+          <h1 className="dashboard-title">
+            City Intelligence
+            <span>Dashboard</span>
+          </h1>
 
-          <button
-            type="button"
-            className="metro-icon-button"
-            title="Notifications"
-          >
-            <Bell size={19} />
-            <span className="metro-notification-count">3</span>
-          </button>
+          <p className="dashboard-subtitle">
+            Monitor the simulated city, analyze mobility patterns, detect
+            operational anomalies, and control the digital twin in real time.
+          </p>
 
-          <div className="metro-user">
-            <div className="metro-user-avatar">CP</div>
-            <div className="metro-user-info">
-              <strong>City Planner</strong>
-              <span>Administrator</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="metro-dashboard-content">
-        <section className="metro-dashboard-intro">
-          <div>
-            <div className="metro-section-kicker">
-              METROPOLIS / COMMAND CENTER
-            </div>
-            <h1>Live City Dashboard</h1>
-            <p>
-              Monitor vehicles, traffic and city zones in real time with the
-              METROPOLIS digital twin.
-            </p>
-          </div>
-
-          <div className="metro-intro-meta">
-            <div className="metro-clock-box">
-              <Clock3 size={17} />
+          <div className="dashboard-hero-actions">
+            <div className="hero-live-state">
+              <span className="hero-live-dot" />
               <div>
-                <strong>LIVE MONITORING</strong>
-                <span>
-                  {new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
+                <strong>SYSTEM LIVE</strong>
+                <span>Digital twin engine active</span>
               </div>
             </div>
 
-            <div className="metro-system-chip">
-              <Signal size={15} />
-              DATA STREAM ACTIVE
+            <div className="hero-clock">
+              <Clock3 size={14} />
+              <span>REAL-TIME MONITORING</span>
             </div>
-          </div>
-        </section>
 
-        <div className="metro-dashboard-actions">
-          <div className="metro-dashboard-action-copy">
-            <strong>Vehicle management</strong>
-            <span>Add a vehicle to the city simulation manually.</span>
-          </div>
-          <button
-            type="button"
-            className="metro-add-vehicle-button"
-            onClick={openAddModal}
-          >
-            <Plus size={18} />
-            Add Vehicle
-          </button>
-        </div>
-
-        {successMessage && (
-          <div className="metro-inline-success" role="status">
-            <span className="metro-live-dot" />
-            {successMessage}
             <button
               type="button"
-              aria-label="Dismiss success message"
-              onClick={() => setSuccessMessage("")}
+              className="dashboard-add-vehicle"
+              onClick={openVehicleModal}
             >
-              <X size={15} />
+              <Plus size={15} />
+              ADD VEHICLE
             </button>
           </div>
-        )}
 
-        <section className="metro-kpi-grid">
-          <MetroKpi
-            icon={<CarFront size={22} />}
-            color="blue"
-            label="Total Vehicles"
-            value={String(totalVehicles)}
-            helper="in monitored area"
-            trend="Fleet total"
-          />
-          <MetroKpi
-            icon={<Navigation size={22} />}
-            color="green"
-            label="Moving Vehicles"
-            value={String(movingVehicles)}
-            helper="currently moving"
-            trend="In motion"
-          />
-          <MetroKpi
-            icon={<ShieldAlert size={22} />}
-            color="rose"
-            label="Stopped Vehicles"
-            value={String(stoppedVehicles)}
-            helper="need attention"
-            trend={stoppedVehicles > 0 ? "Monitor" : "Clear"}
-          />
-          <MetroKpi
-            icon={<CircleGauge size={22} />}
-            color="purple"
-            label="Average Speed"
-            value={`${averageSpeed} km/h`}
-            helper="across all vehicles"
-            trend="Fleet average"
-          />
-        </section>
+          {successMessage && (
+            <p className="dashboard-add-success" role="status">
+              {successMessage}
+            </p>
+          )}
+        </div>
 
-        <section className="metro-dashboard-grid">
-          <div className="metro-map-card">
-            <div className="metro-card-header">
+        <div className="dashboard-hero-metrics">
+          <HeroMetric label="CITY LOAD" value="63%" trend="+4.8%" />
+          <HeroMetric label="NETWORK HEALTH" value="94%" trend="+2.1%" />
+          <HeroMetric label="DATA STREAM" value="LIVE" trend="24 / 24" />
+        </div>
+      </section>
+
+      {/* KPI GRID */}
+      <section className="dashboard-kpi-grid">
+        <MetricCard
+          icon={<CarFront size={19} />}
+          label="Active Vehicles"
+          value={String(totalVehicles)}
+          detail="Vehicles inside simulation"
+          accent="cyan"
+          trend="+12.4%"
+        />
+
+        <MetricCard
+          icon={<Radio size={19} />}
+          label="Moving Fleet"
+          value={`${movementRate}%`}
+          detail={`${movingVehicles} vehicles moving`}
+          accent="green"
+          trend="+6.8%"
+        />
+
+        <MetricCard
+          icon={<Gauge size={19} />}
+          label="Average Speed"
+          value={String(averageSpeed)}
+          suffix="km/h"
+          detail="Across simulated fleet"
+          accent="blue"
+          trend="+3.2%"
+        />
+
+        <MetricCard
+          icon={<AlertTriangle size={19} />}
+          label="Active Incidents"
+          value={String(incidents)}
+          detail={`${attention} requiring attention`}
+          accent="amber"
+          trend="MONITOR"
+        />
+      </section>
+
+      {/* OPERATIONS GRID */}
+      <section className="dashboard-command-grid">
+        <div className="dashboard-panel system-panel">
+          <PanelHeading
+            eyebrow="SYSTEM MONITOR"
+            title="City Operations"
+            description="Current digital-twin infrastructure state"
+            icon={<Activity size={18} />}
+          />
+
+          <div className="operations-list">
+            <Operation
+              icon={<ShieldCheck size={16} />}
+              title="Core System"
+              detail="Simulation services"
+              value={systemState}
+              good={!loading && !error}
+            />
+
+            <Operation
+              icon={<CarFront size={16} />}
+              title="Vehicle Engine"
+              detail="Fleet movement processor"
+              value={totalVehicles ? "RUNNING" : "WAITING"}
+              good={totalVehicles > 0}
+            />
+
+            <Operation
+              icon={<Radio size={16} />}
+              title="Data Stream"
+              detail="Live simulation feed"
+              value={error ? "SIMULATION" : "CONNECTED"}
+              good={!error}
+            />
+
+            <Operation
+              icon={<MapPin size={16} />}
+              title="Digital Twin"
+              detail="City spatial model"
+              value="ACTIVE"
+              good
+            />
+          </div>
+
+          <div className="system-health">
+            <div className="health-header">
+              <span>SYSTEM HEALTH</span>
+              <strong>94%</strong>
+            </div>
+
+            <div className="health-track">
+              <div className="health-progress" style={{ width: "94%" }} />
+            </div>
+
+            <div className="health-meta">
+              <span>CPU 38%</span>
+              <span>MEMORY 52%</span>
+              <span>STREAM 98%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="dashboard-panel traffic-panel">
+          <PanelHeading
+            eyebrow="TRAFFIC ANALYTICS"
+            title="Mobility Intelligence"
+            description="Vehicle density across city zones"
+            icon={<TrendingUp size={18} />}
+          />
+
+          <div className="traffic-overview">
+            <div className="traffic-score">
+              <div className="traffic-score-ring">
+                <strong>{Math.round(movementRate * 0.94)}</strong>
+                <span>/ 100</span>
+              </div>
+
               <div>
-                <div className="metro-card-title-row">
-                  <h2>City Map — Live View</h2>
-                  <span className="metro-simulated-label">SIMULATED</span>
-                </div>
-                <p>Vehicle movement and traffic intelligence</p>
-              </div>
-
-              <div className="metro-map-legend">
-                <span><i className="legend-blue" />Car</span>
-                <span><i className="legend-green" />Bus</span>
-                <span><i className="legend-purple" />Bike</span>
-                <span><i className="legend-orange" />Other</span>
-                <span><i className="legend-rose" />Stopped</span>
+                <strong>Network Flow</strong>
+                <span>Optimal mobility</span>
               </div>
             </div>
 
-            <div className="metro-dashboard-map">
-              <DashboardMapFallback
-                vehicles={vehicles}
-                selectedVehicleId={selectedVehicleId}
-                onSelect={selectVehicle}
-              />
-            </div>
-
-            <div className="metro-map-footer">
-              <div className="metro-map-location">
-                <MapPin size={15} />
-                <span>METROPOLIS CENTRAL DISTRICT</span>
-              </div>
-              <div className="metro-map-status">
-                <span className="metro-live-dot" />
-                LIVE VEHICLE FEED
-              </div>
-            </div>
+            <span className="traffic-status">STABLE</span>
           </div>
 
-          <aside className="metro-dashboard-side">
-            <section className="metro-selected-card">
-              <div className="metro-card-header compact">
-                <div>
-                  <div className="metro-card-title-row">
-                    <h2>Selected Vehicle</h2>
-                    <span className="metro-live-label">LIVE</span>
+          <div className="zone-list">
+            {zoneTraffic.map((zone) => (
+              <div className="zone-row" key={zone.zone}>
+                <div className="zone-row-top">
+                  <div className="zone-name">
+                    <span className="zone-dot" />
+                    <strong>{zone.zone}</strong>
                   </div>
-                  <p>Vehicle intelligence</p>
+                  <span>{zone.vehicles} vehicles</span>
                 </div>
 
-                <button
-                  type="button"
-                  className="metro-close-button"
-                  onClick={() => {
-                    setSelectedVehicleId(null);
-                    setHookSelectedVehicleId(null);
-                  }}
-                  title="Clear selection"
-                >
-                  <X size={17} />
-                </button>
-              </div>
-
-              {selectedVehicle ? (
-                <SelectedVehicle vehicle={selectedVehicle} />
-              ) : (
-                <div className="metro-empty-selection">
-                  <CarFront size={30} />
-                  <strong>No vehicle selected</strong>
-                  <span>Select a vehicle from the live monitor.</span>
+                <div className="zone-progress">
+                  <div
+                    className={
+                      zone.congestion >= 70
+                        ? "danger"
+                        : zone.congestion >= 40
+                          ? "warning"
+                          : ""
+                    }
+                    style={{ width: `${Math.max(8, zone.congestion)}%` }}
+                  />
                 </div>
-              )}
-            </section>
-
-            <section className="metro-system-card">
-              <div className="metro-card-header compact">
-                <div>
-                  <h2>City Systems</h2>
-                  <p>Operational status</p>
-                </div>
-                <Activity size={18} />
               </div>
-
-              <div className="metro-system-list">
-                <SystemItem
-                  icon={<Radio size={16} />}
-                  label="Vehicle Simulation"
-                  value="Running"
-                  good
-                />
-                <SystemItem
-                  icon={<Signal size={16} />}
-                  label="Data Engine"
-                  value={error ? "Simulation" : "Connected"}
-                  good={!error}
-                />
-                <SystemItem
-                  icon={<MapPin size={16} />}
-                  label="Digital Twin"
-                  value="Active"
-                  good
-                />
-              </div>
-            </section>
-          </aside>
-        </section>
-
-        <section className="metro-vehicle-section">
-          <div className="metro-section-header">
-            <div>
-              <div className="metro-section-kicker">MOBILITY INTELLIGENCE</div>
-              <h2>Live Vehicle Monitor</h2>
-              <p>
-                Continuously updated fleet activity from the simulation engine.
-              </p>
-            </div>
-            <span className="metro-view-all">
-              {filteredVehicles.length} vehicle
-              {filteredVehicles.length === 1 ? "" : "s"}
-              {search ? " found" : " tracked"}
-              <ArrowUpRight size={16} />
-            </span>
-          </div>
-
-          <div className="metro-vehicle-grid">
-            {filteredVehicles.slice(0, 6).map((vehicle) => (
-              <VehicleMonitorCard
-                key={vehicle.id}
-                vehicle={vehicle}
-                selected={vehicle.id === selectedVehicleId}
-                onClick={() => selectVehicle(vehicle.id)}
-              />
             ))}
           </div>
+        </div>
+      </section>
 
-          {!filteredVehicles.length && (
-            <div className="metro-no-results">
-              <Search size={22} />
-              <span>No vehicles match "{search}"</span>
+      {/* LIVE FLEET */}
+      <section className="dashboard-panel fleet-panel">
+        <PanelHeading
+          eyebrow="LIVE DATA STREAM"
+          title="Vehicle Command Feed"
+          description="Latest simulated fleet telemetry"
+          icon={<Zap size={18} />}
+          action={
+            <span className="panel-live-badge">
+              <span />
+              LIVE
+            </span>
+          }
+        />
+
+        <div className="fleet-table-wrapper">
+          <table className="fleet-table">
+            <thead>
+              <tr>
+                <th>VEHICLE</th>
+                <th>TYPE</th>
+                <th>LOCATION</th>
+                <th>ZONE</th>
+                <th>SPEED</th>
+                <th>DIRECTION</th>
+                <th>STATE</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {vehicles.slice(0, 7).map((vehicle) => (
+                <tr key={vehicle.id}>
+                  <td>
+                    <div className="vehicle-cell">
+                      <div className="vehicle-icon">
+                        <CarFront size={14} />
+                      </div>
+                      <div>
+                        <strong>{vehicle.id}</strong>
+                        <span>{vehicle.plate}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td>
+                    <span className="type-badge">{vehicle.type}</span>
+                  </td>
+
+                  <td>
+                    <div className="location-cell">
+                      <MapPin size={13} />
+                      <span>{vehicle.road}</span>
+                    </div>
+                  </td>
+
+                  <td>{vehicle.zone}</td>
+
+                  <td>
+                    <strong className="speed-value">
+                      {vehicle.speed}
+                      <small>km/h</small>
+                    </strong>
+                  </td>
+
+                  <td>
+                    <span className="direction-value">
+                      {vehicle.direction || "N"}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      className={
+                        vehicle.status === "Moving"
+                          ? "fleet-status moving"
+                          : "fleet-status stopped"
+                      }
+                    >
+                      <span />
+                      {vehicle.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {!vehicles.length && (
+            <div className="fleet-empty">
+              No live telemetry available.
             </div>
           )}
-        </section>
+        </div>
+      </section>
 
-        <section className="metro-intelligence-grid">
-          <IntelligenceCard
-            icon={<MapPin size={19} />}
-            color="blue"
-            label="Active Zones"
-            value={String(zoneData.length)}
-          />
-          <IntelligenceCard
-            icon={<Truck size={19} />}
-            color="green"
-            label="Fleet Utilization"
-            value={`${totalVehicles ? Math.round((movingVehicles / totalVehicles) * 100) : 0}%`}
-          />
-          <IntelligenceCard
-            icon={<CircleGauge size={19} />}
-            color="purple"
-            label="Network Speed"
-            value={`${averageSpeed} km/h`}
-          />
-          <IntelligenceCard
-            icon={<ShieldAlert size={19} />}
-            color="orange"
-            label="Attention Required"
-            value={String(stoppedVehicles)}
-          />
-        </section>
-      </main>
+      {/* BOTTOM INSIGHTS */}
+      <section className="dashboard-bottom-grid">
+        <InsightCard
+          icon={<Route size={18} />}
+          title="Network Coverage"
+          value="87%"
+          description="Road network currently represented in the digital twin."
+        />
 
-      {addModalOpen && (
+        <InsightCard
+          icon={<CircleGauge size={18} />}
+          title="Fleet Efficiency"
+          value="92%"
+          description="Simulated mobility efficiency based on active vehicles."
+        />
+
+        <InsightCard
+          icon={<ArrowUpRight size={18} />}
+          title="Prediction Signal"
+          value="HIGH"
+          description="Traffic intelligence layer is ready for scenario analysis."
+        />
+      </section>
+
+      {/* FOOTER */}
+      <footer className="dashboard-footer">
+        <div>
+          <Activity size={13} />
+          <span>METROPOLIS DIGITAL TWIN · REAL-TIME SIMULATION</span>
+        </div>
+
+        <span>Simulation cycle: 2.4 sec</span>
+      </footer>
+
+      {/* DASHBOARD-ONLY ADD VEHICLE MODAL */}
+      {isVehicleModalOpen && (
         <div
-          className="metro-modal-backdrop"
+          className="vehicle-modal-backdrop"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
-              setAddModalOpen(false);
+              closeVehicleModal();
             }
           }}
         >
           <section
-            className="metro-add-vehicle-modal"
+            className="vehicle-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="metro-add-vehicle-title"
+            aria-labelledby="add-vehicle-title"
           >
-            <div className="metro-modal-header">
+            <div className="vehicle-modal-header">
               <div>
-                <span className="metro-section-kicker">
-                  MOBILITY MANAGEMENT
+                <span className="vehicle-modal-eyebrow">
+                  METROPOLIS / FLEET CONTROL
                 </span>
-                <h2 id="metro-add-vehicle-title">Add Vehicle</h2>
-                <p>Register a vehicle in the simulated city network.</p>
+                <h2 id="add-vehicle-title">Add Vehicle</h2>
+                <p>Register a new vehicle in the simulated city.</p>
               </div>
+
               <button
                 type="button"
-                className="metro-close-button"
-                aria-label="Close form"
-                onClick={() => setAddModalOpen(false)}
+                className="vehicle-modal-close"
+                aria-label="Close add vehicle form"
+                onClick={closeVehicleModal}
               >
                 <X size={19} />
               </button>
             </div>
 
             <form onSubmit={handleAddVehicle}>
-              <div className="metro-form-grid">
-                <FormField label="Vehicle ID (optional)">
+              <div className="vehicle-form-grid">
+                <label>
+                  Vehicle ID <span className="form-optional">OPTIONAL</span>
                   <input
                     value={form.id}
                     onChange={(event) => updateForm("id", event.target.value)}
-                    placeholder="Auto-generated, e.g. VH-009"
+                    placeholder="Auto-generated if empty"
+                    maxLength={30}
                   />
-                </FormField>
+                </label>
 
-                <FormField label="Vehicle type">
+                <label>
+                  Number Plate *
+                  <input
+                    value={form.plate}
+                    onChange={(event) =>
+                      updateForm("plate", event.target.value.toUpperCase())
+                    }
+                    placeholder="KA01AB1234"
+                    maxLength={20}
+                    required
+                  />
+                </label>
+
+                <label>
+                  Vehicle Type *
                   <select
                     value={form.type}
-                    onChange={(event) => {
-                      const type = event.target.value as VehicleType;
-                      setForm((current) => ({
-                        ...current,
-                        type,
-                        model: defaultModel(type),
-                      }));
-                    }}
+                    onChange={(event) =>
+                      updateForm(
+                        "type",
+                        event.target.value as VehicleForm["type"],
+                      )
+                    }
                   >
                     <option value="car">Car</option>
                     <option value="bus">Bus</option>
                     <option value="bike">Bike</option>
                   </select>
-                </FormField>
+                </label>
 
-                <FormField label="Number plate *">
-                  <input
-                    required
-                    value={form.plate}
-                    onChange={(event) => updateForm("plate", event.target.value)}
-                    placeholder="KA-01-AB-1234"
-                  />
-                </FormField>
-
-                <FormField label="Model">
+                <label>
+                  Model *
                   <input
                     value={form.model}
                     onChange={(event) => updateForm("model", event.target.value)}
-                    placeholder="Sedan"
-                  />
-                </FormField>
-
-                <FormField label="Road *">
-                  <input
+                    placeholder="e.g. Sedan"
+                    maxLength={60}
                     required
+                  />
+                </label>
+
+                <label>
+                  Road / Street *
+                  <input
                     value={form.road}
                     onChange={(event) => updateForm("road", event.target.value)}
-                    placeholder="MG Road"
-                  />
-                </FormField>
-
-                <FormField label="Zone *">
-                  <select
+                    placeholder="e.g. MG Road"
+                    maxLength={100}
                     required
+                  />
+                </label>
+
+                <label>
+                  Zone *
+                  <select
                     value={form.zone}
                     onChange={(event) => updateForm("zone", event.target.value)}
                   >
                     <option>Zone A</option>
                     <option>Zone B</option>
                     <option>Zone C</option>
-                    <option>Zone D</option>
-                    <option>Central District</option>
                   </select>
-                </FormField>
+                </label>
 
-                <FormField label="Speed (km/h)">
+                <label>
+                  Speed (km/h) *
                   <input
                     type="number"
                     min="0"
                     max="300"
-                    required
+                    step="1"
                     value={form.speed}
-                    disabled={form.status === "Stopped"}
                     onChange={(event) => updateForm("speed", event.target.value)}
+                    required
                   />
-                </FormField>
+                </label>
 
-                <FormField label="Direction">
+                <label>
+                  Direction *
                   <select
                     value={form.direction}
-                    onChange={(event) => updateForm("direction", event.target.value)}
+                    onChange={(event) =>
+                      updateForm("direction", event.target.value)
+                    }
                   >
                     <option>North</option>
-                    <option>North-East</option>
-                    <option>East</option>
-                    <option>South-East</option>
                     <option>South</option>
-                    <option>South-West</option>
+                    <option>East</option>
                     <option>West</option>
+                    <option>North-East</option>
                     <option>North-West</option>
+                    <option>South-East</option>
+                    <option>South-West</option>
                   </select>
-                </FormField>
+                </label>
 
-                <FormField label="Movement status">
+                <label>
+                  Vehicle State *
                   <select
                     value={form.status}
-                    onChange={(event) => updateForm("status", event.target.value as VehicleStatus)}
+                    onChange={(event) =>
+                      updateForm(
+                        "status",
+                        event.target.value as VehicleForm["status"],
+                      )
+                    }
                   >
                     <option value="Moving">Moving</option>
                     <option value="Stopped">Stopped</option>
                   </select>
-                </FormField>
+                </label>
 
-                <FormField label="Latitude">
+                <label>
+                  Latitude *
                   <input
                     type="number"
+                    min="-90"
+                    max="90"
                     step="any"
-                    required
                     value={form.latitude}
-                    onChange={(event) => updateForm("latitude", event.target.value)}
+                    onChange={(event) =>
+                      updateForm("latitude", event.target.value)
+                    }
+                    required
                   />
-                </FormField>
+                </label>
 
-                <FormField label="Longitude">
+                <label>
+                  Longitude *
                   <input
                     type="number"
+                    min="-180"
+                    max="180"
                     step="any"
-                    required
                     value={form.longitude}
-                    onChange={(event) => updateForm("longitude", event.target.value)}
+                    onChange={(event) =>
+                      updateForm("longitude", event.target.value)
+                    }
+                    required
                   />
-                </FormField>
+                </label>
               </div>
 
+              <p className="vehicle-form-note">
+                Coordinates default to the central Bengaluru simulation point.
+                A stopped vehicle will be registered at 0 km/h.
+              </p>
+
               {formError && (
-                <div className="metro-form-error" role="alert">
-                  <ShieldAlert size={17} />
-                  {formError}
+                <div className="vehicle-form-error" role="alert">
+                  <AlertTriangle size={15} />
+                  <span>{formError}</span>
                 </div>
               )}
 
-              <div className="metro-modal-footer">
+              <div className="vehicle-modal-actions">
                 <button
                   type="button"
-                  className="metro-modal-cancel"
-                  onClick={() => setAddModalOpen(false)}
+                  className="vehicle-cancel-button"
+                  onClick={closeVehicleModal}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="metro-add-vehicle-button">
-                  <Plus size={17} />
-                  Add Vehicle
+
+                <button
+                  type="submit"
+                  className="vehicle-submit-button"
+                >
+                  <Plus size={16} />
+                  Register Vehicle
                 </button>
               </div>
             </form>
@@ -747,275 +798,145 @@ export default function Dashboard() {
   );
 }
 
-function defaultModel(type: VehicleType) {
-  if (type === "bus") return "City Bus";
-  if (type === "bike") return "Street Bike";
-  return "Sedan";
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <label className="metro-form-field">
-      <span>{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function MetroKpi({
-  icon,
-  color,
+/* HERO METRIC */
+function HeroMetric({
   label,
   value,
-  helper,
   trend,
 }: {
-  icon: ReactNode;
-  color: "blue" | "green" | "rose" | "purple";
   label: string;
   value: string;
-  helper: string;
   trend: string;
 }) {
   return (
-    <article className={`metro-kpi-card ${color}`}>
-      <div className={`metro-kpi-icon ${color}`}>{icon}</div>
-      <div className="metro-kpi-content">
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{helper}</small>
+    <div className="hero-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{trend}</small>
+    </div>
+  );
+}
+
+/* METRIC CARD */
+function MetricCard({
+  icon,
+  label,
+  value,
+  suffix,
+  detail,
+  trend,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  suffix?: string;
+  detail: string;
+  trend: string;
+  accent: "cyan" | "green" | "blue" | "amber";
+}) {
+  return (
+    <article className={`metric-card accent-${accent}`}>
+      <div className="metric-card-top">
+        <div className="metric-icon">{icon}</div>
+        <span className="metric-trend">{trend}</span>
       </div>
-      <div className="metro-kpi-trend">
-        <ArrowUpRight size={13} />
-        {trend}
+
+      <div className="metric-label">{label}</div>
+
+      <div className="metric-number">
+        {value}
+        {suffix && <small>{suffix}</small>}
+      </div>
+
+      <div className="metric-detail">{detail}</div>
+
+      <div className="metric-sparkline">
+        <span /><span /><span /><span />
+        <span /><span /><span /><span />
       </div>
     </article>
   );
 }
 
-function SelectedVehicle({ vehicle }: { vehicle: any }) {
+/* PANEL HEADING */
+function PanelHeading({
+  eyebrow,
+  title,
+  description,
+  icon,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  action?: React.ReactNode;
+}) {
   return (
-    <div className="metro-selected-content">
-      <div className="metro-selected-top">
-        <div className="metro-vehicle-avatar-large">
-          {vehicle.type === "bus" ? <Truck size={30} /> : <CarFront size={30} />}
-        </div>
+    <div className="advanced-panel-header">
+      <div className="advanced-panel-title">
+        <div className="panel-icon">{icon}</div>
         <div>
-          <div className="metro-selected-name-row">
-            <strong>{vehicle.model || vehicle.type || "Vehicle"}</strong>
-            <span>{String(vehicle.type || "CAR").toUpperCase()}</span>
-          </div>
-          <h3>{vehicle.plate || vehicle.id}</h3>
-          <small>{vehicle.id}</small>
+          <span>{eyebrow}</span>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
       </div>
-
-      <div className="metro-selected-status">
-        <span className={vehicle.status === "Moving" ? "metro-status moving" : "metro-status stopped"}>
-          <span />
-          {vehicle.status || "Unknown"}
-        </span>
-        <strong>{vehicle.speed ?? 0} km/h</strong>
-      </div>
-
-      <div className="metro-vehicle-details">
-        <VehicleDetail icon={<Navigation size={16} />} label="Direction" value={vehicle.direction || "North"} />
-        <VehicleDetail icon={<MapPin size={16} />} label="Zone" value={vehicle.zone || "Central District"} />
-        <VehicleDetail icon={<Truck size={16} />} label="Road" value={vehicle.road || "MG Road"} />
-        <VehicleDetail icon={<Clock3 size={16} />} label="Last Seen" value={vehicle.lastUpdated || "Just now"} />
-      </div>
+      {action}
     </div>
   );
 }
 
-function VehicleDetail({
+/* OPERATION */
+function Operation({
   icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="metro-detail-item">
-      <div className="metro-detail-icon">{icon}</div>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-      </div>
-    </div>
-  );
-}
-
-function VehicleMonitorCard({
-  vehicle,
-  selected,
-  onClick,
-}: {
-  vehicle: any;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const moving = vehicle.status === "Moving";
-
-  return (
-    <button
-      type="button"
-      className={`metro-vehicle-monitor-card ${selected ? "selected" : ""}`}
-      onClick={onClick}
-    >
-      <div className={`metro-vehicle-type-icon ${moving ? "moving" : "stopped"}`}>
-        {vehicle.type === "bus" ? <Truck size={18} /> : <CarFront size={18} />}
-      </div>
-
-      <div className="metro-monitor-main">
-        <div className="metro-monitor-title">
-          <strong>{vehicle.plate || vehicle.id}</strong>
-          <span>{vehicle.type || "Vehicle"}</span>
-        </div>
-        <p>{vehicle.road || "Road network"}</p>
-        <small>{vehicle.zone || "Central District"}</small>
-      </div>
-
-      <div className="metro-monitor-right">
-        <strong>
-          {vehicle.speed ?? 0} <small>km/h</small>
-        </strong>
-        <span className={moving ? "metro-status moving" : "metro-status stopped"}>
-          {vehicle.status || "Unknown"}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function SystemItem({
-  icon,
-  label,
+  title,
+  detail,
   value,
   good,
 }: {
-  icon: ReactNode;
-  label: string;
+  icon: React.ReactNode;
+  title: string;
+  detail: string;
   value: string;
   good: boolean;
 }) {
   return (
-    <div className="metro-system-item">
-      <div className="metro-system-item-icon">{icon}</div>
-      <div>
-        <strong>{label}</strong>
-        <span>{value}</span>
+    <div className="advanced-operation">
+      <div className="advanced-operation-icon">{icon}</div>
+      <div className="advanced-operation-copy">
+        <strong>{title}</strong>
+        <span>{detail}</span>
       </div>
-      <i className={good ? "system-good" : "system-warning"} />
+      <div className={good ? "operation-state good" : "operation-state warning"}>
+        <span />
+        {value}
+      </div>
     </div>
   );
 }
 
-function IntelligenceCard({
+/* INSIGHT CARD */
+function InsightCard({
   icon,
-  color,
-  label,
+  title,
   value,
+  description,
 }: {
-  icon: ReactNode;
-  color: "blue" | "green" | "purple" | "orange";
-  label: string;
+  icon: React.ReactNode;
+  title: string;
   value: string;
+  description: string;
 }) {
   return (
-    <div className="metro-intelligence-card">
-      <div className={`metro-intelligence-icon ${color}`}>{icon}</div>
-      <div>
-        <span>{label}</span>
+    <article className="insight-card">
+      <div className="insight-icon">{icon}</div>
+      <div className="insight-copy">
+        <span>{title}</span>
         <strong>{value}</strong>
+        <p>{description}</p>
       </div>
-    </div>
-  );
-}
-
-function DashboardMapFallback({
-  vehicles,
-  selectedVehicleId,
-  onSelect,
-}: {
-  vehicles: any[];
-  selectedVehicleId: string | null;
-  onSelect: (id: string) => void;
-}) {
-  const points = [
-    { left: "18%", top: "45%" },
-    { left: "34%", top: "29%" },
-    { left: "53%", top: "52%" },
-    { left: "70%", top: "35%" },
-    { left: "78%", top: "65%" },
-    { left: "45%", top: "72%" },
-  ];
-
-  return (
-    <div className="metro-map-simulation">
-      <div className="metro-map-grid-lines" />
-      <div className="metro-map-water water-one" />
-      <div className="metro-map-water water-two" />
-      <div className="metro-road road-one" />
-      <div className="metro-road road-two" />
-      <div className="metro-road road-three" />
-      <div className="metro-road road-four" />
-
-      <div className="metro-map-label label-tech">TECH PARK</div>
-      <div className="metro-map-label label-business">BUSINESS HUB</div>
-      <div className="metro-map-label label-central">CENTRAL DISTRICT</div>
-      <div className="metro-map-label label-residential">RESIDENTIAL AREA</div>
-
-      {vehicles.slice(0, 6).map((vehicle: any, index: number) => {
-        const point = points[index % points.length];
-        const vehicleClass = vehicle.type === "bus"
-          ? "bus"
-          : vehicle.type === "bike"
-            ? "bike"
-            : "car";
-
-        return (
-          <button
-            type="button"
-            key={vehicle.id}
-            className={`metro-map-vehicle ${vehicle.status === "Stopped" ? "stopped" : ""} ${selectedVehicleId === vehicle.id ? "selected" : ""}`}
-            style={{ left: point.left, top: point.top }}
-            onClick={() => onSelect(vehicle.id)}
-            title={`${vehicle.plate || vehicle.id} • ${vehicle.speed ?? 0} km/h • Select vehicle`}
-            aria-label={`Select ${vehicle.plate || vehicle.id}`}
-          >
-            <div className={`metro-map-marker ${vehicleClass}`}>
-              {vehicle.type === "bus" ? <Truck size={15} /> : <CarFront size={15} />}
-            </div>
-            <div className="metro-map-tooltip">
-              <strong>{vehicle.plate || vehicle.id}</strong>
-              <span>{vehicle.speed ?? 0} km/h</span>
-            </div>
-          </button>
-        );
-      })}
-
-      <div className="metro-map-control-stack">
-        <button type="button" aria-label="Zoom in">+</button>
-        <button type="button" aria-label="Zoom out">−</button>
-        <button type="button" aria-label="Reset map view">◎</button>
-      </div>
-
-      <div className="metro-map-compass">N</div>
-
-      <div className="metro-map-overlay">
-        <span><i /> LIVE</span>
-        <strong>{vehicles.length}</strong>
-        <small>tracked vehicles</small>
-      </div>
-    </div>
+    </article>
   );
 }
